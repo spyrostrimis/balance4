@@ -1,0 +1,88 @@
+# Balance: visual style
+
+This is the approved look for the game. New art (tiles, units, buildings) must
+match it.
+
+## Reference mockups
+
+The mockups are in [`mockups/`](../mockups/). They are pictures of what the game
+should look like, made by scripts; they are not game art and not game code.
+
+| File | What it shows |
+| --- | --- |
+| [`balance_v4_forest_blue.png`](../mockups/balance_v4_forest_blue.png) | **The approved style**, forest map, Blue |
+| [`balance_v4_desert_red.png`](../mockups/balance_v4_desert_red.png) | **The approved style**, desert map, Red |
+| [`balance_v5_units_sheet.png`](../mockups/balance_v5_units_sheet.png) | Approved unit sizes |
+| [`balance_v7_forest_blue.png`](../mockups/balance_v7_forest_blue.png), [`balance_v7_desert_red.png`](../mockups/balance_v7_desert_red.png) | Approved way of grounding sprites (rim and contact shadow) |
+| [`balance_v7_forest_closeup.png`](../mockups/balance_v7_forest_closeup.png), [`balance_v7_desert_closeup.png`](../mockups/balance_v7_desert_closeup.png) | Close-ups of the same |
+| [`balance_v8_forest_blue.png`](../mockups/balance_v8_forest_blue.png), [`balance_v8_desert_red.png`](../mockups/balance_v8_desert_red.png) | Latest mockups: current HUD layout and hero portrait |
+
+Everything before v4 (`balance_mock_*`, `balance_v2_*`, `balance_v3_*`) was
+rejected and is kept only as a record of what not to do. See "Rejected
+directions" below.
+
+The generator scripts are in [`mockups/src/`](../mockups/src/) (v2 to v8, each
+building on the one before). They are Python and Blender scripts and are
+reference material.
+
+## Screen and grid
+
+- Internal resolution is **960x540**, shown at a whole-number scale (x2 gives
+  1920x1080). Nearest-neighbour filtering; no smoothing.
+- The grid cell is **32 px**.
+
+## View
+
+- Near top-down and flat, like Dune II. Almost no height anywhere; nothing looks
+  tall.
+- Shadows are short.
+
+## Terrain
+
+- Terrain is made of **flat texture patches**.
+  - Forest maps: grass, dirt, stone, forest, water.
+  - Desert maps: sand, dunes, rock, hardpan.
+- Each patch is built from **small repeating elements** with **per-pixel grit**,
+  not smooth gradients or large shapes.
+- **Forest is a terrain type**, not a set of tall objects: it is a carpet of tree
+  tops, each about a third of a cell across.
+
+## Colour
+
+- A muted, natural palette.
+- Warmer than a science-fiction look, but not saturated or cartoon-like.
+
+## Units and buildings
+
+- Soldiers are about **a third of a cell** tall.
+- Vehicles are **just under one cell**.
+- Every sprite has a **soft dark rim** and a **tight contact shadow**, so it sits
+  on the ground. No drop shadows and no hard black outlines.
+- Buildings stand **only on rock ground**, on a foundation that is flush with it.
+
+## HUD
+
+Layout:
+
+- A short **top bar**, centred over the map: Objectives, Menu, mission name,
+  resources, round timer.
+- The **hero portrait** in the top-left corner.
+- A **right sidebar**: power bar, minimap, tabs, preview, a 3x2 build grid, the
+  build queue, command buttons.
+
+**The HUD art is not final.** The current HUD is considered functional only and
+will be revisited later. Keep the layout; do not treat the art as approved.
+
+## Rejected directions
+
+| Mockup | Why it was rejected |
+| --- | --- |
+| v1 (`balance_mock_*`) | Dark glass science-fiction look: too cold, too technological |
+| v2 | Too warm and colourful, too many round shapes, too much height and depth, soldiers bigger than trees |
+| v3 | Still too cartoon-like; trees too tall and too big; the repeating elements needed to be smaller |
+
+## A note on originality
+
+The style borrows Dune II's flatness, proportions and readability. It does not
+copy any Dune II sprite, tile, palette or screen. All art in the game is made for
+this project.

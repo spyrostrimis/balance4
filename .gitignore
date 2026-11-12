@@ -1,0 +1,57 @@
+# Godot 4: editor cache and imported data (rebuilt on first open).
+# The *.import files next to assets are NOT ignored: they hold each asset's
+# import settings and Godot 4 expects them to be in version control.
+.godot/
+*.translation
+.nomedia
+
+# Export output
+/build/
+/builds/
+/export/
+*.pck
+*.apk
+*.aab
+*.ipa
+
+# Blender and Krita backups
+*.blend1
+*.blend[0-9]
+*.blend@
+*.kra~
+*~.kra
+
+# Asset pipeline scratch output
+/tools/_out/
+/tools/_raw/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets and local settings
+.env
+.env.*
+*.keystore
+*.jks
+.claude/settings.local.json
+
+# OS junk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+
+# Editor junk
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
