@@ -27,7 +27,7 @@ Done means:
 - The README and the design, visual style and roadmap documents are written.
 - The style mockups are in the repository.
 
-## M1 Map
+## M1 Map (done)
 
 A map you can look around.
 
@@ -44,6 +44,11 @@ Done means:
   camera.
 - Playable result: open the game and scroll around one forest map and one desert
   map.
+
+What was built is described in [terrain.md](terrain.md). Left for later
+milestones: the top bar, the hero portrait and the rest of the sidebar (only the
+minimap is in place); the Orichalcum rock in the middle of the maps (M3 and M4);
+shroud (M2).
 
 ## M2 Units
 

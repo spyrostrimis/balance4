@@ -128,3 +128,10 @@ Nothing in this section has been decided. Do not treat any guess as canon.
 - **OPEN: What the Palatinate / Clergy wants** and how its unpredictability shows
   up in play.
 - **OPEN: What the wandering creatures are** and how they behave.
+- **OPEN: Who can cross which terrain?** For now the terrain data says only
+  water is impassable and only stone (forest maps) and rock (desert maps) can be
+  built on. Whether forest should stop vehicles, slow infantry or hide units,
+  and whether dunes should slow anything, is undecided.
+- **OPEN: Are the two M1 maps the Mission 1 maps?** They are laid out like the
+  mockups (a central clearing with a track to two opposite corners) but were
+  made to test the map code, not designed for the mission.

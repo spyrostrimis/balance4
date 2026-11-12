@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TerrainType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/terrain_type.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/tiles/desert/rock.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"rock"
+display_name = "Rock"
+symbol = "r"
+walkable = true
+buildable = true
+minimap_color = Color(0.395, 0.337, 0.275, 1)
+tiles = ExtResource("2")

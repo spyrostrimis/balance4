@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Biome" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/biome.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/tiles/desert/decor.png" id="2"]
+[ext_resource type="Resource" path="res://data/terrain/desert_sand.tres" id="3"]
+[ext_resource type="Resource" path="res://data/terrain/desert_dunes.tres" id="4"]
+[ext_resource type="Resource" path="res://data/terrain/desert_hardpan.tres" id="5"]
+[ext_resource type="Resource" path="res://data/terrain/desert_rock.tres" id="6"]
+
+[resource]
+script = ExtResource("1")
+id = &"desert"
+display_name = "Desert"
+terrains = Array[Resource]([ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6")])
+decor = ExtResource("2")
+decor_density = 0.3
