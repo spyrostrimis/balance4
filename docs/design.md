@@ -132,6 +132,12 @@ Nothing in this section has been decided. Do not treat any guess as canon.
   water is impassable and only stone (forest maps) and rock (desert maps) can be
   built on. Whether forest should stop vehicles, slow infantry or hide units,
   and whether dunes should slow anything, is undecided.
+- **OPEN: How many units fit in a cell?** For now one unit occupies one cell,
+  infantry included. Dune II itself did the same; later games let several
+  infantry share a cell.
+- **OPEN: Unit names and numbers.** "Guardsman" (Blue infantry) and "Legionary"
+  (Red infantry) come from the mockups and are provisional, as are their health,
+  speed and sight values.
 - **OPEN: Are the two M1 maps the Mission 1 maps?** They are laid out like the
   mockups (a central clearing with a track to two opposite corners) but were
   made to test the map code, not designed for the mission.

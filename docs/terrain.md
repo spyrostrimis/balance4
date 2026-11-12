@@ -107,6 +107,9 @@ The palettes and the way textures are built (banded colour ramps, per-pixel
 grit, small shaded elements lit from the north-west) come from the approved v4
 mockup scripts in `mockups/src/`.
 
+The shroud (see [units.md](units.md)) is drawn the same way, with its own
+border tiles in `assets/tiles/shroud.png`.
+
 ## Camera and minimap
 
 - `MapCamera` (`scripts/ui/map_camera.gd`) scrolls with the arrow keys and when
@@ -117,6 +120,7 @@ mockup scripts in `mockups/src/`.
 - `Minimap` (`scripts/ui/minimap.gd`) draws one coloured pixel per cell, scaled
   up, with a frame showing what the camera sees. Clicking or dragging on it
   moves the camera.
-- The sidebar also shows the cell under the mouse: its position, terrain and
-  whether it can be crossed or built on. This is a development aid, not final
-  HUD.
+- The minimap shows unexplored cells in black and units as coloured dots.
+- When nothing is selected the sidebar shows the cell under the mouse: its
+  position, terrain and whether it can be crossed or built on. This is a
+  development aid, not final HUD.

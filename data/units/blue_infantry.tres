@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UnitType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/unit_type.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/units/infantry_blue.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"blue_infantry"
+display_name = "Guardsman"
+role = "Blue Infantry"
+max_health = 60
+speed = 2.5
+sight = 4
+minimap_color = Color(0.45, 0.72, 1, 1)
+sprites = ExtResource("2")
+sprite_size = Vector2i(24, 24)
+sprite_anchor = Vector2i(12, 18)

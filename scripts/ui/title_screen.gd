@@ -4,12 +4,14 @@ extends Control
 ## Starting the game with "-- --map=forest" or "-- --map=desert" on the command
 ## line skips this screen and opens that map.
 
-const MILESTONE := "M1 Map"
+const MILESTONE := "M2 Units"
 const MAP_SCENE := "res://scenes/map_view.tscn"
+## Map name -> the map file and the unit type of the player's squad on it.
 const MAPS := {
-	"forest": "res://data/maps/forest_01.tres",
-	"desert": "res://data/maps/desert_01.tres",
+	"forest": {"map": "res://data/maps/forest_01.tres", "squad": "res://data/units/blue_infantry.tres"},
+	"desert": {"map": "res://data/maps/desert_01.tres", "squad": "res://data/units/red_infantry.tres"},
 }
+const SQUAD_SIZE := 5
 
 @onready var _status: Label = $Center/Box/Status
 @onready var _forest: Button = $Center/Box/Buttons/Forest
@@ -39,7 +41,9 @@ static func map_from_args(args: PackedStringArray) -> String:
 
 
 func open_map(map_name: String) -> void:
-	MapView.requested_map = MAPS[map_name]
+	MapView.requested_map = MAPS[map_name]["map"]
+	MapView.requested_squad = MAPS[map_name]["squad"]
+	MapView.requested_squad_size = SQUAD_SIZE
 	get_tree().change_scene_to_file(MAP_SCENE)
 
 

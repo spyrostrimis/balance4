@@ -16,6 +16,9 @@ Output goes to assets/tiles/<biome>/:
                           Row 0 (none) is empty.
   decor.png      256x32, transparent background. Eight small props scattered on open ground.
 
+It also writes assets/tiles/shroud.png, the black cover over unexplored ground, in the same
+layout as an overlay (row = which of the four cells around the corner are unexplored).
+
 The look follows the approved style mockups (mockups/balance_v4_*.png): flat texture
 patches made of small repeating elements with per-pixel grit, lit from the north-west.
 Everything is generated from fixed seeds, so the output is the same on every run.
@@ -440,6 +443,23 @@ def desert_biome():
     make_decor(os.path.join(out, 'decor.png'), rng, props, DESERT_DESAT)
 
 
+# --- shroud -------------------------------------------------------------------------------
+def shroud():
+    """The black cover over unexplored ground. Same border-tile layout as an overlay terrain;
+    the edge breaks up into scattered pixels instead of ending in a hard line."""
+    rng = np.random.default_rng(77)
+    wobble = make_wobble(rng)
+    dither = rng.random((P, P)).astype(np.float32)
+    black = np.zeros((P, P, 3), np.float32) + hexc('#070807')
+    lo, hi = EDGE - 0.07, EDGE + 0.13
+
+    def style(F, W, ox, oy):
+        cover = np.clip((F - lo) / (hi - lo), 0, 1)
+        return W(black), (cover > W(dither)).astype(np.float32)
+
+    make_overlay(os.path.join(OUT, 'shroud.png'), wobble, style)
+
+
 def make_decor(path, rng, props, desat_k=1.0):
     """One row of small props on a transparent background, each at a random spot inside its tile."""
     atlas = np.zeros((CELL, CELL * len(props), 4), np.float32)
@@ -460,11 +480,14 @@ def make_decor(path, rng, props, desat_k=1.0):
 
 
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['forest', 'desert']
+    which = sys.argv[1:] or ['forest', 'desert', 'shroud']
     if 'forest' in which:
         print('forest')
         forest_biome()
     if 'desert' in which:
         print('desert')
         desert_biome()
+    if 'shroud' in which:
+        print('shroud')
+        shroud()
     print('wrote', OUT)

@@ -10,6 +10,8 @@ const CELL_SIZE := 32
 
 @export var display_name := ""
 @export var biome: Biome
+## Cells where each side's force starts. The player's squad starts at the first.
+@export var starts: Array[Vector2i] = []
 @export var rows: PackedStringArray = []:
 	set(value):
 		rows = value
@@ -119,3 +121,8 @@ func _parse() -> void:
 				if index < 0:
 					_problems.append("unknown terrain symbol '%s' at (%d, %d)" % [row[x], x, y])
 			_cells[y * _width + x] = maxi(index, 0)
+	for start in starts:
+		if not in_bounds(start):
+			_problems.append("start position %s is outside the map" % start)
+		elif not biome.terrains[_cells[start.y * _width + start.x]].walkable:
+			_problems.append("start position %s is on impassable ground" % start)

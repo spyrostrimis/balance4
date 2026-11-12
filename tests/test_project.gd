@@ -36,4 +36,5 @@ func test_map_argument() -> void:
 	check_eq(title.map_from_args(PackedStringArray(["--map=moon"])), "", "unknown map")
 	check_eq(title.map_from_args(PackedStringArray()), "", "no arguments")
 	for map_name in title.MAPS:
-		check(ResourceLoader.exists(title.MAPS[map_name]), "map file for '%s' exists" % map_name)
+		check(load(title.MAPS[map_name]["map"]) is MapData, "map file for '%s' loads" % map_name)
+		check(load(title.MAPS[map_name]["squad"]) is UnitType, "squad unit for '%s' loads" % map_name)

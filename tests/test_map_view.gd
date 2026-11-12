@@ -187,6 +187,7 @@ func test_map_scene_shows_both_maps() -> void:
 	check(packed != null, "map scene loads")
 	if packed == null:
 		return
+	MapView.requested_squad = ""
 	for path in MAPS:
 		MapView.requested_map = path
 		var view := packed.instantiate() as MapView

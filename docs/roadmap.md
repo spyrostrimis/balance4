@@ -50,7 +50,7 @@ milestones: the top bar, the hero portrait and the rest of the sidebar (only the
 minimap is in place); the Orichalcum rock in the middle of the maps (M3 and M4);
 shroud (M2).
 
-## M2 Units
+## M2 Units (done)
 
 Units you can command.
 
@@ -63,6 +63,10 @@ Done means:
   and other units.
 - Shroud hides unexplored parts of the map and is lifted by units.
 - Playable result: move a small squad around a map and explore it.
+
+What was built is described in [units.md](units.md). Left for later milestones:
+attack-move and anything to fight (M3), vehicles and the harvester (M4), and
+rules for which units can cross which terrain (an open design question).
 
 ## M3 Combat: a playable Mission 1
 

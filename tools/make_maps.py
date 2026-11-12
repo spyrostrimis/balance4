@@ -6,7 +6,8 @@ Run from the repo root:  python tools/make_maps.py
 Writes data/maps/forest_01.tres and data/maps/desert_01.tres. Each map is a grid of
 one-character terrain symbols (see the terrain files in data/terrain/ for the symbols).
 The layouts follow the style mockups: a central clearing where the Orichalcum rock will
-stand, two tracks leading to opposite corners, rock patches for future bases.
+stand, two tracks leading to opposite corners, rock patches for future bases. Each map
+also lists two start positions, one at the end of each track.
 
 The maps are generated from fixed seeds, so the output is the same on every run. They can
 also be edited by hand afterwards: the rows in the .tres file are plain text.
@@ -123,7 +124,7 @@ def forest_map():
     grid[stone] = 's'
     grid[water] = 'w'
     grid[forest] = 'f'
-    return grid
+    return grid, [sw, ne]
 
 
 def desert_map():
@@ -152,10 +153,10 @@ def desert_map():
     grid[dunes] = 'u'
     grid[hard] = 'h'
     grid[rock] = 'r'
-    return grid
+    return grid, [nw, se]
 
 
-def write_map(name, display_name, biome, grid):
+def write_map(name, display_name, biome, grid, starts):
     rows = [''.join(r) for r in grid]
     body = ', '.join('"%s"' % r for r in rows)
     text = ('[gd_resource type="Resource" script_class="MapData" load_steps=3 format=3]\n\n'
@@ -165,7 +166,9 @@ def write_map(name, display_name, biome, grid):
             'script = ExtResource("1")\n'
             'display_name = "%s"\n'
             'biome = ExtResource("2")\n'
-            'rows = PackedStringArray(%s)\n') % (biome, display_name, body)
+            'starts = Array[Vector2i]([%s])\n'
+            'rows = PackedStringArray(%s)\n') % (biome, display_name,
+                                                  ', '.join('Vector2i(%d, %d)' % s for s in starts), body)
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name + '.tres')
     with open(path, 'w', encoding='utf-8', newline='\n') as f:
@@ -177,5 +180,5 @@ def write_map(name, display_name, biome, grid):
 
 
 if __name__ == '__main__':
-    write_map('forest_01', 'Forest', 'forest', forest_map())
-    write_map('desert_01', 'Desert', 'desert', desert_map())
+    write_map('forest_01', 'Forest', 'forest', *forest_map())
+    write_map('desert_01', 'Desert', 'desert', *desert_map())
