@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TerrainType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/terrain_type.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/tiles/desert/ore_rock.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"ore_rock"
+display_name = "Orichalcum rock"
+symbol = "o"
+walkable = false
+buildable = false
+minimap_color = Color(0.984, 0.773, 0.322, 1)
+tiles = ExtResource("2")

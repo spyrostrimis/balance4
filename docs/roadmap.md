@@ -47,8 +47,8 @@ Done means:
 
 What was built is described in [terrain.md](terrain.md). Left for later
 milestones: the top bar, the hero portrait and the rest of the sidebar (only the
-minimap is in place); the Orichalcum rock in the middle of the maps (M3 and M4);
-shroud (M2).
+minimap is in place); the Orichalcum rock in the middle of the maps (added in
+M3, mined from M4); shroud (M2).
 
 ## M2 Units (done)
 
@@ -66,9 +66,9 @@ Done means:
 
 What was built is described in [units.md](units.md). Left for later milestones:
 attack-move and anything to fight (M3), vehicles and the harvester (M4), and
-rules for which units can cross which terrain (an open design question).
+rules for which units can cross which terrain (decided and applied in M3).
 
-## M3 Combat: a playable Mission 1
+## M3 Combat: a playable Mission 1 (done)
 
 Fighting, and the first real mission.
 
@@ -83,6 +83,15 @@ Done means:
   from start to a win or a loss, as Blue on the forest map and as Red on the
   desert map, against an opponent that at least moves and fights. There is no
   base building in it.
+
+What was built is described in [combat.md](combat.md). M3 also applied two
+design decisions: one unit per cell is now a rule, and units walk on flat
+ground only (trees, water and the Orichalcum rock block them). Left for later
+milestones: armour, a hold-position order, ranged weapons with projectiles,
+the leaders and passive abilities, a briefing, a pause menu and sound (M7 and
+later); the rock as a deposit that can be mined (M4); an opponent that thinks
+rather than follows a script (M6). Red's field commander is a placeholder
+until that character is designed, and every combat number is provisional.
 
 ## M4 Economy
 

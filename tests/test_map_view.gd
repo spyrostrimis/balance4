@@ -56,7 +56,7 @@ func test_layers_for_a_small_map() -> void:
 	var view := TerrainView.new()
 	tree.root.add_child(view)
 	view.show_map(_small_map())
-	check_eq(view.terrain_layers.size(), 5, "one layer per forest terrain")
+	check_eq(view.terrain_layers.size(), 6, "one layer per forest terrain")
 	check_eq(view.terrain_layers[0].get_used_cells().size(), 16, "ground covers every cell")
 	check_eq(view.terrain_layers[0].get_cell_atlas_coords(Vector2i(3, 2)), Vector2i(3, 2), "ground tile at (3,2)")
 	var water := view.terrain_layers[3]
@@ -67,8 +67,8 @@ func test_layers_for_a_small_map() -> void:
 	check_eq(view.terrain_layers[1].get_used_cells().size(), 0, "no dirt on this map")
 	# Showing another map replaces the layers instead of adding to them.
 	view.show_map(_small_map())
-	check_eq(view.terrain_layers.size(), 5, "layers after showing a second map")
-	check_eq(view.get_child_count(), 6, "children after showing a second map (5 terrains + decor)")
+	check_eq(view.terrain_layers.size(), 6, "layers after showing a second map")
+	check_eq(view.get_child_count(), 7, "children after showing a second map (6 terrains + decor)")
 	view.free()
 
 
@@ -212,6 +212,8 @@ func test_map_scene_shows_both_maps() -> void:
 			click.position = Vector2(191, 143)
 			view.minimap._gui_input(click)
 			check_eq(view.camera.position, Vector2(1300, 996), "clicking the far corner jumps to the far corner")
-			check(MapView.describe_cell(view.map, Vector2i(32, 24)).contains("Passable"), "cell description")
+			check(MapView.describe_cell(view.map, Vector2i(26, 24)).contains("Passable"), "cell description")
+			check(MapView.describe_cell(view.map, Vector2i(32, 24)).contains("Impassable"), "the rock is described as impassable")
+			check(not view.hud.visible, "no mission HUD when a map is shown on its own")
 			check_eq(MapView.describe_cell(view.map, Vector2i(-1, 0)), "", "no description outside the map")
 		view.free()

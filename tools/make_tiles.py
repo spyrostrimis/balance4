@@ -16,6 +16,10 @@ Output goes to assets/tiles/<biome>/:
                           Row 0 (none) is empty.
   decor.png      256x32, transparent background. Eight small props scattered on open ground.
 
+Each biome also gets ore_rock.png, an overlay for the Orichalcum rock formation. Its ore
+crystals are densest around the texture's origin, so a formation looks best when its middle
+sits on a grid corner whose cell coordinates are multiples of 8 (the maps put it there).
+
 It also writes assets/tiles/shroud.png, the black cover over unexplored ground, in the same
 layout as an overlay (row = which of the four cells around the corner are unexplored).
 
@@ -60,6 +64,9 @@ ROCK = ['#4c4034', '#5b4c3d', '#6a5947', '#7a6752', '#8a765e']
 HARD = ['#b08a62', '#bd9870', '#c9a67e', '#d4b48c']
 PEBBLE_D = [['#3a2f26', '#54453a', '#6f5c4b', '#8c7660', '#a89078']]
 TUFT = [['#5e4c24', '#78602a', '#957a33', '#b0943e']]
+ORE = [['#6a3c0c', '#a8661a', '#de962a', '#fbc552', '#fff0b0']]
+ORE_ROCK_F = ['#332d28', '#423a33', '#51483f', '#61574b', '#726658']
+ORE_ROCK_D = ['#45332a', '#574135', '#694f40', '#7b5e4c', '#8e6e59']
 DESERT_DESAT = 0.92
 
 
@@ -182,7 +189,12 @@ def draw_stamp(rgb, x, y, r, p, rng, rough=0.9, metric='round', rim=0.25, alpha=
     R = int(r) + 2
     ys, xs = np.arange(y - R, y + R + 1), np.arange(x - R, x + R + 1)
     dy, dx = np.meshgrid((ys - y).astype(np.float32), (xs - x).astype(np.float32), indexing='ij')
-    dist = np.hypot(dx, dy) if metric == 'round' else np.abs(dx) + np.abs(dy)
+    if metric == 'round':
+        dist = np.hypot(dx, dy)
+    elif metric == 'crystal':
+        dist = np.abs(dx) * 1.7 + np.abs(dy)
+    else:
+        dist = np.abs(dx) + np.abs(dy)
     m = dist + (rng.random(dist.shape).astype(np.float32) - 0.5) * rough * 2 < r
     v = 0.55 - 0.42 * (dx + dy) / (1.5 * r) + (rng.random(dist.shape).astype(np.float32) - 0.5) * 0.3
     v -= rim * ((dist > r - 1.4) & (dx + dy > 0))
@@ -297,6 +309,44 @@ def flat_style(tex, grit, edge_colour=None, lit=None, dark=None):
     return style
 
 
+def ore_rock(path, seed, rock_colours, lit, dark, desat_k=1.0):
+    """The Orichalcum rock formation: cracked rock studded with small ore crystals, after
+    outcrop() in mockups/src/v4_compose.py. The crystals thin out away from the texture's
+    origin, where the middle of a formation is meant to sit."""
+    rng = np.random.default_rng(seed)
+    wobble = make_wobble(rng)
+    grit = speck(rng, 0.14)
+    f1, f2, value = tvoronoi(20, rng)
+    rock = ramp(np.clip(0.5 + (value - 0.5) * 0.55 + speck(rng, 0.5), 0, 0.999), rock_colours)
+    rock[(f2 - f1) < 0.9] = hexc(dark)
+    rock = desat(rock, desat_k)
+    yy, xx = np.mgrid[0:P, 0:P].astype(np.float32)
+    far = np.hypot(np.minimum(xx, P - xx) / 1.45, np.minimum(yy, P - yy))    # distance from the origin, wrapping
+    vein = (f2 - f1) < 1.6
+    ore = pal(ORE[0])
+    for k, (cell, rmin, rmax, prob, reach) in enumerate(((5, 0.9, 1.7, 0.5, 58), (7, 1.6, 2.6, 0.75, 46),
+                                                         (13, 2.8, 4.2, 0.8, 31))):
+        pts = [p for p in stamp_points(rng, cell, rmin, rmax, prob, 1)
+               if far[p[0], p[1]] < reach and (k > 0 or vein[p[0], p[1]])]
+        sh = np.zeros((P, P), np.float32)
+        for (y, x, r, _) in pts:
+            draw_shadow(sh, x, y, r)
+        rock *= (1 - 0.3 * sh)[..., None]
+        for (y, x, r, _) in pts:
+            draw_stamp(rock, x, y, r, ore, rng, 0.25, 'crystal', 0.3)
+
+    def style(F, W, ox, oy):
+        inside = F + W(grit) > EDGE
+        rgb = W(rock).copy()
+        relief(rgb, inside, lit, dark)
+        shade = np.roll(np.roll(inside, 2, 0), 2, 1) & ~inside       # a short shadow to the south-east
+        rgb[shade] = 0
+        return rgb, np.where(inside, 1.0, np.where(shade, 0.4, 0.0)).astype(np.float32)
+
+    make_overlay(path, wobble, style)
+    report('ore_rock', rock)
+
+
 def make_wobble(rng):
     n = fbm(10, rng, 2)
     n = n - n.mean()
@@ -388,6 +438,8 @@ def forest_biome():
                                                 (CROWNS[3], 3.6, 5.2, 0.4)]
     make_decor(os.path.join(out, 'decor.png'), rng, props)
 
+    ore_rock(os.path.join(out, 'ore_rock.png'), 3104, ORE_ROCK_F, '#8c8272', '#1f1b17')
+
 
 # --- desert biome -------------------------------------------------------------------------
 def desert_biome():
@@ -441,6 +493,8 @@ def desert_biome():
     # decor: dry tufts and loose stones for open sand
     props = [(TUFT[0], 1.8, 3.0, 0.25, 1.4)] * 4 + [(PEBBLE_D[0], 1.2, 2.4, 0.3, 0.4)] * 4
     make_decor(os.path.join(out, 'decor.png'), rng, props, DESERT_DESAT)
+
+    ore_rock(os.path.join(out, 'ore_rock.png'), 3123, ORE_ROCK_D, '#a88e74', '#241a14', DESERT_DESAT)
 
 
 # --- shroud -------------------------------------------------------------------------------

@@ -35,6 +35,5 @@ func test_map_argument() -> void:
 	check_eq(title.map_from_args(PackedStringArray(["--other", "--map=forest"])), "forest", "--map=forest")
 	check_eq(title.map_from_args(PackedStringArray(["--map=moon"])), "", "unknown map")
 	check_eq(title.map_from_args(PackedStringArray()), "", "no arguments")
-	for map_name in title.MAPS:
-		check(load(title.MAPS[map_name]["map"]) is MapData, "map file for '%s' loads" % map_name)
-		check(load(title.MAPS[map_name]["squad"]) is UnitType, "squad unit for '%s' loads" % map_name)
+	for map_name in title.MISSIONS:
+		check(load(title.MISSIONS[map_name]) is MissionDef, "mission for '%s' loads" % map_name)

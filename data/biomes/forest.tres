@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Biome" load_steps=8 format=3]
+[gd_resource type="Resource" script_class="Biome" load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/sim/biome.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/tiles/forest/decor.png" id="2"]
@@ -7,11 +7,12 @@
 [ext_resource type="Resource" path="res://data/terrain/forest_stone.tres" id="5"]
 [ext_resource type="Resource" path="res://data/terrain/forest_water.tres" id="6"]
 [ext_resource type="Resource" path="res://data/terrain/forest_forest.tres" id="7"]
+[ext_resource type="Resource" path="res://data/terrain/forest_ore_rock.tres" id="8"]
 
 [resource]
 script = ExtResource("1")
 id = &"forest"
 display_name = "Forest"
-terrains = Array[Resource]([ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7")])
+terrains = Array[Resource]([ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8")])
 decor = ExtResource("2")
 decor_density = 0.4

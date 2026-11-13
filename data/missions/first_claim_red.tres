@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MissionDef" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="1"]
+[ext_resource type="Resource" path="res://data/maps/desert_01.tres" id="2"]
+[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="3"]
+[ext_resource type="Resource" path="res://data/units/red_commander.tres" id="4"]
+[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="5"]
+[ext_resource type="Resource" path="res://data/units/blue_commander.tres" id="6"]
+
+[resource]
+script = ExtResource("1")
+id = &"first_claim_red"
+number = 1
+display_name = "The First Claim"
+map = ExtResource("2")
+player_side = "Red"
+enemy_side = "Blue"
+player_color = Color(1, 0.45, 0.35, 1)
+enemy_color = Color(0.45, 0.72, 1, 1)
+troop_count = 4
+player_troop = ExtResource("3")
+player_commander = ExtResource("4")
+enemy_troop = ExtResource("5")
+enemy_commander = ExtResource("6")
+control_radius = 5.0
+hold_seconds = 45.0
+enemy_delay_seconds = 20.0
+enemy_wave_seconds = 8.0
+objective = "Hold the Orichalcum rock, or destroy every enemy."

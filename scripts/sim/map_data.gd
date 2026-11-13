@@ -12,6 +12,9 @@ const CELL_SIZE := 32
 @export var biome: Biome
 ## Cells where each side's force starts. The player's squad starts at the first.
 @export var starts: Array[Vector2i] = []
+## The point the two sides fight over (the middle of the Orichalcum rock), in
+## cells; whole numbers are grid corners. Negative means the map has none.
+@export var control_point := Vector2(-1, -1)
 @export var rows: PackedStringArray = []:
 	set(value):
 		rows = value
@@ -61,6 +64,10 @@ func terrain_index_clamped(cell: Vector2i) -> int:
 func terrain_at(cell: Vector2i) -> TerrainType:
 	var index := terrain_index(cell)
 	return null if index < 0 else biome.terrains[index]
+
+
+func has_control_point() -> bool:
+	return control_point.x >= 0.0 and control_point.y >= 0.0
 
 
 ## Can ground units stand on this cell? False outside the map.

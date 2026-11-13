@@ -22,12 +22,12 @@ func test_biomes_are_valid() -> void:
 
 func test_forest_terrains() -> void:
 	var biome := load(BIOMES[0]) as Biome
-	check_eq(_ids(biome), ["grass", "dirt", "stone", "water", "forest"], "forest terrains in drawing order")
+	check_eq(_ids(biome), ["grass", "dirt", "stone", "water", "forest", "ore_rock"], "forest terrains in drawing order")
 
 
 func test_desert_terrains() -> void:
 	var biome := load(BIOMES[1]) as Biome
-	check_eq(_ids(biome), ["sand", "dunes", "hardpan", "rock"], "desert terrains in drawing order")
+	check_eq(_ids(biome), ["sand", "dunes", "hardpan", "rock", "ore_rock"], "desert terrains in drawing order")
 
 
 func test_only_rock_ground_is_buildable() -> void:
@@ -39,13 +39,18 @@ func test_only_rock_ground_is_buildable() -> void:
 	check_eq(buildable, ["stone", "rock"], "buildable terrains")
 
 
-func test_only_water_is_impassable() -> void:
+func test_only_flat_ground_is_walkable() -> void:
+	# Units walk on flat ground only. Water, trees and the Orichalcum rock block them.
 	var blocked := []
+	var open := []
 	for path in BIOMES:
 		for t in (load(path) as Biome).terrains:
-			if not t.walkable:
+			if t.walkable:
+				open.append(String(t.id))
+			else:
 				blocked.append(String(t.id))
-	check_eq(blocked, ["water"], "impassable terrains")
+	check_eq(blocked, ["water", "forest", "ore_rock", "ore_rock"], "impassable terrains")
+	check_eq(open, ["grass", "dirt", "stone", "sand", "dunes", "hardpan", "rock"], "walkable terrains")
 
 
 func test_symbol_lookup() -> void:

@@ -5,8 +5,9 @@ add anything beyond those decisions. Where something is undecided it says so, an
 the open questions are collected at the end.
 
 **All names are provisional**, including "Balance", "Orichalcum", the faction
-names, "Peacebringer", "Encouragement", "Dominion" and "The First Claim". Colours
-(Blue, Red, Green) stand in for faction names that do not exist yet.
+names, "Peacebringer", "Encouragement", "Dominion", "Mend", "Guardsman",
+"Legionary" and "The First Claim". Colours (Blue, Red, Green) stand in for
+faction names that do not exist yet.
 
 ## What the game is
 
@@ -27,6 +28,22 @@ Tagline: every faction claims to seek Balance, but each defines it differently.
   attack-move, rather than the one-unit-at-a-time controls of early 1990s
   strategy games.
 - **Single-player only.** Multiplayer is out of scope.
+
+## Rules of the battlefield
+
+Decided on 2026-11-13:
+
+- **One unit per cell.** A cell holds one unit, infantry included.
+- **Units walk on flat ground only.** Sand, roads, flat concrete, green
+  fields, small flowers, small rocks and small debris can be walked on.
+  Buildings, water, big rocks and trees cannot be walked on or through. The
+  rule of thumb is common sense: if a person could not simply walk across it,
+  a unit cannot either.
+
+How this is applied to the terrain types so far is in
+[terrain.md](terrain.md). In short: forest (trees), water and the Orichalcum
+rock formation block movement; grass, dirt, sand, dunes, hardpan and the flat
+stone and rock ground that buildings stand on can be walked on.
 
 ## Orichalcum
 
@@ -76,7 +93,7 @@ passive abilities (always on).
 | Hero | Abilities decided so far |
 | --- | --- |
 | Blue leader | An area heal/repair pulse, plus "Encouragement" |
-| Blue field commander | A single-target heal/repair |
+| Blue field commander | A single-target heal/repair (in the game as "Mend", a provisional name) |
 | Red leader | "Dominion" (a name only; what it does is undecided) |
 
 ## Mission 1: "The First Claim"
@@ -89,6 +106,10 @@ passive abilities (always on).
 - **What it teaches:** selecting units, moving, attacking, using the commander's
   ability, and how control points work.
 - **What it leaves out:** there is no base building in this mission.
+
+The mission is playable since milestone M3. How it works, and the provisional
+values chosen for it (hold time, size of the area, the opponent's behaviour),
+are in [combat.md](combat.md).
 
 ## Planned for later
 
@@ -120,24 +141,36 @@ Nothing in this section has been decided. Do not treat any guess as canon.
 - **OPEN: What does the Red leader's "Dominion" do?**
 - **OPEN: What does "Encouragement" do exactly, and is it active or passive?**
 - **OPEN: Who is Red's field commander?** Mission 1 gives each side a field
-  commander, but only Blue's has been described.
+  commander, but only Blue's has been described. Until this is decided the
+  game uses a placeholder: a copy of Blue's commander in Red's colours, with
+  the same values and the same ability, and no name or story.
+- **OPEN: The details of the field commander's heal.** The design says only
+  "a single-target heal/repair". The game's first version heals 40 health from
+  up to three cells away, recharges for 12 seconds and cannot be used on the
+  commander itself. All of that is provisional.
 - **OPEN: Final names** for the game, the resource, the factions, the characters,
   the abilities and the missions.
 - **OPEN: How long is the "short time"** a side must hold the control point in
-  Mission 1, and how large is the area "near" the rock?
+  Mission 1, and how large is the area "near" the rock? The game uses 45
+  seconds and a circle five cells in radius for now. Both are provisional.
+- **OPEN: What happens to the hold time while the area is contested?** For now
+  it waits and carries on when the intruders are gone; it starts again from
+  zero only when the area is left empty or changes hands.
 - **OPEN: What the Palatinate / Clergy wants** and how its unpredictability shows
   up in play.
 - **OPEN: What the wandering creatures are** and how they behave.
-- **OPEN: Who can cross which terrain?** For now the terrain data says only
-  water is impassable and only stone (forest maps) and rock (desert maps) can be
-  built on. Whether forest should stop vehicles, slow infantry or hide units,
-  and whether dunes should slow anything, is undecided.
-- **OPEN: How many units fit in a cell?** For now one unit occupies one cell,
-  infantry included. Dune II itself did the same; later games let several
-  infantry share a cell.
+- **OPEN: Does terrain do more than block?** Which ground can be walked on
+  is decided (see "Rules of the battlefield"). Whether any terrain should slow
+  units down or hide them, and whether vehicles will follow different rules
+  from infantry, is undecided.
 - **OPEN: Unit names and numbers.** "Guardsman" (Blue infantry) and "Legionary"
-  (Red infantry) come from the mockups and are provisional, as are their health,
-  speed and sight values.
-- **OPEN: Are the two M1 maps the Mission 1 maps?** They are laid out like the
-  mockups (a central clearing with a track to two opposite corners) but were
-  made to test the map code, not designed for the mission.
+  (Red infantry) come from the mockups. They and their values (health 60,
+  speed 2.5 cells a second, sight 4 cells) are kept for now, as are the combat
+  values added in M3. All of them are provisional and will be tuned much
+  later.
+- **OPEN: Do units have armour?** The mockups show an armour value. The game
+  has none yet.
+- **OPEN: Are the two M1 maps the Mission 1 maps?** Mission 1 is played on
+  them for now. They are laid out like the mockups (a central clearing with
+  the rock, and a track to two opposite corners) but were made to test the map
+  code, not designed for the mission.

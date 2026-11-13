@@ -59,14 +59,14 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="Forest" type="Button" parent="Center/Box/Buttons"]
-custom_minimum_size = Vector2(110, 0)
+custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
-text = "Forest map"
+text = "Play as Blue (forest)"
 
 [node name="Desert" type="Button" parent="Center/Box/Buttons"]
-custom_minimum_size = Vector2(110, 0)
+custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
-text = "Desert map"
+text = "Play as Red (desert)"
 
 [node name="Quit" type="Button" parent="Center/Box/Buttons"]
 custom_minimum_size = Vector2(110, 0)
@@ -77,5 +77,5 @@ text = "Quit"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.5, 0.52, 0.47, 1)
 theme_override_font_sizes/font_size = 12
-text = "Pick a map to lead a squad across it. Esc quits."
+text = "Mission 1: The First Claim (provisional name). Take the Orichalcum rock in the middle of the map. Esc quits."
 horizontal_alignment = 1

@@ -53,6 +53,9 @@ func test_walkable_and_buildable() -> void:
 	check(map.is_buildable(Vector2i(2, 2)), "stone is buildable")
 	check(not map.is_buildable(Vector2i(1, 1)), "dirt is not buildable")
 	check(not map.is_buildable(Vector2i(0, 2)), "forest is not buildable")
+	check(not map.is_walkable(Vector2i(0, 2)), "forest is not walkable")
+	check(map.is_walkable(Vector2i(2, 1)), "stone is walkable")
+	check(map.is_walkable(Vector2i(1, 1)), "dirt is walkable")
 
 
 func test_cell_and_pixel_conversion() -> void:
@@ -103,4 +106,23 @@ func test_shipped_maps() -> void:
 			for x in size.x:
 				used[map.terrain_index(Vector2i(x, y))] = true
 		check_eq(used.size(), map.biome.terrains.size(), "%s uses every terrain of its biome" % path)
-		check(map.is_walkable(size / 2), "the centre of %s is walkable" % path)
+		check(map.has_control_point(), "%s has a control point" % path)
+		check_eq(map.control_point, Vector2(size) / 2.0, "the control point of %s is the map centre" % path)
+		check_eq(map.terrain_at(size / 2).id, &"ore_rock", "the Orichalcum rock stands on the centre of %s" % path)
+		check(not map.is_walkable(size / 2), "the rock on %s cannot be crossed" % path)
+		check_eq(map.starts.size(), 2, "%s has two start positions" % path)
+
+
+func test_shipped_maps_are_connected() -> void:
+	# Trees, water and the rock block the way: both sides must still be able to
+	# walk to the rock and to each other.
+	for path in MAPS:
+		var map := load(path) as MapData
+		var world := SimWorld.new(map)
+		var region := world.region_at(map.starts[0])
+		check(region != 0, "the first start of %s is walkable" % path)
+		check_eq(world.region_at(map.starts[1]), region, "the starts of %s are joined by walkable ground" % path)
+		check(not world.terrain_path(map.starts[0], map.starts[1]).is_empty(), "there is a path between the starts of %s" % path)
+		var beside_rock := world.nearest_free_cell(Vector2i(map.control_point), region)
+		var gap := Vector2(beside_rock) + Vector2(0.5, 0.5) - map.control_point
+		check(gap.length() < 5.0, "ground next to the rock on %s can be reached from the starts" % path)

@@ -13,6 +13,23 @@ extends Resource
 @export var speed := 2.5
 ## How far the unit sees, in cells. It lifts the shroud this far around itself.
 @export var sight := 4
+@export_group("Combat")
+## Health taken off the target by one hit. 0 means the unit cannot attack.
+@export var attack_damage := 0
+## How far it can hit, in cells. 1 reaches the eight cells around it.
+@export var attack_range := 1
+## Seconds between two hits.
+@export var attack_interval := 1.0
+## How far away it notices enemies on its own, in cells.
+@export var acquire_range := 4
+
+@export_group("Hero")
+## Heroes are special units; the HUD treats them differently from troops.
+@export var is_hero := false
+## The ability the player can trigger, if any.
+@export var ability: Ability
+
+@export_group("Looks")
 ## Sprite sheet from tools/make_units.py: 8 columns (facing: 0 south, 2 west,
 ## 4 north, 6 east) and 3 rows (standing, then the two halves of a step).
 @export var sprites: Texture2D
@@ -28,3 +45,8 @@ extends Resource
 func ticks_per_cell(diagonal: bool) -> int:
 	var straight := maxi(1, roundi(SimWorld.TICKS_PER_SECOND / maxf(speed, 0.01)))
 	return roundi(straight * 1.41421356) if diagonal else straight
+
+
+## How many simulation ticks pass between two hits.
+func attack_ticks() -> int:
+	return maxi(1, roundi(attack_interval * SimWorld.TICKS_PER_SECOND))

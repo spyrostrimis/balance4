@@ -1,7 +1,8 @@
 class_name Minimap
 extends Control
 ## The whole map at a glance, one colour per cell, with a frame showing what
-## the camera sees. Unexplored cells are black; units are coloured dots.
+## the camera sees. Unexplored cells are black; units are coloured dots; the
+## control area, if there is one, is a ring.
 ## Click or drag on it to move the camera.
 
 const BACKGROUND := Color(0.03, 0.035, 0.03)
@@ -14,6 +15,8 @@ var _world: SimWorld
 var _team := SimWorld.PLAYER_TEAM
 var _texture: ImageTexture
 var _shroud_version := -1
+var _control: ControlPoint
+var _control_colors := {}
 
 
 ## world is optional: without it the minimap shows the bare map.
@@ -27,6 +30,13 @@ func setup(map: MapData, camera: MapCamera, world: SimWorld = null, team := SimW
 	_texture = null
 	_refresh_texture()
 	_camera.view_changed.connect(queue_redraw)
+	queue_redraw()
+
+
+## Draw a ring for a control area (null for none). `team_colors` is team -> colour.
+func show_control(control: ControlPoint, team_colors := {}) -> void:
+	_control = control
+	_control_colors = team_colors
 	queue_redraw()
 
 
@@ -97,10 +107,14 @@ func _draw() -> void:
 		var cell_size := rect.size / Vector2(_map.get_size())
 		var shroud := _world.shroud_for(_team)
 		for unit in _world.units:
-			if unit.team != _team and not shroud.is_explored(unit.cell):
+			if unit.dead or not _world.is_visible_to(unit, _team):
 				continue
 			var dot := rect.position + Vector2(unit.cell) * cell_size
 			draw_rect(Rect2(dot, cell_size.max(Vector2(2, 2))), unit.type.minimap_color)
+	if _control != null:
+		var middle := map_to_local(_control.center * MapData.CELL_SIZE)
+		var radius := _control.radius * rect.size.x / _map.get_size().x
+		draw_arc(middle, radius, 0.0, TAU, 32, ControlView.ring_color(_control, _control_colors), 1.0)
 	var view := _camera.get_view_rect()
 	var top_left := map_to_local(view.position).round()
 	var bottom_right := map_to_local(view.end).round()

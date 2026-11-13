@@ -2,6 +2,20 @@ class_name SimUnit
 extends RefCounted
 ## One unit in the simulation. Plain data; SimWorld changes it every tick.
 
+## What the unit has been told to do.
+enum Order {
+	## Nothing: it stands, and fights enemies that come near.
+	NONE,
+	## Walk to a cell and ignore enemies.
+	MOVE,
+	## Walk to a cell and fight enemies met on the way.
+	ATTACK_MOVE,
+	## Chase and attack one unit until it is dead.
+	ATTACK,
+	## Walk up to a unit and use the hero ability on it.
+	ABILITY,
+}
+
 var id := 0
 var type: UnitType
 var team := 0
@@ -25,6 +39,29 @@ var path: Array[Vector2i] = []
 var wait_ticks := 0
 ## How many times in a row the unit found its way blocked.
 var blocked_tries := 0
+
+
+var order := Order.NONE
+## Where a MOVE or ATTACK_MOVE order leads.
+var order_cell := Vector2i.ZERO
+## The unit an ATTACK or ABILITY order is aimed at (its id).
+var order_target := 0
+## The enemy the unit is fighting right now (its id), or 0.
+var target_id := 0
+## The target's cell when the unit last planned how to get to it.
+var chase_cell := Vector2i(-1, -1)
+## Ticks until it can hit again, and until its ability is ready again.
+var attack_ticks_left := 0
+var ability_ticks_left := 0
+## Simulation ticks at which it last hit something and was last hurt. For drawing.
+var last_attack_tick := -1000
+var last_hurt_tick := -1000
+## The enemy that last hurt it or a comrade near it (its id), and when. The
+## unit goes after that enemy even if it is too far away to notice otherwise.
+var provoked_by := 0
+var provoked_tick := -1000
+## Set when the unit has been killed. A dead unit is no longer in the world.
+var dead := false
 
 
 ## Is the unit between two cells right now?

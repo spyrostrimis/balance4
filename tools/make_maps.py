@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Generate the two M1 maps for Balance as Godot resources.
+"""Generate the two maps for Balance as Godot resources.
 
 Run from the repo root:  python tools/make_maps.py
 
 Writes data/maps/forest_01.tres and data/maps/desert_01.tres. Each map is a grid of
 one-character terrain symbols (see the terrain files in data/terrain/ for the symbols).
-The layouts follow the style mockups: a central clearing where the Orichalcum rock will
-stand, two tracks leading to opposite corners, rock patches for future bases. Each map
-also lists two start positions, one at the end of each track.
+The layouts follow the style mockups: a central clearing with the Orichalcum rock formation
+in the middle of it, two tracks leading to opposite corners, rock patches for future bases.
+Each map also lists two start positions, one at the end of each track, and the control point
+(the middle of the rock formation).
+
+Trees, water and the Orichalcum rock cannot be crossed. The script checks that both start
+positions can reach the control area and each other on foot, and stops if they cannot.
 
 The maps are generated from fixed seeds, so the output is the same on every run. They can
 also be edited by hand afterwards: the rows in the .tres file are plain text.
@@ -85,6 +89,46 @@ def drop_small(mask, min_cells):
     return m
 
 
+# The middle of the map, where the Orichalcum rock stands. It is a grid corner whose cell
+# coordinates are multiples of 8, which is where the rock's tile texture has its ore.
+CENTRE = (W // 2, H // 2)
+IMPASSABLE = 'fwo'
+
+
+def ore_rock(rng):
+    """The cells of the Orichalcum rock formation: a small lumpy patch around the map centre."""
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    lumps = (fbm(rng, 4, 2) - 0.5) * 0.5
+    return tidy(blob(xx + 0.5, yy + 0.5, CENTRE[0], CENTRE[1], 3.0, 2.0) + lumps < 0)
+
+
+def check_reachable(name, grid, starts):
+    """Stop if a start position cannot walk to the edge of the rock formation or to the other start."""
+    open_ = ~np.isin(grid, list(IMPASSABLE))
+    seen = np.zeros_like(open_)
+    stack = [(starts[0][1], starts[0][0])]
+    seen[stack[0]] = True
+    while stack:
+        y, x = stack.pop()
+        for (ny, nx) in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+            if 0 <= ny < H and 0 <= nx < W and open_[ny, nx] and not seen[ny, nx]:
+                seen[ny, nx] = True
+                stack.append((ny, nx))
+    for (x, y) in starts:
+        if not seen[y, x]:
+            raise SystemExit('%s: start (%d, %d) is cut off from the other start' % (name, x, y))
+    ore = grid == 'o'
+    beside = np.zeros_like(ore)
+    beside[1:] |= ore[:-1]
+    beside[:-1] |= ore[1:]
+    beside[:, 1:] |= ore[:, :-1]
+    beside[:, :-1] |= ore[:, 1:]
+    if not (beside & seen).any():
+        raise SystemExit('%s: the rock formation cannot be reached from the starts' % name)
+    cut_off = int((open_ & ~seen).sum())
+    print('%s: starts and rock are connected; %d walkable cells are cut off from them' % (name, cut_off))
+
+
 def coords(rng, warp=3.0):
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     xx += 0.5
@@ -124,6 +168,7 @@ def forest_map():
     grid[stone] = 's'
     grid[water] = 'w'
     grid[forest] = 'f'
+    grid[ore_rock(np.random.default_rng(111))] = 'o'
     return grid, [sw, ne]
 
 
@@ -153,10 +198,12 @@ def desert_map():
     grid[dunes] = 'u'
     grid[hard] = 'h'
     grid[rock] = 'r'
+    grid[ore_rock(np.random.default_rng(123))] = 'o'
     return grid, [nw, se]
 
 
 def write_map(name, display_name, biome, grid, starts):
+    check_reachable(name, grid, starts)
     rows = [''.join(r) for r in grid]
     body = ', '.join('"%s"' % r for r in rows)
     text = ('[gd_resource type="Resource" script_class="MapData" load_steps=3 format=3]\n\n'
@@ -167,8 +214,10 @@ def write_map(name, display_name, biome, grid, starts):
             'display_name = "%s"\n'
             'biome = ExtResource("2")\n'
             'starts = Array[Vector2i]([%s])\n'
+            'control_point = Vector2(%d, %d)\n'
             'rows = PackedStringArray(%s)\n') % (biome, display_name,
-                                                  ', '.join('Vector2i(%d, %d)' % s for s in starts), body)
+                                                  ', '.join('Vector2i(%d, %d)' % s for s in starts),
+                                                  CENTRE[0], CENTRE[1], body)
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name + '.tres')
     with open(path, 'w', encoding='utf-8', newline='\n') as f:

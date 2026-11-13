@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/map_view.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/ui/terrain_view.gd" id="2"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://scripts/ui/units_view.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/ui/shroud_view.gd" id="6"]
 [ext_resource type="Script" path="res://scripts/ui/drag_box.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/ui/control_view.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/ui/mission_hud.gd" id="9"]
 
 [sub_resource type="StyleBoxFlat" id="sidebar_style"]
 bg_color = Color(0.075, 0.07, 0.06, 1)
@@ -26,6 +28,9 @@ script = ExtResource("1")
 
 [node name="Terrain" type="Node2D" parent="."]
 script = ExtResource("2")
+
+[node name="ControlArea" type="Node2D" parent="."]
+script = ExtResource("8")
 
 [node name="Units" type="Node2D" parent="."]
 script = ExtResource("5")
@@ -91,15 +96,23 @@ theme_override_font_sizes/font_size = 12
 [node name="Help" type="Label" parent="Hud/Sidebar"]
 layout_mode = 0
 offset_left = 11.0
-offset_top = 400.0
+offset_top = 420.0
 offset_right = 203.0
-offset_bottom = 534.0
+offset_bottom = 540.0
 theme_override_colors/font_color = Color(0.5, 0.52, 0.47, 1)
-theme_override_font_sizes/font_size = 11
-text = "Left click or drag: select
-Shift: add to selection
-Right click: move
-Ctrl+1..9: store a group
-1..9: select it, twice to jump
+theme_override_font_sizes/font_size = 10
+text = "Left click or drag: select (Shift adds)
+Right click: move, or attack an enemy
+A, then left click: attack-move
+S: stop.  Q, then left click: ability
+Ctrl+1..9 stores a group, 1..9 selects it
 Arrows or screen edge: scroll
-Esc: back to title"
+Esc: cancel, or back to title"
+
+[node name="MissionHud" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("9")

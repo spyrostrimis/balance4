@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Turn the raw Blender renders into the unit sprite sheets for Balance.
 
-Run from the repo root, after tools/render_units.py:  python tools/make_units.py [raw_dir]
+Run from the repo root, after tools/render_units.py:  python tools/make_units.py [raw_dir] [unit ...]
+
+With unit names after the folder only those sheets are made; otherwise every unit whose raw
+renders are in the folder.
 
 Reads <raw_dir>/<unit>_p<pose>_<dir>.png and ..._sh.png (default raw_dir: tools/_raw) and
 writes assets/sprites/units/<unit>.png: 8 columns (facing 0 south, 2 west, 4 north, 6 east)
@@ -31,7 +34,7 @@ RIM_ALPHA = 0.42
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'tools', '_raw')
 OUT = os.path.join(ROOT, 'assets', 'sprites', 'units')
-UNITS = ['infantry_blue', 'infantry_red']
+UNITS = ['infantry_blue', 'infantry_red', 'commander_blue', 'commander_red']
 
 
 def load(name):
@@ -84,7 +87,10 @@ def sprite(unit, pose, k, rng):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for unit in UNITS:
+    for unit in sys.argv[2:] or UNITS:
+        if not os.path.exists(os.path.join(RAW, '%s_p0_00.png' % unit)):
+            print('skipped %s: no raw renders in %s' % (unit, RAW))
+            continue
         rng = np.random.default_rng(5)
         sheet = np.zeros((POSES * SIZE, DIRS * SIZE, 4), np.float32)
         for pose in range(POSES):

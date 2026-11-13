@@ -2,16 +2,16 @@ extends Control
 ## Placeholder title screen. It will be replaced by the real menu later.
 ##
 ## Starting the game with "-- --map=forest" or "-- --map=desert" on the command
-## line skips this screen and opens that map.
+## line skips this screen and starts the mission on that map.
 
-const MILESTONE := "M2 Units"
+const MILESTONE := "M3 Combat"
 const MAP_SCENE := "res://scenes/map_view.tscn"
-## Map name -> the map file and the unit type of the player's squad on it.
-const MAPS := {
-	"forest": {"map": "res://data/maps/forest_01.tres", "squad": "res://data/units/blue_infantry.tres"},
-	"desert": {"map": "res://data/maps/desert_01.tres", "squad": "res://data/units/red_infantry.tres"},
+## Map name -> the mission played on it. Mission 1 is played as Blue on the
+## forest map and as Red on the desert map.
+const MISSIONS := {
+	"forest": "res://data/missions/first_claim_blue.tres",
+	"desert": "res://data/missions/first_claim_red.tres",
 }
-const SQUAD_SIZE := 5
 
 @onready var _status: Label = $Center/Box/Status
 @onready var _forest: Button = $Center/Box/Buttons/Forest
@@ -36,14 +36,13 @@ static func map_from_args(args: PackedStringArray) -> String:
 	for arg in args:
 		if arg.begins_with("--map="):
 			var wanted := arg.trim_prefix("--map=")
-			return wanted if MAPS.has(wanted) else ""
+			return wanted if MISSIONS.has(wanted) else ""
 	return ""
 
 
+## Start the mission that is played on a map.
 func open_map(map_name: String) -> void:
-	MapView.requested_map = MAPS[map_name]["map"]
-	MapView.requested_squad = MAPS[map_name]["squad"]
-	MapView.requested_squad_size = SQUAD_SIZE
+	MapView.requested_mission = MISSIONS[map_name]
 	get_tree().change_scene_to_file(MAP_SCENE)
 
 

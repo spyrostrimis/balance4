@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Ability" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/ability.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mend"
+display_name = "Mend"
+description = "Gives health back to one of your other units."
+kind = 0
+amount = 40
+cast_range = 3
+cooldown = 12.0
+can_target_self = false

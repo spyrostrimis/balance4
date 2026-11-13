@@ -291,12 +291,53 @@ def infantry(team, pose):
         ell(0.05, 0.05, 0.05, x=0.33, y=-0.09, z=1.2 + z0, m=R_GLOW)
 
 
-# Infantry are a third of a cell tall and are seen from a little lower than vehicles so they stay readable.
-for team in ('blue', 'red'):
-    unit = f'infantry_{team}'
+# --- field commanders -----------------------------------------------------------------------
+def commander(team, pose):
+    """A field commander: the foot soldier's build, a little larger, with a gold helmet, a tall
+    plume, a pale cape and a staff with a glowing head. Both sides share the model and differ
+    only in colour. Red's is a placeholder until that character has been designed."""
+    B = team == 'blue'
+    cloth, cloth2 = (B_CLOTH, B_CLOTH2) if B else (R_CLOTH, R_CLOTH2)
+    plume = B_CREST if B else R_CREST
+    glow = B_GLOW if B else R_GLOW
+    armour = STEEL if B else IRON
+    lead = {0: 0, 1: -1, 2: 1}[pose]
+    z0 = 0.03 if pose else 0.0
+    for s in (-1, 1):
+        fy = -STRIDE * s * lead
+        box(0.16, 0.25, 0.14, x=s * 0.115, y=-0.03 + fy, z=0, m=LEATHER, bevel=0.04)
+        cyl(0.09, 0.34, x=s * 0.115, y=fy * 0.6, z=0.1, m=cloth2)
+    cone(0.29, 0.19, 0.34, z=0.52 + z0, m=cloth)                       # tunic
+    ell(0.23, 0.18, 0.24, z=0.79 + z0, m=armour)                       # cuirass
+    ell(0.13, 0.06, 0.14, y=-0.14, z=0.8 + z0, m=GOLD)                 # gold breastplate
+    torus(0.21, 0.045, z=0.62 + z0, m=GOLD)                            # belt
+    ell(0.15, 0.15, 0.155, y=-0.015, z=1.1 + z0, m=SKIN)               # head
+    for s in (-1, 1):
+        ell(0.028, 0.02, 0.034, x=s * 0.06, y=-0.155, z=1.1 + z0, m=EYE)
+        ell(0.035, 0.05, 0.1, x=s * 0.14, y=-0.06, z=1.07 + z0, m=GOLD)       # cheek guards
+    ell(0.028, 0.035, 0.035, y=-0.165, z=1.07 + z0, m=SKIN)
+    ell(0.185, 0.185, 0.165, y=0.04, z=1.15 + z0, m=GOLD)              # gold helmet
+    ell(0.195, 0.06, 0.035, y=-0.05, z=1.19 + z0, m=armour)            # brow band
+    ell(0.055, 0.25, 0.2, y=0.07, z=1.42 + z0, m=plume)                # tall plume
+    for s in (-1, 1):
+        swing = 0.07 * s * lead
+        ell(0.13, 0.13, 0.115, x=s * 0.28, z=0.94 + z0, m=GOLD)        # pauldrons
+        cyl(0.068, 0.32, x=s * 0.31, y=-0.04 + swing, z=0.6 + z0, m=cloth)
+        ell(0.068, 0.068, 0.068, x=s * 0.31, y=-0.06 + swing, z=0.58 + z0, m=SKIN)
+    ell(0.28, 0.07, 0.46, y=0.2, z=0.62 + z0, m=BONE, rot=(-0.16, 0, 0))      # long pale cape
+    cyl(0.026, 1.38, x=0.35, y=-0.09, z=0.06 + z0, m=WOODS)            # staff, short enough to fit the sprite
+    torus(0.1, 0.028, x=0.35, y=-0.09, z=1.5 + z0, m=GOLD, rot=(pi / 2, 0, 0))
+    ell(0.08, 0.08, 0.08, x=0.35, y=-0.09, z=1.5 + z0, m=glow)
+
+
+# Infantry are a third of a cell tall and are seen from a little lower than vehicles so they stay
+# readable. Commanders are a little larger so they stand out in a squad.
+MODELS = [('infantry_blue', infantry, 'blue', 0.33), ('infantry_red', infantry, 'red', 0.33),
+          ('commander_blue', commander, 'blue', 0.38), ('commander_red', commander, 'red', 0.38)]
+for unit, model, team, scale in MODELS:
     if ONLY and unit not in ONLY:
         continue
     for pose in range(3):
-        infantry(team, pose)
-        render(f'{unit}_p{pose}', 2, 8, 0.33, math.radians(46))
+        model(team, pose)
+        render(f'{unit}_p{pose}', 2, 8, scale, math.radians(46))
 print('DONE')
