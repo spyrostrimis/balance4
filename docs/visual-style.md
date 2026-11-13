@@ -15,13 +15,15 @@ should look like, made by scripts; they are not game art and not game code.
 | [`balance_v5_units_sheet.png`](../mockups/balance_v5_units_sheet.png) | Approved unit sizes |
 | [`balance_v7_forest_blue.png`](../mockups/balance_v7_forest_blue.png), [`balance_v7_desert_red.png`](../mockups/balance_v7_desert_red.png) | Approved way of grounding sprites (rim and contact shadow) |
 | [`balance_v7_forest_closeup.png`](../mockups/balance_v7_forest_closeup.png), [`balance_v7_desert_closeup.png`](../mockups/balance_v7_desert_closeup.png) | Close-ups of the same |
-| [`balance_v8_forest_blue.png`](../mockups/balance_v8_forest_blue.png), [`balance_v8_desert_red.png`](../mockups/balance_v8_desert_red.png) | Latest mockups: current HUD layout and hero portrait |
+| [`balance_v8_forest_blue.png`](../mockups/balance_v8_forest_blue.png), [`balance_v8_desert_red.png`](../mockups/balance_v8_desert_red.png) | Current HUD layout and hero portrait; the game (M3) is built on v8 |
+| [`balance_v9_forest_blue.png`](../mockups/balance_v9_forest_blue.png), [`balance_v9_desert_red.png`](../mockups/balance_v9_desert_red.png) (+ `_zoom`) | Experiment, not approved: orange rippled sand, purple Orichalcum, four tree types, warm/cool grade, medium zoom |
+| [`balance_v10_forest_blue.png`](../mockups/balance_v10_forest_blue.png), [`balance_v10_desert_red.png`](../mockups/balance_v10_desert_red.png) (+ `_zoom`) | Experiment, not approved: v8 repainted after the user's concept images, with sun-lit, height-shaded terrain and individual trees |
 
 Everything before v4 (`balance_mock_*`, `balance_v2_*`, `balance_v3_*`) was
 rejected and is kept only as a record of what not to do. See "Rejected
 directions" below.
 
-The generator scripts are in [`mockups/src/`](../mockups/src/) (v2 to v8, each
+The generator scripts are in [`mockups/src/`](../mockups/src/) (v2 to v10, each
 building on the one before). They are Python and Blender scripts and are
 reference material.
 

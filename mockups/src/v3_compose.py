@@ -164,7 +164,7 @@ def paint_desert3(rng):
     for (x, y) in scatter(rng, sand | hard, 150):
         d.rectangle([x, y, x + 1, y], fill='#7a5a3c' if rng.random() < 0.6 else '#ecd0a0')
         d.point((x, y + 1), fill='#6a4a2c')
-    return to_arr(im), dict(rock=rock, sand=sand & ~dunes, d_hard=d_hard, d_rk=d_rk)
+    return to_arr(im), dict(rock=rock, sand=sand & ~dunes, d_hard=d_hard, d_rk=d_rk, allsand=sand, hard=hard, oasis=oasis, green=green)
 
 
 def desert_entities3(rng, M):
