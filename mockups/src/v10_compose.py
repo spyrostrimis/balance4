@@ -53,6 +53,7 @@ RAMPS = {
              '#64a29a', '#88bcb0'],
     'found_f': ['#25272a', '#313437', '#3e4245', '#4b5054', '#585e62', '#666c70', '#757b7f', '#868c8f', '#9aa0a2'],
 }
+SPILL = '#ff9a30'                  # colour of the light the Orichalcum throws on the ground
 MAT = {k: i for i, k in enumerate(RAMPS)}
 RAMP_ARR = {MAT[k]: pal(v) for k, v in RAMPS.items()}
 
@@ -454,7 +455,7 @@ def forest10(seed):
         if y + 1 < h:
             rgb[y + 1, x] *= 0.72
     crystals(rgb, rng, shrink(ore, 4) & (d_o < 31), 52, 3, 7, glow)
-    rgb += blur(np.where(ore[..., None], hexc('#ff9a30'), 0) * 1.0, 18) * 0.1       # warm light spill
+    rgb += blur(np.where(ore[..., None], hexc(SPILL), 0) * 1.0, 18) * 0.1       # warm light spill
     ys, xs = np.nonzero(water & (d_w < -6))
     for k in (0.1, 0.42, 0.74):
         i = int(len(ys) * k)
@@ -545,7 +546,7 @@ def desert10(seed):
             if 0 <= y + py < h and 0 <= x + px < w:
                 rgb[y + py, x + px] = hexc(c) if c != '#2f3e14' else rgb[y + py, x + px] * 0.7
     crystals(rgb, rng, shrink(ore, 3) & (d_o < 30), 40, 3.5, 7.5, glow)
-    rgb += blur(np.where(ore[..., None], hexc('#ff9a30'), 0) * 1.0, 14) * 0.05
+    rgb += blur(np.where(ore[..., None], hexc(SPILL), 0) * 1.0, 14) * 0.05
     tracks(rgb, rng)
     foundation10(rgb, RED_R[0], RED_R[1] + OFF, 2, 2, rng, 'found_d')
     return rgb, glow, units

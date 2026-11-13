@@ -18,12 +18,13 @@ should look like, made by scripts; they are not game art and not game code.
 | [`balance_v8_forest_blue.png`](../mockups/balance_v8_forest_blue.png), [`balance_v8_desert_red.png`](../mockups/balance_v8_desert_red.png) | Current HUD layout and hero portrait; the game (M3) is built on v8 |
 | [`balance_v9_forest_blue.png`](../mockups/balance_v9_forest_blue.png), [`balance_v9_desert_red.png`](../mockups/balance_v9_desert_red.png) (+ `_zoom`) | Experiment, not approved: orange rippled sand, purple Orichalcum, four tree types, warm/cool grade, medium zoom |
 | [`balance_v10_forest_blue.png`](../mockups/balance_v10_forest_blue.png), [`balance_v10_desert_red.png`](../mockups/balance_v10_desert_red.png) (+ `_zoom`) | Experiment, not approved: v8 repainted after the user's concept images, with sun-lit, height-shaded terrain and individual trees |
+| [`balance_v11_forest_blue.png`](../mockups/balance_v11_forest_blue.png), [`balance_v11_desert_red.png`](../mockups/balance_v11_desert_red.png) (+ `_zoom`) | Experiment, not approved: v10 with more orange sand, bigger bright purple Orichalcum crystals, lighter high-contrast bases with more team colour, vehicles mostly in team colour |
 
 Everything before v4 (`balance_mock_*`, `balance_v2_*`, `balance_v3_*`) was
 rejected and is kept only as a record of what not to do. See "Rejected
 directions" below.
 
-The generator scripts are in [`mockups/src/`](../mockups/src/) (v2 to v10, each
+The generator scripts are in [`mockups/src/`](../mockups/src/) (v2 to v11, each
 building on the one before). They are Python and Blender scripts and are
 reference material.
 
