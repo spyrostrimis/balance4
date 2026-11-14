@@ -29,9 +29,21 @@ extends Resource
 ## The ability the player can trigger, if any.
 @export var ability: Ability
 
+@export_group("Harvester")
+## How much Orichalcum it carries. 0 means the unit is not a harvester.
+@export var cargo_capacity := 0
+## Orichalcum it extracts from a deposit per second.
+@export var harvest_rate := 0
+## Orichalcum it hands over to a refinery per second.
+@export var unload_rate := 0
+## How long it takes to change from truck to robot, and back, in seconds.
+@export var transform_seconds := 1.0
+
 @export_group("Looks")
 ## Sprite sheet from tools/make_units.py: 8 columns (facing: 0 south, 2 west,
-## 4 north, 6 east) and 3 rows (standing, then the two halves of a step).
+## 4 north, 6 east). Troops have 3 rows (standing, then the two halves of a
+## step). Harvesters have 4: truck, halfway between truck and robot, and the
+## two halves of the robot's swing.
 @export var sprites: Texture2D
 ## Size of one sprite in the sheet, in pixels.
 @export var sprite_size := Vector2i(24, 24)
@@ -50,3 +62,12 @@ func ticks_per_cell(diagonal: bool) -> int:
 ## How many simulation ticks pass between two hits.
 func attack_ticks() -> int:
 	return maxi(1, roundi(attack_interval * SimWorld.TICKS_PER_SECOND))
+
+
+func is_harvester() -> bool:
+	return cargo_capacity > 0
+
+
+## How many simulation ticks a harvester takes to change shape.
+func transform_ticks() -> int:
+	return maxi(1, roundi(transform_seconds * SimWorld.TICKS_PER_SECOND))

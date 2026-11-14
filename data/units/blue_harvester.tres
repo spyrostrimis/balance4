@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="UnitType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/unit_type.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/units/harvester_blue.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"blue_harvester"
+display_name = "Harvester"
+role = "Blue Harvester"
+max_health = 150
+speed = 3.5
+sight = 4
+attack_damage = 0
+cargo_capacity = 100
+harvest_rate = 20
+unload_rate = 50
+transform_seconds = 1.0
+sprites = ExtResource("2")
+sprite_size = Vector2i(44, 44)
+minimap_color = Color(0.62, 0.82, 1, 1)
+sprite_anchor = Vector2i(22, 25)

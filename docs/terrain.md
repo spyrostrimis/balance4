@@ -2,7 +2,8 @@
 
 How terrain is defined, how a map is stored and how it is drawn. Milestone M1
 built this; M3 added the rule for what can be walked on and the Orichalcum
-rock.
+rock; M4 made that rock a deposit that can be mined (see
+[economy.md](economy.md)).
 
 ## Terrain types
 

@@ -14,6 +14,27 @@ enum Order {
 	ATTACK,
 	## Walk up to a unit and use the hero ability on it.
 	ABILITY,
+	## Harvesters only: fetch Orichalcum from a deposit and take it to a
+	## refinery, again and again.
+	HARVEST,
+}
+
+## What a harvester is doing right now.
+enum Job {
+	## Nothing, or about to decide where to go next.
+	NONE,
+	## Driving to its deposit.
+	TO_DEPOSIT,
+	## Changing from truck to robot beside the deposit.
+	DEPLOY,
+	## Extracting, as a robot.
+	EXTRACT,
+	## Changing back into a truck.
+	PACK,
+	## Driving to its refinery.
+	TO_REFINERY,
+	## Handing its cargo over, beside the refinery.
+	UNLOAD,
 }
 
 var id := 0
@@ -60,6 +81,23 @@ var last_hurt_tick := -1000
 ## unit goes after that enemy even if it is too far away to notice otherwise.
 var provoked_by := 0
 var provoked_tick := -1000
+## Harvesters: the Orichalcum on board, what the harvester is doing, the
+## deposit and the refinery it works between (their ids, 0 for none), and the
+## deposit cell it is digging at.
+var cargo := 0
+var job := Job.NONE
+var deposit_id := 0
+var refinery_id := 0
+var job_cell := Vector2i(-1, -1)
+## Ticks left of a change of shape (DEPLOY or PACK).
+var job_ticks_left := 0
+## Part of a unit of Orichalcum carried over from tick to tick while
+## extracting or unloading, in twentieths.
+var work_part := 0
+## Set by an order to unload: it goes to the refinery even with a part load.
+var unload_first := false
+## The tick at which it last looked for a place to stand and found none.
+var retry_tick := -1000
 ## Set when the unit has been killed. A dead unit is no longer in the world.
 var dead := false
 
@@ -72,6 +110,11 @@ func is_moving() -> bool:
 ## A unit that stands still and has nowhere to go. Others must walk around it.
 func is_settled() -> bool:
 	return not has_goal and move_ticks_left == 0
+
+
+## Is a harvester a robot right now (or halfway there)? Trucks drive, robots dig.
+func is_robot() -> bool:
+	return job == Job.DEPLOY or job == Job.EXTRACT or job == Job.PACK
 
 
 ## Where to draw the unit, in cells (whole numbers are cell positions).

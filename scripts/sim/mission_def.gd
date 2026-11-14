@@ -16,7 +16,8 @@ extends Resource
 @export var enemy_side := ""
 @export var player_color := Color(0.45, 0.72, 1.0)
 @export var enemy_color := Color(1.0, 0.45, 0.35)
-## Each side gets `troop_count` troops and one commander. The player starts at
+## Each side gets `troop_count` troops and one commander (either can be left
+## out by giving no type). The player starts at
 ## the map's first start position, the enemy at the second.
 @export var troop_count := 4
 @export var player_troop: UnitType
@@ -24,7 +25,19 @@ extends Resource
 @export var enemy_troop: UnitType
 @export var enemy_commander: UnitType
 
+@export_group("Economy")
+## The player's refinery, or null for a mission without one. It is put on the
+## ground nearest to the player's start that can be built on.
+@export var player_refinery: BuildingType
+## The player's harvesters: their type and how many. They start beside the
+## refinery.
+@export var player_harvester: UnitType
+@export var harvester_count := 0
+
 @export_group("Rules")
+## A practice mission has no opponent and no way to win or lose. The player
+## leaves it with Esc.
+@export var practice := false
 ## Radius of the control area around the map's control point, in cells.
 @export var control_radius := 5.0
 ## How long a side must hold the control area on its own to win, in seconds.

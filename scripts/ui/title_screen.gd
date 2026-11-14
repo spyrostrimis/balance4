@@ -1,22 +1,28 @@
 extends Control
 ## Placeholder title screen. It will be replaced by the real menu later.
 ##
-## Starting the game with "-- --map=forest" or "-- --map=desert" on the command
-## line skips this screen and starts the mission on that map.
+## Starting the game with "-- --map=<name>" on the command line skips this
+## screen and starts the mission of that name: forest or desert for Mission 1,
+## harvest-forest or harvest-desert for the harvest trial.
 
-const MILESTONE := "M3 Combat"
+const MILESTONE := "M4 Economy"
 const MAP_SCENE := "res://scenes/map_view.tscn"
-## Map name -> the mission played on it. Mission 1 is played as Blue on the
-## forest map and as Red on the desert map.
+## Name -> the mission started by it. Mission 1 is played as Blue on the
+## forest map and as Red on the desert map. The harvest trial is a practice
+## mission on the same maps: a refinery, two harvesters and no opponent.
 const MISSIONS := {
 	"forest": "res://data/missions/first_claim_blue.tres",
 	"desert": "res://data/missions/first_claim_red.tres",
+	"harvest-forest": "res://data/missions/harvest_trial_blue.tres",
+	"harvest-desert": "res://data/missions/harvest_trial_red.tres",
 }
 
 @onready var _status: Label = $Center/Box/Status
 @onready var _forest: Button = $Center/Box/Buttons/Forest
 @onready var _desert: Button = $Center/Box/Buttons/Desert
 @onready var _quit: Button = $Center/Box/Buttons/Quit
+@onready var _harvest_forest: Button = $Center/Box/Trials/HarvestForest
+@onready var _harvest_desert: Button = $Center/Box/Trials/HarvestDesert
 
 
 func _ready() -> void:
@@ -24,6 +30,8 @@ func _ready() -> void:
 	_status.text = "%s  |  placeholder title screen  |  Godot %s" % [MILESTONE, version]
 	_forest.pressed.connect(open_map.bind("forest"))
 	_desert.pressed.connect(open_map.bind("desert"))
+	_harvest_forest.pressed.connect(open_map.bind("harvest-forest"))
+	_harvest_desert.pressed.connect(open_map.bind("harvest-desert"))
 	_quit.pressed.connect(get_tree().quit)
 	_forest.grab_focus()
 	var wanted := map_from_args(OS.get_cmdline_user_args())
@@ -31,7 +39,7 @@ func _ready() -> void:
 		open_map.call_deferred(wanted)
 
 
-## The map named by a "--map=<name>" argument, or "" if there is none or it is unknown.
+## The mission named by a "--map=<name>" argument, or "" if there is none or it is unknown.
 static func map_from_args(args: PackedStringArray) -> String:
 	for arg in args:
 		if arg.begins_with("--map="):
@@ -40,7 +48,7 @@ static func map_from_args(args: PackedStringArray) -> String:
 	return ""
 
 
-## Start the mission that is played on a map.
+## Start the mission with this name (a key of MISSIONS).
 func open_map(map_name: String) -> void:
 	MapView.requested_mission = MISSIONS[map_name]
 	get_tree().change_scene_to_file(MAP_SCENE)

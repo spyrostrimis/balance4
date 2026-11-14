@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/map_view.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/ui/terrain_view.gd" id="2"]
@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://scripts/ui/drag_box.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/ui/control_view.gd" id="8"]
 [ext_resource type="Script" path="res://scripts/ui/mission_hud.gd" id="9"]
+[ext_resource type="Script" path="res://scripts/ui/deposit_view.gd" id="10"]
+[ext_resource type="Script" path="res://scripts/ui/buildings_view.gd" id="11"]
 
 [sub_resource type="StyleBoxFlat" id="sidebar_style"]
 bg_color = Color(0.075, 0.07, 0.06, 1)
@@ -29,8 +31,14 @@ script = ExtResource("1")
 [node name="Terrain" type="Node2D" parent="."]
 script = ExtResource("2")
 
+[node name="Deposits" type="TileMapLayer" parent="."]
+script = ExtResource("10")
+
 [node name="ControlArea" type="Node2D" parent="."]
 script = ExtResource("8")
+
+[node name="Buildings" type="Node2D" parent="."]
+script = ExtResource("11")
 
 [node name="Units" type="Node2D" parent="."]
 script = ExtResource("5")
@@ -96,13 +104,14 @@ theme_override_font_sizes/font_size = 12
 [node name="Help" type="Label" parent="Hud/Sidebar"]
 layout_mode = 0
 offset_left = 11.0
-offset_top = 420.0
+offset_top = 418.0
 offset_right = 203.0
 offset_bottom = 540.0
 theme_override_colors/font_color = Color(0.5, 0.52, 0.47, 1)
 theme_override_font_sizes/font_size = 10
 text = "Left click or drag: select (Shift adds)
 Right click: move, or attack an enemy
+Harvester: right-click rock or refinery
 A, then left click: attack-move
 S: stop.  Q, then left click: ability
 Ctrl+1..9 stores a group, 1..9 selects it

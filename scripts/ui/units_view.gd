@@ -1,9 +1,9 @@
 class_name UnitsView
 extends Node2D
 ## Draws the units of a SimWorld: sprites, selection rings, health bars, the
-## marks left by hits, heals and deaths, and the markers that show where an
-## order was given. Also answers "which unit is under this point" and "which
-## units are in this box".
+## marks left by hits, heals and deaths, harvesters at work, and the markers
+## that show where an order was given. Also answers "which unit is under
+## this point" and "which units are in this box".
 
 const CELL := MapData.CELL_SIZE
 ## Where a unit's feet are inside its cell, in pixels from the cell's top-left.
@@ -22,6 +22,10 @@ const HIT_SPARK := Color(1.0, 0.94, 0.7)
 const HEAL_GLOW := Color(0.6, 1.0, 0.75)
 const HERO_MARK := Color(0.95, 0.78, 0.3)
 const HURT_TINT := Color(1.0, 0.5, 0.45)
+const ORE := Color(0.98, 0.77, 0.32)
+const ORE_DARK := Color(0.66, 0.4, 0.1)
+## How many ticks each half of a harvester's swing is shown.
+const DIG_TICKS := 5
 const MARKER_SECONDS := 0.45
 ## How many ticks each walking pose is shown.
 const STEP_TICKS := 4
@@ -67,11 +71,17 @@ static func unit_at_point(p_world: SimWorld, point: Vector2, team: int, p_alpha 
 	for unit in p_world.units:
 		if unit.team != team or unit.dead:
 			continue
-		var distance := (feet_position(unit, p_alpha) + BODY).distance_to(point)
+		var distance := (feet_position(unit, p_alpha) + BODY).distance_to(point) - pick_slack(unit)
 		if distance <= best_distance:
 			best = unit
 			best_distance = distance
 	return best
+
+
+## How much further than PICK_RADIUS a click may be from a unit and still
+## select it: nothing for troops, a few pixels for vehicles, which are larger.
+static func pick_slack(unit: SimUnit) -> float:
+	return maxf(0.0, unit.type.sprite_size.x * 0.3 - PICK_RADIUS)
 
 
 ## The unit of any other team that `viewer_team` can see and whose body is
@@ -82,7 +92,7 @@ static func enemy_at_point(p_world: SimWorld, point: Vector2, p_viewer_team: int
 	for unit in p_world.units:
 		if unit.team == p_viewer_team or unit.dead or not p_world.is_visible_to(unit, p_viewer_team):
 			continue
-		var distance := (feet_position(unit, p_alpha) + BODY).distance_to(point)
+		var distance := (feet_position(unit, p_alpha) + BODY).distance_to(point) - pick_slack(unit)
 		if distance <= best_distance:
 			best = unit
 			best_distance = distance
@@ -101,6 +111,14 @@ static func units_in_rect(p_world: SimWorld, rect: Rect2, team: int, p_alpha := 
 
 ## Which sprite of the sheet shows a unit right now: (facing column, pose row).
 static func sprite_frame(unit: SimUnit, tick: int) -> Vector2i:
+	if unit.type.is_harvester():
+		match unit.job:
+			SimUnit.Job.DEPLOY, SimUnit.Job.PACK:
+				return Vector2i(unit.facing, 2)
+			SimUnit.Job.EXTRACT:
+				return Vector2i(unit.facing, 3 + ((tick + unit.id * 3) / DIG_TICKS) % 2)
+		# A truck: empty, or loaded once its hold is at least half full.
+		return Vector2i(unit.facing, 1 if unit.cargo * 2 >= unit.type.cargo_capacity else 0)
 	var pose := 0
 	if unit.is_moving():
 		pose = 1 + ((tick + unit.id * 3) / STEP_TICKS) % 2
@@ -115,6 +133,11 @@ static func shows_health(unit: SimUnit, chosen: bool) -> bool:
 ## Show a short-lived marker where a move order was given.
 func add_move_marker(map_point: Vector2) -> void:
 	_markers.append([map_point.round(), MARKER_SECONDS, MOVE_MARK, 0])
+
+
+## Show a short-lived marker where harvesters were sent to dig or to unload.
+func add_harvest_marker(map_point: Vector2) -> void:
+	_markers.append([map_point.round(), MARKER_SECONDS, ORE, 0])
 
 
 ## Show a short-lived marker where an attack-move order was given.
@@ -162,9 +185,9 @@ func _draw() -> void:
 	for unit in visible_units:
 		var feet := feet_position(unit, alpha)
 		var chosen := selection != null and selection.has(unit.id)
-		if chosen:
-			_draw_ring(feet, Vector2(6, 3), RING)
 		var type := unit.type
+		if chosen:
+			_draw_ring(feet, Vector2(type.sprite_size.x, type.sprite_size.x) * Vector2(0.25, 0.125), RING)
 		var frame := sprite_frame(unit, world.tick_count)
 		var source := Rect2(Vector2(frame * type.sprite_size), Vector2(type.sprite_size))
 		var at := feet - Vector2(type.sprite_anchor)
@@ -174,8 +197,16 @@ func _draw() -> void:
 		draw_texture_rect_region(type.sprites, Rect2(at, Vector2(type.sprite_size)), source, tint)
 		if type.is_hero:
 			_draw_hero_mark(feet + Vector2(0, -23))
+		var bar := feet + Vector2(-7, -type.sprite_anchor.y - 1)
 		if shows_health(unit, chosen):
-			_draw_health(feet + Vector2(-7, -19), float(unit.health) / type.max_health)
+			_draw_health(bar, float(unit.health) / type.max_health)
+		if type.is_harvester():
+			if chosen or unit.cargo > 0:
+				_draw_bar(bar + Vector2(0, 4), float(unit.cargo) / type.cargo_capacity, ORE)
+			if unit.job == SimUnit.Job.EXTRACT:
+				_draw_digging(unit, feet)
+			elif unit.job == SimUnit.Job.UNLOAD:
+				_draw_unloading(unit, feet)
 	var shroud := world.shroud_for(viewer_team)
 	for effect in world.effects:
 		var where := Vector2i((effect["to"] as Vector2).round())
@@ -251,9 +282,41 @@ func _draw_ring(center: Vector2, radius: Vector2, color: Color) -> void:
 
 
 func _draw_health(top_left: Vector2, share: float) -> void:
+	_draw_bar(top_left, maxf(share, 1.0 / 14.0), HEALTH_FULL if share > 0.35 else HEALTH_LOW)
+
+
+## A small bar 14 pixels wide, filled from the left.
+func _draw_bar(top_left: Vector2, share: float, color: Color) -> void:
 	draw_rect(Rect2(top_left - Vector2.ONE, Vector2(16, 4)), HEALTH_BACK)
-	var width := maxf(1.0, roundf(14.0 * clampf(share, 0.0, 1.0)))
-	draw_rect(Rect2(top_left, Vector2(width, 2)), HEALTH_FULL if share > 0.35 else HEALTH_LOW)
+	var width := roundf(14.0 * clampf(share, 0.0, 1.0))
+	if width > 0.0:
+		draw_rect(Rect2(top_left, Vector2(width, 2)), color)
+
+
+## Chips of ore flying off the rock in front of a harvester that is digging.
+func _draw_digging(unit: SimUnit, feet: Vector2) -> void:
+	var toward := (Vector2(unit.job_cell - unit.cell)).normalized()
+	var face := feet + Vector2(0, -3) + toward * 15.0
+	var beat := world.tick_count + unit.id * 3
+	for i in 4:
+		var h := TerrainView.cell_hash(Vector2i(beat / 2 + i * 17, unit.id))
+		var age := float((beat + i * 3) % 8) / 8.0
+		var fly := Vector2(float(h % 13) - 6.0, -float((h / 13) % 7)) * age - toward * 5.0 * age
+		draw_rect(Rect2((face + fly).round(), Vector2(2, 2) if i % 2 == 0 else Vector2.ONE),
+				Color(ORE if i % 2 == 0 else ORE_DARK, 1.0 - age * 0.7))
+
+
+## Ore sliding from a harvester into the refinery it is unloading at.
+func _draw_unloading(unit: SimUnit, feet: Vector2) -> void:
+	var refinery := world.get_building(unit.refinery_id)
+	if refinery == null:
+		return
+	var from := feet + Vector2(0, -4)
+	var area := Rect2(Vector2(refinery.cell * CELL), Vector2(refinery.type.footprint * CELL)).grow(-6.0)
+	var to := Vector2(clampf(from.x, area.position.x, area.end.x), clampf(from.y, area.position.y, area.end.y))
+	for i in 3:
+		var t := fmod((world.tick_count + alpha) / 10.0 + i / 3.0, 1.0)
+		draw_rect(Rect2(from.lerp(to, t).round() - Vector2.ONE, Vector2(2, 2)), Color(ORE, 1.0 - t * 0.5))
 
 
 ## A small gold chevron above a hero, so it can be found in a crowd.

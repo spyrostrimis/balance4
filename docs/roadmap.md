@@ -93,7 +93,7 @@ later); the rock as a deposit that can be mined (M4); an opponent that thinks
 rather than follows a script (M6). Red's field commander is a placeholder
 until that character is designed, and every combat number is provisional.
 
-## M4 Economy
+## M4 Economy (done)
 
 Orichalcum flows.
 
@@ -106,6 +106,14 @@ Done means:
 - The HUD shows the current amount.
 - Playable result: a harvester earns Orichalcum on its own once sent to a
   deposit.
+
+What was built is described in [economy.md](economy.md). The playable result
+is a practice mission, the "Harvest trial": a refinery, two harvesters and no
+opponent, on either map. Mission 1 is unchanged. M4 also brought the first
+building (the refinery, put on the map by the mission) and two provisional
+rules: Orichalcum delivered to a full store is lost, and mined-out rock stays
+impassable. Left for later milestones: spending Orichalcum, and placing and
+destroying buildings (M5); an opponent that harvests (M6).
 
 ## M5 Base building and production
 

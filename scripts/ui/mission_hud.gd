@@ -1,9 +1,10 @@
 class_name MissionHud
 extends Control
-## The mission parts of the HUD: a bar along the top of the map, a hint box,
-## the command buttons, the objective with the hold progress, and the win or
-## loss screen. It builds its own controls. It is functional only; the HUD art
-## will be redone later.
+## The mission parts of the HUD: a bar along the top of the map (with the
+## Orichalcum in store, once the player has a refinery), a hint box, the
+## command buttons, the objective with the hold progress (in a practice
+## mission: how full the store is), and the win or loss screen. It builds its
+## own controls. It is functional only; the HUD art will be redone later.
 
 signal command_pressed(command: StringName)     # &"attack", &"stop" or &"ability"
 signal again_pressed
@@ -100,7 +101,7 @@ func setup(mission: Mission) -> void:
 	if mission == null:
 		return
 	var def := mission.def
-	_top_left.text = "Mission %d: %s" % [def.number, def.display_name]
+	_top_left.text = def.display_name if def.practice else "Mission %d: %s" % [def.number, def.display_name]
 	_objective.text = def.objective
 	refresh(mission, "")
 
@@ -110,15 +111,26 @@ func refresh(mission: Mission, hint: String) -> void:
 	var def := mission.def
 	var players := mission.world.team_size(Mission.PLAYER_TEAM)
 	var enemies := mission.world.team_size(Mission.ENEMY_TEAM)
-	_top_right.text = "%s %d   %s %d   Time %s" % [def.player_side, players, def.enemy_side, enemies, clock(mission.seconds())]
 	_hint.text = hint
+	_ability.text = ability_label(mission.player_commander())
+	_ability.disabled = not ability_ready(mission.player_commander())
+	var store := store_text(mission.world, Mission.PLAYER_TEAM)
+	if def.practice:
+		var world := mission.world
+		var storage := world.storage_for(Mission.PLAYER_TEAM)
+		_top_right.text = "%s   Time %s" % [store, clock(mission.seconds())]
+		_status.text = rock_text(world)
+		_forces.text = "Harvesters: %d    Lost (store full): %d" % [players, int(world.lost.get(Mission.PLAYER_TEAM, 0))]
+		_bar.size.x = roundf((SIDE_WIDTH - 2.0) * (float(world.stored_for(Mission.PLAYER_TEAM)) / storage if storage > 0 else 0.0))
+		_bar.color = GOLD
+		return
+	_top_right.text = "%s%s %d   %s %d   Time %s" % [store + "   " if store != "" else "",
+			def.player_side, players, def.enemy_side, enemies, clock(mission.seconds())]
 	_status.text = hold_text(mission)
 	_forces.text = "%s units: %d    %s units: %d" % [def.player_side, players, def.enemy_side, enemies]
 	var control := mission.control
 	_bar.size.x = roundf((SIDE_WIDTH - 2.0) * (control.progress() if control.owner != ControlPoint.NOBODY else 0.0))
 	_bar.color = def.player_color if control.owner == Mission.PLAYER_TEAM else def.enemy_color
-	_ability.text = ability_label(mission.player_commander())
-	_ability.disabled = not ability_ready(mission.player_commander())
 
 
 ## Show the win or loss screen.
@@ -137,6 +149,22 @@ func is_result_shown() -> bool:
 static func clock(seconds: float) -> String:
 	var whole := ceili(maxf(seconds, 0.0))
 	return "%d:%02d" % [whole / 60, whole % 60]
+
+
+## The Orichalcum a team has in store and how much it can store, e.g.
+## "Orichalcum 350 / 800". "" for a team with no storage at all.
+static func store_text(world: SimWorld, team: int) -> String:
+	var storage := world.storage_for(team)
+	if storage <= 0:
+		return ""
+	var stored := world.stored_for(team)
+	return "Orichalcum %d / %d%s" % [stored, storage, " (full)" if stored >= storage else ""]
+
+
+## One line saying how much Orichalcum is left in the ground.
+static func rock_text(world: SimWorld) -> String:
+	var left := world.ore_left()
+	return "Left in the rock: %d" % left if left > 0 else "The rock has run out"
 
 
 ## One line saying who holds the control area and for how much longer.

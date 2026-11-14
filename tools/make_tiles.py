@@ -19,6 +19,8 @@ Output goes to assets/tiles/<biome>/:
 Each biome also gets ore_rock.png, an overlay for the Orichalcum rock formation. Its ore
 crystals are densest around the texture's origin, so a formation looks best when its middle
 sits on a grid corner whose cell coordinates are multiples of 8 (the maps put it there).
+ore_rock_spent.png is the same rock with the crystals dug out; the game draws it over the
+cells of a formation that have been mined empty.
 
 It also writes assets/tiles/shroud.png, the black cover over unexplored ground, in the same
 layout as an overlay (row = which of the four cells around the corner are unexplored).
@@ -320,6 +322,9 @@ def ore_rock(path, seed, rock_colours, lit, dark, desat_k=1.0):
     rock = ramp(np.clip(0.5 + (value - 0.5) * 0.55 + speck(rng, 0.5), 0, 0.999), rock_colours)
     rock[(f2 - f1) < 0.9] = hexc(dark)
     rock = desat(rock, desat_k)
+    spent = rock * 0.8                      # the same rock, darker, with a socket where each crystal was
+    pit_rng = np.random.default_rng(seed + 7)
+    pit = desat(pal([rock_colours[1], rock_colours[0], dark]), desat_k)
     yy, xx = np.mgrid[0:P, 0:P].astype(np.float32)
     far = np.hypot(np.minimum(xx, P - xx) / 1.45, np.minimum(yy, P - yy))    # distance from the origin, wrapping
     vein = (f2 - f1) < 1.6
@@ -334,6 +339,8 @@ def ore_rock(path, seed, rock_colours, lit, dark, desat_k=1.0):
         rock *= (1 - 0.3 * sh)[..., None]
         for (y, x, r, _) in pts:
             draw_stamp(rock, x, y, r, ore, rng, 0.25, 'crystal', 0.3)
+            if k > 0:
+                draw_stamp(spent, x, y, r * 0.8, pit, pit_rng, 0.25, 'crystal', 0.0)
 
     def style(F, W, ox, oy):
         inside = F + W(grit) > EDGE
@@ -343,7 +350,15 @@ def ore_rock(path, seed, rock_colours, lit, dark, desat_k=1.0):
         rgb[shade] = 0
         return rgb, np.where(inside, 1.0, np.where(shade, 0.4, 0.0)).astype(np.float32)
 
+    def spent_style(F, W, ox, oy):
+        # The same outline as the rock, so a spent cell at the edge of a formation covers it exactly.
+        inside = F + W(grit) > EDGE
+        rgb = W(spent).copy()
+        relief(rgb, inside, lit, dark)
+        return rgb, inside.astype(np.float32)
+
     make_overlay(path, wobble, style)
+    make_overlay(path.replace('.png', '_spent.png'), wobble, spent_style)
     report('ore_rock', rock)
 
 

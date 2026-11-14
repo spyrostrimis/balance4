@@ -1,7 +1,8 @@
 class_name Mission
 extends RefCounted
 ## A mission being played: the world, the control point, the scripted opponent
-## and the rule that decides who has won.
+## and the rule that decides who has won. A practice mission (see MissionDef)
+## has no opponent and no winner; it is just the world, ticking.
 
 const PLAYER_TEAM := SimWorld.PLAYER_TEAM
 const ENEMY_TEAM := 1
@@ -13,6 +14,8 @@ var control: ControlPoint
 var opponent: ScriptedOpponent
 ## Id of the player's commander. It stays the same after the commander dies.
 var player_commander_id := 0
+## Id of the player's refinery, or 0 if the mission gives none.
+var player_refinery_id := 0
 ## The team that has won, or NOBODY while the mission is being played.
 var winner := NOBODY
 ## How it was won: &"hold" (held the control area) or &"eliminated" (the other
@@ -29,8 +32,25 @@ func _init(p_def: MissionDef) -> void:
 	var starts := map.starts
 	var player_start := starts[0] if starts.size() > 0 else Vector2i.ZERO
 	var enemy_start := starts[1] if starts.size() > 1 else map.get_size() - Vector2i.ONE
+	# The refinery goes down first, so that nobody is put where it will stand.
+	if def.player_refinery != null:
+		var site := world.nearest_build_site(def.player_refinery, player_start)
+		if site != SimWorld.NO_CELL:
+			player_refinery_id = world.add_building(def.player_refinery, PLAYER_TEAM, site).id
 	var commander := _spawn(PLAYER_TEAM, player_start, def.player_commander, def.player_troop)
 	player_commander_id = commander.id if commander != null else 0
+	if def.practice:
+		# Nothing is hidden in a practice mission that the player is sent to: the rock is on the map from the start.
+		for deposit in world.deposits:
+			for cell in deposit.cells:
+				world.shroud_for(PLAYER_TEAM).reveal_circle(cell, 2)
+	if def.player_harvester != null and def.harvester_count > 0:
+		var refinery := world.get_building(player_refinery_id)
+		var beside := player_start
+		if refinery != null:
+			beside = refinery.cell + Vector2i(refinery.type.footprint.x / 2, refinery.type.footprint.y)
+		for unit in world.add_group(def.player_harvester, PLAYER_TEAM, beside, def.harvester_count):
+			unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
 	_spawn(ENEMY_TEAM, enemy_start, def.enemy_commander, def.enemy_troop)
 	opponent = ScriptedOpponent.new(world, control, ENEMY_TEAM, enemy_start, def.enemy_delay_seconds)
 	# The second wave is the commander and the second half of the troops.
@@ -73,6 +93,9 @@ func player_commander() -> SimUnit:
 ## Advance the mission by one simulation tick. Does nothing once it is over.
 func tick() -> void:
 	if is_over():
+		return
+	if def.practice:
+		world.tick()
 		return
 	opponent.tick()
 	world.tick()

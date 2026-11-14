@@ -1,13 +1,15 @@
 class_name Minimap
 extends Control
 ## The whole map at a glance, one colour per cell, with a frame showing what
-## the camera sees. Unexplored cells are black; units are coloured dots; the
-## control area, if there is one, is a ring.
+## the camera sees. Unexplored cells are black; units are coloured dots and
+## buildings coloured blocks; mined-out rock is grey; the control area, if
+## there is one, is a ring.
 ## Click or drag on it to move the camera.
 
 const BACKGROUND := Color(0.03, 0.035, 0.03)
 const UNEXPLORED := Color(0.027, 0.031, 0.027)
 const FRAME := Color(1, 1, 1, 0.9)
+const SPENT := Color(0.33, 0.3, 0.27)
 
 var _map: MapData
 var _camera: MapCamera
@@ -15,6 +17,7 @@ var _world: SimWorld
 var _team := SimWorld.PLAYER_TEAM
 var _texture: ImageTexture
 var _shroud_version := -1
+var _spent_count := -1
 var _control: ControlPoint
 var _control_colors := {}
 
@@ -40,8 +43,10 @@ func show_control(control: ControlPoint, team_colors := {}) -> void:
 	queue_redraw()
 
 
-## One pixel per cell, in each terrain's minimap colour; black where the shroud (if given) still covers it.
-static func build_image(map: MapData, shroud: Shroud = null) -> Image:
+## One pixel per cell, in each terrain's minimap colour; black where the shroud
+## (if given) still covers it, grey where the world (if given) has a deposit
+## cell that is mined out.
+static func build_image(map: MapData, shroud: Shroud = null, world: SimWorld = null) -> Image:
 	var size := map.get_size()
 	var image := Image.create(size.x, size.y, false, Image.FORMAT_RGB8)
 	for y in size.y:
@@ -51,6 +56,10 @@ static func build_image(map: MapData, shroud: Shroud = null) -> Image:
 				image.set_pixel(x, y, UNEXPLORED)
 			else:
 				image.set_pixel(x, y, map.terrain_at(cell).minimap_color)
+	if world != null:
+		for cell in world.spent_log:
+			if shroud == null or shroud.is_explored(cell):
+				image.set_pixel(cell.x, cell.y, SPENT)
 	return image
 
 
@@ -81,10 +90,12 @@ func map_to_local(map_point: Vector2) -> Vector2:
 func _refresh_texture() -> void:
 	var shroud: Shroud = _world.shroud_for(_team) if _world != null else null
 	var version := shroud.version if shroud != null else 0
-	if _texture != null and version == _shroud_version:
+	var spent := _world.spent_log.size() if _world != null else 0
+	if _texture != null and version == _shroud_version and spent == _spent_count:
 		return
 	_shroud_version = version
-	var image := build_image(_map, shroud)
+	_spent_count = spent
+	var image := build_image(_map, shroud, _world)
 	if _texture == null:
 		_texture = ImageTexture.create_from_image(image)
 	else:
@@ -105,7 +116,10 @@ func _draw() -> void:
 	draw_texture_rect(_texture, rect, false)
 	if _world != null:
 		var cell_size := rect.size / Vector2(_map.get_size())
-		var shroud := _world.shroud_for(_team)
+		for building in _world.buildings:
+			if _world.is_building_visible_to(building, _team):
+				draw_rect(Rect2(rect.position + Vector2(building.cell) * cell_size,
+						Vector2(building.type.footprint) * cell_size), building.type.minimap_color)
 		for unit in _world.units:
 			if unit.dead or not _world.is_visible_to(unit, _team):
 				continue

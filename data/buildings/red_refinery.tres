@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BuildingType" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/building_type.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/buildings/refinery_red.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"red_refinery"
+display_name = "Refinery"
+role = "Red Refinery"
+footprint = Vector2i(3, 2)
+sight = 4
+is_refinery = true
+storage = 800
+sprite = ExtResource("2")
+sprite_origin = Vector2i(8, 8)
+minimap_color = Color(1, 0.45, 0.35, 1)

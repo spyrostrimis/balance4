@@ -1,7 +1,8 @@
 class_name SimWorld
 extends RefCounted
-## The game simulation: the map, the units on it and the rules that move them
-## and make them fight.
+## The game simulation: the map, the units and buildings on it, the Orichalcum
+## deposits, and the rules that move units, make them fight and make
+## harvesters earn.
 ##
 ## It advances in fixed steps ("ticks"), 20 per second, and never looks at the
 ## clock, the screen or the mouse, so the same orders always give the same
@@ -27,6 +28,14 @@ const PROVOKED_TICKS := 100
 const HELP_RANGE := 6
 ## How long an entry stays in `effects`, in ticks.
 const EFFECT_TICKS := 20
+## A harvester that finds no free place to stand beside its deposit or its
+## refinery looks again after this many ticks.
+const RETRY_TICKS := 10
+## The eight cells around a cell, the four that share a side first.
+const AROUND: Array[Vector2i] = [
+	Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1),
+	Vector2i(-1, 1), Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1),
+]
 
 const NO_CELL := Vector2i(-1, -1)
 
@@ -43,10 +52,24 @@ var effects: Array[Dictionary] = []
 var removed_count := 0
 ## Units lost per team: team -> count.
 var losses := {}
+var buildings: Array[SimBuilding] = []
+## The Orichalcum deposits of the map. A deposit stays in the list when it has
+## run out.
+var deposits: Array[Deposit] = []
+## Deposit cells that have been emptied, in the order it happened. The UI
+## follows it to redraw them.
+var spent_log: Array[Vector2i] = []
+## Orichalcum in store per team, and Orichalcum that was delivered while the
+## store was full and so was lost: team -> amount.
+var stored := {}
+var lost := {}
 
 var _by_id := {}
 var _next_id := 1
 var _occupant := PackedInt32Array()   # unit id per cell, 0 for none
+var _building := PackedInt32Array()   # building id per cell, 0 for none
+var _deposit := PackedInt32Array()    # deposit id per cell, 0 for none
+var _buildings_by_id := {}
 var _region := PackedInt32Array()     # connected walkable area per cell, 0 for impassable
 var _astar := AStarGrid2D.new()
 var _shrouds := {}
@@ -57,6 +80,7 @@ func _init(p_map: MapData) -> void:
 	map = p_map
 	size = map.get_size()
 	_occupant.resize(size.x * size.y)
+	_building.resize(size.x * size.y)
 	_astar.region = Rect2i(Vector2i.ZERO, size)
 	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
@@ -67,6 +91,7 @@ func _init(p_map: MapData) -> void:
 			if not map.is_walkable(Vector2i(x, y)):
 				_astar.set_point_solid(Vector2i(x, y), true)
 	_build_regions()
+	_find_deposits()
 
 
 # --- units ---------------------------------------------------------------------
@@ -124,9 +149,14 @@ func unit_at(cell: Vector2i) -> SimUnit:
 	return null if id == 0 else _by_id[id]
 
 
-## Walkable and not occupied.
+## Walkable, not built on and not occupied.
 func is_free(cell: Vector2i) -> bool:
-	return map.is_walkable(cell) and _occupant[_index(cell)] == 0
+	return _is_open(cell) and _occupant[_index(cell)] == 0
+
+
+## Ground a unit can stand on: walkable terrain with no building on it.
+func _is_open(cell: Vector2i) -> bool:
+	return map.is_walkable(cell) and _building[_index(cell)] == 0
 
 
 ## What a team has explored. Created the first time it is asked for.
@@ -221,6 +251,7 @@ func order_stop(unit_ids: Array) -> void:
 		var unit := get_unit(id)
 		if unit != null:
 			_stop(unit)
+			_quit_job(unit)
 			unit.order = SimUnit.Order.NONE
 			unit.order_target = 0
 			unit.target_id = 0
@@ -245,6 +276,7 @@ func _order_walk(unit_ids: Array, target: Vector2i, order: SimUnit.Order) -> voi
 		if slot == NO_CELL:
 			continue
 		taken[slot] = true
+		_quit_job(unit)
 		unit.order = order
 		unit.order_cell = slot
 		unit.order_target = 0
@@ -301,6 +333,11 @@ func tick() -> void:
 			if unit.move_ticks_left > 0:
 				continue
 			unit.from_cell = unit.cell      # arrived
+		if unit.job == SimUnit.Job.DEPLOY or unit.job == SimUnit.Job.PACK:
+			unit.job_ticks_left -= 1
+			if unit.job_ticks_left > 0:
+				continue                    # changing shape; nothing else happens
+			unit.job = SimUnit.Job.EXTRACT if unit.job == SimUnit.Job.DEPLOY else SimUnit.Job.NONE
 		if _act(unit):
 			continue                        # it is busy fighting or using its ability
 		if unit.wait_ticks > 0:
@@ -345,6 +382,8 @@ func _act(unit: SimUnit) -> bool:
 		return false
 	if unit.order == SimUnit.Order.ABILITY:
 		return _act_ability(unit)
+	if unit.order == SimUnit.Order.HARVEST:
+		return _act_harvest(unit)
 	if unit.type.attack_damage <= 0:
 		return false
 	var target := _pick_target(unit)
@@ -491,6 +530,399 @@ func _add_effect(kind: StringName, actor: SimUnit, subject: SimUnit) -> void:
 		"kind": kind, "tick": tick_count, "team": actor.team,
 		"from": actor.visual_cell(), "to": subject.visual_cell(),
 	})
+
+
+# --- buildings -------------------------------------------------------------------
+
+## Can a building of this type stand with its top-left corner on a cell? Every
+## cell it covers must be ground that can be built on, with no building and no
+## unit on it.
+func can_build(type: BuildingType, cell: Vector2i) -> bool:
+	for y in type.footprint.y:
+		for x in type.footprint.x:
+			var covered := cell + Vector2i(x, y)
+			if not map.is_buildable(covered):
+				return false
+			if _building[_index(covered)] != 0 or _occupant[_index(covered)] != 0:
+				return false
+	return true
+
+
+## Put a building on the map, its top-left corner on a cell. Units can no
+## longer enter the cells it covers. Returns null if it cannot stand there.
+func add_building(type: BuildingType, team: int, cell: Vector2i) -> SimBuilding:
+	if not can_build(type, cell):
+		return null
+	var building := SimBuilding.new()
+	building.id = _next_id
+	_next_id += 1
+	building.type = type
+	building.team = team
+	building.cell = cell
+	buildings.append(building)
+	_buildings_by_id[building.id] = building
+	for covered in building.cells():
+		_building[_index(covered)] = building.id
+		_astar.set_point_solid(covered, true)
+		shroud_for(team).reveal_circle(covered, type.sight)
+	_build_regions()
+	return building
+
+
+## The building with this id, or null.
+func get_building(id: int) -> SimBuilding:
+	return _buildings_by_id.get(id)
+
+
+## The building covering a cell, or null.
+func building_at(cell: Vector2i) -> SimBuilding:
+	if not map.in_bounds(cell):
+		return null
+	var id := _building[_index(cell)]
+	return null if id == 0 else _buildings_by_id[id]
+
+
+## The place nearest to a cell where a building of this type can stand (its
+## top-left cell), measured from the middle of the building. NO_CELL if there
+## is none on the map.
+func nearest_build_site(type: BuildingType, near: Vector2i) -> Vector2i:
+	var best := NO_CELL
+	var best_distance := 0.0
+	var target := Vector2(near) + Vector2(0.5, 0.5)
+	for y in size.y - type.footprint.y + 1:
+		for x in size.x - type.footprint.x + 1:
+			var cell := Vector2i(x, y)
+			var distance := (Vector2(cell) + Vector2(type.footprint) / 2.0).distance_squared_to(target)
+			if (best == NO_CELL or distance < best_distance) and can_build(type, cell):
+				best = cell
+				best_distance = distance
+	return best
+
+
+## Can a team see a building? It always sees its own; it sees others once it
+## has explored any cell they cover.
+func is_building_visible_to(building: SimBuilding, team: int) -> bool:
+	if building.team == team:
+		return true
+	var shroud := shroud_for(team)
+	for covered in building.cells():
+		if shroud.is_explored(covered):
+			return true
+	return false
+
+
+# --- Orichalcum ------------------------------------------------------------------
+
+## Orichalcum a team has in store.
+func stored_for(team: int) -> int:
+	return int(stored.get(team, 0))
+
+
+## How much Orichalcum a team can store: the sum of what its buildings hold.
+func storage_for(team: int) -> int:
+	var total := 0
+	for building in buildings:
+		if building.team == team:
+			total += building.type.storage
+	return total
+
+
+## The deposit a cell belongs to, or null.
+func deposit_at(cell: Vector2i) -> Deposit:
+	if not map.in_bounds(cell):
+		return null
+	var id := _deposit[_index(cell)]
+	return null if id == 0 else deposits[id - 1]
+
+
+## Orichalcum left in all deposits of the map together.
+func ore_left() -> int:
+	var total := 0
+	for deposit in deposits:
+		total += deposit.amount
+	return total
+
+
+## Tell harvesters to work a deposit: drive to it, extract, take the load to
+## a refinery and come back, until the deposit has run out. `cell` is any cell
+## of the deposit. Other units ignore the order. Returns false if the cell is
+## not a deposit or no harvester was among the units.
+func order_harvest(unit_ids: Array, cell: Vector2i) -> bool:
+	var deposit := deposit_at(cell)
+	if deposit == null:
+		return false
+	var any := false
+	for id in unit_ids:
+		var unit := get_unit(id)
+		if unit == null or not unit.type.is_harvester():
+			continue
+		_start_trip(unit, SimUnit.Job.TO_DEPOSIT)
+		unit.deposit_id = deposit.id
+		unit.unload_first = false
+		any = true
+	return any
+
+
+## Tell harvesters to take what they carry to a refinery now. Afterwards they
+## go back to the deposit they were working, if it has anything left. Returns
+## false if the building is not a refinery or no harvester of its side was
+## among the units.
+func order_unload(unit_ids: Array, building_id: int) -> bool:
+	var refinery := get_building(building_id)
+	if refinery == null or not refinery.type.is_refinery:
+		return false
+	var any := false
+	for id in unit_ids:
+		var unit := get_unit(id)
+		if unit == null or not unit.type.is_harvester() or unit.team != refinery.team:
+			continue
+		_start_trip(unit, SimUnit.Job.TO_REFINERY)
+		unit.refinery_id = refinery.id
+		unit.unload_first = true
+		any = true
+	return any
+
+
+func _start_trip(unit: SimUnit, job: SimUnit.Job) -> void:
+	_stop(unit)
+	_quit_job(unit)
+	unit.order = SimUnit.Order.HARVEST
+	unit.order_target = 0
+	unit.target_id = 0
+	unit.retry_tick = -1000
+	# A robot folds back into a truck first; the tick sends it on its way after that.
+	if unit.job != SimUnit.Job.PACK:
+		unit.job = job
+
+
+## Take a harvester off what it is doing because it has new orders. A robot
+## folds back into a truck before it does anything else.
+func _quit_job(unit: SimUnit) -> void:
+	if unit.job == SimUnit.Job.DEPLOY or unit.job == SimUnit.Job.EXTRACT:
+		unit.job = SimUnit.Job.PACK
+		unit.job_ticks_left = unit.type.transform_ticks()
+	elif unit.job != SimUnit.Job.PACK:
+		unit.job = SimUnit.Job.NONE
+	unit.work_part = 0
+
+
+## One tick of a harvester with a harvest order. Returns true while it works
+## on the spot, false while it is driving (or has nothing to do).
+func _act_harvest(unit: SimUnit) -> bool:
+	match unit.job:
+		SimUnit.Job.NONE:
+			_next_trip(unit)
+		SimUnit.Job.TO_DEPOSIT:
+			return _go_to_deposit(unit)
+		SimUnit.Job.EXTRACT:
+			_extract(unit)
+			return true
+		SimUnit.Job.TO_REFINERY:
+			return _go_to_refinery(unit)
+		SimUnit.Job.UNLOAD:
+			return _unload(unit)
+	return false
+
+
+## Decide where a harvester goes next: to a refinery when it is full or there
+## is nothing left to fetch, otherwise to a deposit. With an empty hold and no
+## Orichalcum left anywhere, its work is done.
+func _next_trip(unit: SimUnit) -> void:
+	var deposit := _working_deposit(unit)
+	if unit.cargo >= unit.type.cargo_capacity or (unit.cargo > 0 and (deposit == null or unit.unload_first)):
+		unit.job = SimUnit.Job.TO_REFINERY
+	elif deposit != null:
+		unit.job = SimUnit.Job.TO_DEPOSIT
+	else:
+		unit.order = SimUnit.Order.NONE
+		_stop(unit)
+	unit.retry_tick = -1000
+
+
+## The deposit a harvester should work: its own while that has Orichalcum,
+## otherwise the nearest one that has and that it can drive up to. Null if
+## there is none.
+func _working_deposit(unit: SimUnit) -> Deposit:
+	if unit.deposit_id != 0 and not deposits[unit.deposit_id - 1].is_empty():
+		return deposits[unit.deposit_id - 1]
+	var best: Deposit = null
+	var best_distance := 0
+	for deposit in deposits:
+		if deposit.is_empty():
+			continue
+		var spot := _spot_beside(unit, deposit.cells)
+		if spot == NO_CELL:
+			continue
+		var distance := (spot - unit.cell).length_squared()
+		if best == null or distance < best_distance:
+			best = deposit
+			best_distance = distance
+	if best != null:
+		unit.deposit_id = best.id
+	return best
+
+
+func _go_to_deposit(unit: SimUnit) -> bool:
+	var deposit := _working_deposit(unit)
+	if deposit == null:
+		unit.job = SimUnit.Job.NONE             # it ran out on the way: decide again
+		_stop(unit)
+		return false
+	var rock := _deposit_cell_beside(unit.cell, deposit.id)
+	if rock != NO_CELL:
+		_stop(unit)
+		unit.job_cell = rock
+		unit.facing = facing_toward(rock - unit.cell)
+		unit.job = SimUnit.Job.DEPLOY
+		unit.job_ticks_left = unit.type.transform_ticks()
+		unit.work_part = 0
+		return true
+	_drive_beside(unit, deposit.cells)
+	return false
+
+
+func _extract(unit: SimUnit) -> void:
+	var deposit := deposits[unit.deposit_id - 1]
+	var want := mini(_work_step(unit, unit.type.harvest_rate), unit.type.cargo_capacity - unit.cargo)
+	var dug: Array[Vector2i] = []
+	unit.cargo += deposit.take(unit.cell, want, dug)
+	if not dug.is_empty():
+		unit.job_cell = dug[0]
+		unit.facing = facing_toward(dug[0] - unit.cell)
+	if unit.cargo >= unit.type.cargo_capacity or deposit.is_empty():
+		unit.job = SimUnit.Job.PACK
+		unit.job_ticks_left = unit.type.transform_ticks()
+
+
+func _go_to_refinery(unit: SimUnit) -> bool:
+	var refinery := _refinery_for(unit)
+	if refinery == null:
+		return false                            # nowhere to take it: wait
+	if refinery.is_beside(unit.cell):
+		_stop(unit)
+		unit.facing = facing_toward(Vector2i(refinery.center().floor()) - unit.cell)
+		unit.job = SimUnit.Job.UNLOAD
+		unit.work_part = 0
+		return true
+	_drive_beside(unit, refinery.cells())
+	return false
+
+
+## Hand cargo over to the refinery. What does not fit into the side's storage
+## is lost.
+func _unload(unit: SimUnit) -> bool:
+	if get_building(unit.refinery_id) == null:
+		unit.job = SimUnit.Job.TO_REFINERY
+		return false
+	var moved := mini(_work_step(unit, unit.type.unload_rate), unit.cargo)
+	var room := maxi(0, storage_for(unit.team) - stored_for(unit.team))
+	var kept := mini(moved, room)
+	unit.cargo -= moved
+	stored[unit.team] = stored_for(unit.team) + kept
+	if moved > kept:
+		lost[unit.team] = int(lost.get(unit.team, 0)) + moved - kept
+	if unit.cargo == 0:
+		unit.unload_first = false
+		unit.job = SimUnit.Job.NONE             # next tick: back to the deposit
+	return true
+
+
+## How much a harvester moves this tick at `rate` units of Orichalcum a second.
+func _work_step(unit: SimUnit, rate: int) -> int:
+	unit.work_part += rate
+	var whole := unit.work_part / TICKS_PER_SECOND
+	unit.work_part -= whole * TICKS_PER_SECOND
+	return whole
+
+
+## The refinery a harvester unloads at: the one it was sent to, otherwise the
+## nearest of its side. Null if its side has none.
+func _refinery_for(unit: SimUnit) -> SimBuilding:
+	var chosen := get_building(unit.refinery_id)
+	if chosen != null and chosen.team == unit.team and chosen.type.is_refinery:
+		return chosen
+	var best: SimBuilding = null
+	var best_distance := 0.0
+	for building in buildings:
+		if building.team != unit.team or not building.type.is_refinery:
+			continue
+		var distance := building.center().distance_squared_to(Vector2(unit.cell))
+		if best == null or distance < best_distance:
+			best = building
+			best_distance = distance
+	unit.refinery_id = best.id if best != null else 0
+	return best
+
+
+## Send a harvester that stands still to the nearest free cell beside some
+## cells (a deposit, or a building). If every such cell is taken it waits and
+## looks again a little later.
+func _drive_beside(unit: SimUnit, cells: Array[Vector2i]) -> void:
+	if unit.has_goal or tick_count - unit.retry_tick < RETRY_TICKS:
+		return
+	var spot := _spot_beside(unit, cells)
+	if spot == NO_CELL:
+		unit.retry_tick = tick_count
+	else:
+		_set_goal(unit, spot)
+
+
+## The free cell nearest to a unit that touches one of the given cells (a side
+## or a corner) and that the unit can reach. NO_CELL if there is none.
+func _spot_beside(unit: SimUnit, cells: Array[Vector2i]) -> Vector2i:
+	var best := NO_CELL
+	var best_distance := 0
+	var region := region_at(unit.cell)
+	for cell in cells:
+		for step in AROUND:
+			var spot := cell + step
+			if not map.in_bounds(spot):
+				continue
+			var index := _index(spot)
+			if _region[index] != region or (_occupant[index] != 0 and _occupant[index] != unit.id):
+				continue
+			var distance := (spot - unit.cell).length_squared()
+			if best == NO_CELL or distance < best_distance \
+					or (distance == best_distance and (spot.y < best.y or (spot.y == best.y and spot.x < best.x))):
+				best = spot
+				best_distance = distance
+	return best
+
+
+## A cell of a deposit that touches a cell, or NO_CELL. Cells that share a
+## side come before those that only touch at a corner.
+func _deposit_cell_beside(cell: Vector2i, deposit_id: int) -> Vector2i:
+	for step in AROUND:
+		var near := cell + step
+		if map.in_bounds(near) and _deposit[_index(near)] == deposit_id:
+			return near
+	return NO_CELL
+
+
+## Group the ore-bearing cells of the map into deposits: cells that touch
+## (a side or a corner) belong to the same one.
+func _find_deposits() -> void:
+	_deposit.resize(size.x * size.y)
+	_deposit.fill(0)
+	for y in size.y:
+		for x in size.x:
+			var start := Vector2i(x, y)
+			if _deposit[_index(start)] != 0 or map.terrain_at(start).ore <= 0:
+				continue
+			var deposit := Deposit.new()
+			deposit.id = deposits.size() + 1
+			deposit.spent_log = spent_log
+			deposits.append(deposit)
+			_deposit[_index(start)] = deposit.id
+			var stack: Array[Vector2i] = [start]
+			while not stack.is_empty():
+				var cell: Vector2i = stack.pop_back()
+				deposit.add_cell(cell, map.terrain_at(cell).ore)
+				for step in AROUND:
+					var near := cell + step
+					if map.in_bounds(near) and _deposit[_index(near)] == 0 and map.terrain_at(near).ore > 0:
+						_deposit[_index(near)] = deposit.id
+						stack.append(near)
 
 
 # --- movement --------------------------------------------------------------------
@@ -644,7 +1076,7 @@ func _build_regions() -> void:
 	for y in size.y:
 		for x in size.x:
 			var start := Vector2i(x, y)
-			if _region[_index(start)] != 0 or not map.is_walkable(start):
+			if _region[_index(start)] != 0 or not _is_open(start):
 				continue
 			next_region += 1
 			_region[_index(start)] = next_region
@@ -653,6 +1085,6 @@ func _build_regions() -> void:
 				var cell: Vector2i = stack.pop_back()
 				for step in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 					var near: Vector2i = cell + step
-					if map.is_walkable(near) and _region[_index(near)] == 0:
+					if _is_open(near) and _region[_index(near)] == 0:
 						_region[_index(near)] = next_region
 						stack.append(near)

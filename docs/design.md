@@ -58,6 +58,8 @@ The harvester:
 4. transforms back into a truck,
 5. returns to a refinery to unload.
 
+How this works in the game since milestone M4 is in [economy.md](economy.md).
+
 ## Factions
 
 | Faction (provisional) | Who they are | How they fight |
@@ -156,6 +158,14 @@ Nothing in this section has been decided. Do not treat any guess as canon.
 - **OPEN: What happens to the hold time while the area is contested?** For now
   it waits and carries on when the intruders are gone; it starts again from
   zero only when the area is left empty or changes hands.
+- **OPEN: What happens to Orichalcum that does not fit in the store?** For now
+  it is lost, as in Dune II. The alternative is that the harvester waits with
+  its load.
+- **OPEN: What becomes of mined-out rock?** For now it stays rock that cannot
+  be crossed. It could instead become open ground.
+- **OPEN: The numbers of the economy**: how much a rock holds, what a
+  harvester carries, how much a refinery stores. The first values are in
+  [economy.md](economy.md).
 - **OPEN: What the Palatinate / Clergy wants** and how its unpredictability shows
   up in play.
 - **OPEN: What the wandering creatures are** and how they behave.

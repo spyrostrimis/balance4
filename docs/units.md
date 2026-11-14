@@ -30,6 +30,9 @@ for now and will be tuned much later.
 | Field Commander | Blue hero | 120 | 2.5 cells/s | 5 cells | 16, range 1, once a second |
 | Field Commander | Red hero (placeholder) | 120 | 2.5 cells/s | 5 cells | 16, range 1, once a second |
 
+The harvester (150 health, 3.5 cells/s, cannot attack) came in M4 and is
+described in [economy.md](economy.md).
+
 In Mission 1 each side has four troops and its field commander. Each map
 lists the two start positions.
 

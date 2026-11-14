@@ -1,4 +1,4 @@
-# Render the raw unit sprites for Balance with Blender.
+# Render the raw unit and building sprites for Balance with Blender.
 #
 # Run from the repo root (Blender 5.2):
 #   C:\Blender\blender.exe -b --factory-startup -P tools/render_units.py -- tools/_raw
@@ -7,14 +7,19 @@
 #   <unit>_p<pose>_<dir>.png      colour pass
 #   <unit>_p<pose>_<dir>_sh.png   ground shadow pass
 # They are large (4x) renders. tools/make_units.py turns them into the small sprite sheets
-# in assets/sprites/units/. The output folder is scratch space and is not kept in git.
+# in assets/sprites/units/, and tools/make_buildings.py into the building pictures in
+# assets/sprites/buildings/. The output folder is scratch space and is not kept in git.
 #
 # Facing 0 looks south (towards the camera), 2 west, 4 north, 6 east.
-# Pose 0 stands; poses 1 and 2 are the two halves of a walking step.
+# Troops: pose 0 stands; poses 1 and 2 are the two halves of a walking step.
+# Harvesters: pose 0 is the empty truck, 1 the loaded truck, 2 halfway between truck and
+# robot, 3 and 4 the two halves of the robot's swing.
+# Buildings have one pose and one facing.
 #
-# The models and the lighting are those of the approved style mockups (mockups/src/v5_units.py).
+# The models and the lighting are those of the approved style mockups (mockups/src/v5_units.py
+# and v6_radar.py). The harvester's robot shape and the refinery are new, in the same manner.
 import bpy, sys, math, os
-from mathutils import Vector
+from mathutils import Vector, noise
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 OUT = os.path.abspath(argv[0])     # Blender would otherwise resolve a relative path against the drive root
@@ -201,6 +206,29 @@ def torus(R, r, x=0.0, y=0.0, z=0.0, m=None, rot=(0, 0, 0)):
     return _finish(bpy.context.active_object, m, 'all')
 
 
+def seg(p0, p1, r, m, verts=10, flat=False):
+    """A rod from one point to another."""
+    p0, p1 = Vector(p0), Vector(p1)
+    d = p1 - p0
+    bpy.ops.mesh.primitive_cylinder_add(radius=r, depth=d.length, vertices=verts, location=(p0 + p1) / 2)
+    o = bpy.context.active_object
+    o.rotation_euler = d.normalized().to_track_quat('Z', 'Y').to_euler()
+    return _finish(o, m, None if flat else 'sides')
+
+
+def blob(r, x, y, z, m, amp=0.2, freq=1.5, seed=0, sc=(1, 1, 1), sub=3):
+    """A lumpy sphere (a heap of ore)."""
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=sub, radius=1.0, location=(x, y, z))
+    o = bpy.context.active_object
+    off = Vector((seed * 3.7 + 1, seed * 1.3 + 5, seed * 2.1 + 11))
+    for v in o.data.vertices:
+        p = v.co.copy()
+        n = noise.noise(p * freq + off) + 0.5 * noise.noise(p * freq * 2.3 + off)
+        v.co = p * (1 + amp * n)
+    o.scale = (r * sc[0], r * sc[1], r * sc[2])
+    return _finish(o, m, 'all')
+
+
 def clear():
     for o in objs:
         me = o.data
@@ -330,6 +358,116 @@ def commander(team, pose):
     ell(0.08, 0.08, 0.08, x=0.35, y=-0.09, z=1.5 + z0, m=glow)
 
 
+# --- vehicles (the front faces -Y; sizes in cells) ------------------------------------------
+HULL = mat('hull', '#7c8086', 0.3, 0.6)
+HULL_D = mat('hull_d', '#50545a', 0.3, 0.65)
+TIRE = mat('tire', '#1d1b19', 0.0, 0.9)
+GLASS = mat('glass', '#16222e', 0.2, 0.3)
+ORE_L = mat('ore_l', '#e09a2c', 0.4, 0.3, '#c06a10', 0.25)
+TEAM = {'blue': (mat('tb', '#2f5cc0', 0.1, 0.6), mat('tb2', '#213f88', 0.1, 0.6)),
+        'red': (mat('tr', '#b8322a', 0.1, 0.6), mat('tr2', '#801f1a', 0.1, 0.6))}
+
+
+def wheel(x, y, z=0.0, r=0.115, wd=0.1):
+    cyl(r, wd, x=x, y=y, z=z + r, m=TIRE, rot=(0, pi / 2, 0), center=True, verts=12)
+    cyl(r * 0.5, wd + 0.01, x=x, y=y, z=z + r, m=HULL_D, rot=(0, pi / 2, 0), center=True, verts=8)
+
+
+def harvester_truck(team, loaded):
+    """The harvester as a truck: a cab in front and an open hopper behind it, after the
+    approved mockup. The hopper shows a heap of ore when it is loaded."""
+    T, T2 = TEAM[team]
+    for sx in (-1, 1):
+        for y in (-0.34, 0.0, 0.34):
+            wheel(sx * 0.26, y)
+        box(0.06, 0.5, 0.06, x=sx * 0.29, y=0.14, z=0.3, m=T2)          # folded arms
+    box(0.42, 0.98, 0.08, z=0.1, m=HULL_D)
+    box(0.42, 0.26, 0.2, y=-0.34, z=0.18, m=T)
+    box(0.38, 0.12, 0.03, y=-0.4, z=0.38, m=GLASS)
+    box(0.46, 0.62, 0.04, y=0.14, z=0.18, m=HULL)
+    for sx in (-1, 1):
+        box(0.04, 0.62, 0.14, x=sx * 0.23, y=0.14, z=0.2, m=HULL)
+    for y in (-0.17, 0.45):
+        box(0.46, 0.04, 0.14, y=y, z=0.2, m=HULL)
+    if loaded:
+        blob(0.2, 0, 0.14, 0.27, ORE_L, amp=0.3, freq=2.2, seed=4, sc=(0.95, 1.35, 0.5))
+        blob(0.11, 0.06, 0.02, 0.33, ORE_L, amp=0.3, freq=2.2, seed=5, sc=(1, 1, 0.6))
+    else:
+        box(0.38, 0.54, 0.02, y=0.14, z=0.22, m=HULL_D, bevel=0)        # the empty hopper floor
+    cyl(0.03, 0.1, x=0.15, y=-0.22, z=0.38, m=HULL_D, verts=8)
+
+
+def harvester_robot(team, pose):
+    """The harvester standing up as a squat robot: the wheels become its feet, the hopper its
+    back, the cab its head and the folded arms unfold. pose 0 is halfway there; poses 1 and 2
+    are the two halves of its swing at the rock, one arm up while the other is down."""
+    T, T2 = TEAM[team]
+    up = 0.5 if pose == 0 else 1.0                 # how far it has risen
+    lean = (1 - up) * 0.5
+    for sx in (-1, 1):
+        wheel(sx * 0.2, -0.1)
+        wheel(sx * 0.2, 0.14)
+        box(0.14, 0.42, 0.08, x=sx * 0.2, y=0.02, z=0.06, m=HULL_D)                 # feet
+        box(0.12, 0.14, 0.1 + 0.14 * up, x=sx * 0.17, y=0.04, z=0.12, m=HULL_D)     # legs
+    z0 = 0.2 + 0.14 * up
+    box(0.44, 0.3, 0.08, y=0.04, z=z0, m=HULL_D)                                     # hips
+    box(0.46, 0.34, 0.22, y=0.03 + lean * 0.2, z=z0 + 0.07, m=HULL, rot=(-lean, 0, 0))    # body
+    box(0.3, 0.04, 0.14, y=-0.15 + lean * 0.2, z=z0 + 0.11, m=T, bevel=0.01)         # chest plate
+    box(0.4, 0.16, 0.24, y=0.26 + lean * 0.3, z=z0 + 0.02, m=HULL, rot=(-lean, 0, 0))     # hopper on its back
+    blob(0.12, 0, 0.26 + lean * 0.3, z0 + 0.27, ORE_L, amp=0.3, freq=2.2, seed=4, sc=(1.3, 0.5, 0.5))
+    zh = z0 + 0.3
+    box(0.26, 0.24, 0.13, y=-0.02 + lean * 0.3, z=zh, m=T)                           # head (the cab)
+    box(0.22, 0.04, 0.06, y=-0.14 + lean * 0.3, z=zh + 0.04, m=GLASS, bevel=0.01)
+    for sx in (-1, 1):
+        sh = Vector((sx * 0.31, 0.02, z0 + 0.22))
+        box(0.13, 0.16, 0.12, x=sh.x, y=sh.y, z=sh.z - 0.06, m=T2)                   # shoulders
+        if pose == 0:
+            hand = sh + Vector((0, -0.18, -0.14))
+        elif (pose == 1) == (sx == 1):
+            hand = sh + Vector((0, -0.3, 0.2))     # raised
+        else:
+            hand = sh + Vector((0, -0.4, -0.2))    # struck
+        seg(sh, hand, 0.05, T2, verts=8)
+        tip = hand + (hand - sh).normalized() * 0.07
+        seg(hand, tip, 0.07, HULL_D, verts=6, flat=True)                             # the pick
+        ell(0.05, 0.05, 0.05, x=tip.x, y=tip.y, z=tip.z, m=STEEL)
+
+
+# --- buildings (footprint centred on the origin; sizes in cells) ----------------------------
+WALL = mat('wall', '#8c8e86', 0.1, 0.8)
+WALL_D = mat('wall_d', '#62645e', 0.1, 0.8)
+ROOF = mat('roof', '#44474a', 0.2, 0.7)
+TANK = mat('tank', '#b9bbb4', 0.2, 0.5)
+
+
+def refinery(team):
+    """The refinery, 3 by 2 cells and low: a hall, a storage tank, a stack and, in front on the
+    right, the bay where harvesters tip their load."""
+    T, T2 = TEAM[team]
+    box(1.5, 1.05, 0.22, x=-0.62, y=0.3, z=0, m=WALL, bevel=0.03)                    # hall
+    box(1.3, 0.85, 0.03, x=-0.62, y=0.3, z=0.22, m=ROOF, bevel=0)
+    for i in range(5):                                                               # roof ribs
+        box(0.16, 0.66, 0.02, x=-1.1 + i * 0.24, y=0.3, z=0.25, m=T if i % 2 == 0 else HULL_D, bevel=0)
+    box(0.7, 0.42, 0.15, x=-0.98, y=-0.62, z=0, m=WALL_D)                            # annex
+    box(0.58, 0.3, 0.02, x=-0.98, y=-0.62, z=0.15, m=T)
+    box(0.14, 0.04, 0.1, x=-0.98, y=-0.84, z=0, m=GLASS)
+    cyl(0.1, 0.36, x=-1.2, y=0.62, z=0.22, m=WALL_D, verts=10)                       # stack
+    cyl(0.07, 0.03, x=-1.2, y=0.62, z=0.58, m=TIRE, verts=10)
+    cyl(0.46, 0.26, x=0.86, y=0.4, z=0, m=TANK, verts=20)                            # storage tank
+    cyl(0.47, 0.05, x=0.86, y=0.4, z=0.1, m=T, verts=20)
+    cyl(0.36, 0.03, x=0.86, y=0.4, z=0.26, m=WALL_D, verts=20)
+    cyl(0.1, 0.03, x=0.86, y=0.4, z=0.29, m=T2, verts=10)
+    seg((0.1, 0.3, 0.14), (0.42, 0.38, 0.14), 0.05, HULL)                            # pipe from hall to tank
+    box(1.0, 0.56, 0.04, x=0.8, y=-0.6, z=0, m=HULL_D, bevel=0.01)                   # tipping bay
+    for sx in (-1, 1):
+        box(0.05, 0.56, 0.08, x=0.8 + sx * 0.5, y=-0.6, z=0, m=T2, bevel=0.01)
+    box(0.6, 0.3, 0.02, x=0.8, y=-0.56, z=0.04, m=TIRE, bevel=0)                     # the grate
+    blob(0.13, 0.62, -0.5, 0.07, ORE_L, amp=0.3, freq=2.2, seed=7, sc=(1.2, 0.9, 0.5))
+    seg((0.8, -0.3, 0.1), (0.84, 0.0, 0.2), 0.06, HULL)                              # chute up to the tank
+    box(0.3, 0.2, 0.12, x=-0.1, y=-0.4, z=0, m=WALL_D)                               # pump house
+    box(0.22, 0.12, 0.02, x=-0.1, y=-0.4, z=0.12, m=T2)
+
+
 # Infantry are a third of a cell tall and are seen from a little lower than vehicles so they stay
 # readable. Commanders are a little larger so they stand out in a squad.
 MODELS = [('infantry_blue', infantry, 'blue', 0.33), ('infantry_red', infantry, 'red', 0.33),
@@ -340,4 +478,20 @@ for unit, model, team, scale in MODELS:
     for pose in range(3):
         model(team, pose)
         render(f'{unit}_p{pose}', 2, 8, scale, math.radians(46))
+
+# Vehicles and buildings are seen from almost straight above, as in the mockups.
+STEEP = math.radians(24)
+for team in ('blue', 'red'):
+    unit = f'harvester_{team}'
+    if not ONLY or unit in ONLY:
+        for pose in range(5):
+            if pose < 2:
+                harvester_truck(team, pose == 1)
+            else:
+                harvester_robot(team, pose - 2)
+            render(f'{unit}_p{pose}', 2, 8, 1.0, STEEP)
+    building = f'refinery_{team}'
+    if not ONLY or building in ONLY:
+        refinery(team)
+        render(f'{building}_p0', 4, 1, 1.0, STEEP)
 print('DONE')

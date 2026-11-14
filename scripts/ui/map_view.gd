@@ -7,7 +7,8 @@ extends Node2D
 ##
 ## Controls: left click selects a unit, dragging selects every unit in the box
 ## (hold Shift to add to the selection). Right click sends the selected units
-## to that spot, or at the enemy under the mouse. A then left click is
+## to that spot, or at the enemy under the mouse; harvesters right-clicked onto
+## the Orichalcum rock start harvesting, and onto their refinery unload. A then left click is
 ## attack-move; S stops; Q then left click on one of your units uses the
 ## commander's ability on it. Ctrl+1..9 stores the selection as a group, 1..9
 ## selects the group again and pressing the number twice jumps the camera to it.
@@ -65,7 +66,9 @@ var _seen_removed := 0
 var _result_shown := false
 
 @onready var terrain: TerrainView = $Terrain
+@onready var deposit_view: DepositView = $Deposits
 @onready var control_view: ControlView = $ControlArea
+@onready var buildings_view: BuildingsView = $Buildings
 @onready var units_view: UnitsView = $Units
 @onready var shroud_view: ShroudView = $Shroud
 @onready var camera: MapCamera = $Camera
@@ -120,15 +123,18 @@ func show_map(p_map: MapData, squad: UnitType = null, squad_size := 0) -> void:
 ## Start a mission: its map, both forces, the control point and the scripted opponent.
 func show_mission(def: MissionDef) -> void:
 	mission = Mission.new(def)
-	hints = MissionHints.new()
+	hints = MissionHints.new(def.practice)
 	var focus := Vector2(def.map.get_pixel_size()) / 2.0
 	var commander := mission.player_commander()
+	var refinery := mission.world.get_building(mission.player_refinery_id)
 	if commander != null:
 		focus = MapData.cell_center(commander.cell)
+	elif refinery != null:
+		focus = refinery.center() * MapData.CELL_SIZE
 	elif not def.map.starts.is_empty():
 		focus = MapData.cell_center(def.map.starts[0])
 	_attach(def.map, mission.world, focus)
-	_map_name.text = "%d: %s" % [def.number, def.display_name]
+	_map_name.text = def.display_name if def.practice else "%d: %s" % [def.number, def.display_name]
 
 
 ## Start the current mission again from the beginning.
@@ -162,6 +168,8 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	_result_shown = false
 	drag_box.hide_rect()
 	terrain.show_map(map)
+	deposit_view.setup(world)
+	buildings_view.setup(world)
 	units_view.setup(world, selection)
 	shroud_view.setup(world.shroud_for(SimWorld.PLAYER_TEAM))
 	var view_size := Vector2(SCREEN_SIZE.x - SIDEBAR_WIDTH, SCREEN_SIZE.y)
@@ -169,10 +177,12 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	camera.center_on(focus)
 	minimap.setup(map, camera, world)
 	var colors := {}
-	if mission != null:
+	var control: ControlPoint = null        # nothing to hold in a practice mission
+	if mission != null and not mission.def.practice:
 		colors = {Mission.PLAYER_TEAM: mission.def.player_color, Mission.ENEMY_TEAM: mission.def.enemy_color}
-	control_view.setup(mission.control if mission != null else null, colors)
-	minimap.show_control(mission.control if mission != null else null, colors)
+		control = mission.control
+	control_view.setup(control, colors)
+	minimap.show_control(control, colors)
 	hud.setup(mission)
 	_info.text = ""
 
@@ -206,6 +216,7 @@ func _process(delta: float) -> void:
 		_seen_removed = world.removed_count
 		selection.prune(world)
 	shroud_view.refresh()
+	deposit_view.refresh()
 
 	var mouse := get_viewport().get_mouse_position()
 	if _dragging:
@@ -337,15 +348,80 @@ func set_mode(new_mode: Mode) -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW if mode == Mode.NORMAL else Input.CURSOR_CROSS)
 
 
-## A right click on the map: attack the enemy there, or walk there if there is none.
+## A right click on the map: attack the enemy there, or walk there if there
+## is none. Selected harvesters start work if the click is on a deposit, and
+## go to unload if it is on their side's refinery.
 func order_at(map_point: Vector2) -> void:
 	if selection.is_empty() or is_over():
 		return
 	var enemy := UnitsView.enemy_at_point(world, map_point, SimWorld.PLAYER_TEAM, units_view.alpha)
 	if enemy != null:
 		order_attack_unit(enemy.id)
-	else:
-		order_move_to(map_point)
+		return
+	var cell := MapData.cell_at_pixel(map_point)
+	if not selected_harvesters().is_empty() and world.shroud_for(SimWorld.PLAYER_TEAM).is_explored(cell):
+		if world.deposit_at(cell) != null:
+			order_harvest_at(map_point)
+			return
+		var building := world.building_at(cell)
+		if building != null and building.team == SimWorld.PLAYER_TEAM and building.type.is_refinery:
+			order_unload_at(map_point)
+			return
+	order_move_to(map_point)
+
+
+## Ids of the selected units that are harvesters.
+func selected_harvesters() -> Array[int]:
+	var out: Array[int] = []
+	for id in selection.ids:
+		var unit := world.get_unit(id)
+		if unit != null and unit.type.is_harvester():
+			out.append(id)
+	return out
+
+
+## Ids of the selected units that are not harvesters.
+func _selected_others() -> Array[int]:
+	var out: Array[int] = []
+	for id in selection.ids:
+		var unit := world.get_unit(id)
+		if unit != null and not unit.type.is_harvester():
+			out.append(id)
+	return out
+
+
+## Send the selected harvesters to work the deposit at a point on the map.
+## Other selected units walk there. Returns false if no harvester set off.
+func order_harvest_at(map_point: Vector2) -> bool:
+	var harvesters := selected_harvesters()
+	var cell := MapData.cell_at_pixel(map_point)
+	var deposit := world.deposit_at(cell)
+	if harvesters.is_empty() or deposit == null or is_over():
+		return false
+	if deposit.is_empty():
+		say("That rock has no Orichalcum left.")
+		return false
+	world.order_harvest(harvesters, cell)
+	world.order_move(_selected_others(), cell)
+	units_view.add_harvest_marker(map_point)
+	if hints != null:
+		hints.note(&"harvest")
+	return true
+
+
+## Send the selected harvesters to unload at the player's refinery at a point
+## on the map. Other selected units walk there. Returns false if none set off.
+func order_unload_at(map_point: Vector2) -> bool:
+	var harvesters := selected_harvesters()
+	var cell := MapData.cell_at_pixel(map_point)
+	var building := world.building_at(cell)
+	if harvesters.is_empty() or building == null or is_over():
+		return false
+	if not world.order_unload(harvesters, building.id):
+		return false
+	world.order_move(_selected_others(), cell)
+	units_view.add_harvest_marker(map_point)
+	return true
 
 
 ## Send the selected units to a point on the map. They ignore enemies on the way.
@@ -517,6 +593,43 @@ static func describe_unit(unit: SimUnit) -> String:
 	if type.ability != null:
 		var wait := ceili(unit.ability_ticks_left * SimWorld.TICK_SECONDS)
 		text += "\n%s: %s" % [type.ability.display_name, "ready" if wait == 0 else "%d s" % wait]
+	if type.is_harvester():
+		text += "\nCargo %d / %d\n%s" % [unit.cargo, type.cargo_capacity, job_text(unit)]
+	return text
+
+
+## What a harvester is doing, in words.
+static func job_text(unit: SimUnit) -> String:
+	match unit.job:
+		SimUnit.Job.TO_DEPOSIT: return "Driving to the rock"
+		SimUnit.Job.DEPLOY: return "Unfolding"
+		SimUnit.Job.EXTRACT: return "Digging"
+		SimUnit.Job.PACK: return "Folding up"
+		SimUnit.Job.TO_REFINERY: return "Taking its load to the refinery" if unit.refinery_id != 0 else "No refinery to unload at"
+		SimUnit.Job.UNLOAD: return "Unloading"
+	return "Waiting for orders" if unit.order == SimUnit.Order.NONE else "On its way"
+
+
+## What the sidebar says about a building.
+static func describe_building(p_world: SimWorld, building: SimBuilding) -> String:
+	var type := building.type
+	var text := "%s\n%s" % [type.display_name, type.role]
+	if type.storage > 0:
+		text += "\nStores up to %d" % type.storage
+		text += "\nIn store: %d" % p_world.stored_for(building.team)
+	return text
+
+
+## What the sidebar says about a cell of the world: the building on it, or
+## its terrain, with the Orichalcum in it if it is part of a deposit.
+static func describe_spot(p_world: SimWorld, cell: Vector2i) -> String:
+	var building := p_world.building_at(cell)
+	if building != null:
+		return describe_building(p_world, building)
+	var text := describe_cell(p_world.map, cell)
+	var deposit := p_world.deposit_at(cell)
+	if deposit != null:
+		text += "\nOrichalcum here: %d\nIn the whole rock: %d" % [deposit.left_at(cell), deposit.amount]
 	return text
 
 
@@ -559,7 +672,7 @@ func _update_info(mouse: Vector2) -> void:
 		if enemy != null:
 			text = describe_unit(enemy)
 		elif world.shroud_for(SimWorld.PLAYER_TEAM).is_explored(cell):
-			text = describe_cell(map, cell)
+			text = describe_spot(world, cell)
 		elif map.in_bounds(cell):
 			text = "Cell %d, %d\nUnexplored" % [cell.x, cell.y]
 	if text != _info.text:

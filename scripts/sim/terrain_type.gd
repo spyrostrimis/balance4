@@ -17,3 +17,9 @@ extends Resource
 ## Tile atlas made by tools/make_tiles.py. The first terrain of a biome uses a
 ## 256x256 ground atlas; all others use a 2048x512 border atlas.
 @export var tiles: Texture2D
+## Orichalcum held by one cell of this terrain at the start. 0 for ground that
+## is not a deposit.
+@export var ore := 0
+## Border atlas drawn over the cells of a deposit that have been mined out, in
+## the same layout as `tiles`. Only deposits need one.
+@export var spent_tiles: Texture2D
