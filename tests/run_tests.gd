@@ -41,6 +41,11 @@ func _process(_delta: float) -> bool:
 
 func _run() -> void:
 	OS.add_logger(_errors)
+	# The tests play with the default settings and never touch the player's own file.
+	var settings := root.get_node_or_null("Settings") as GameSettings
+	if settings != null:
+		settings.path = "user://test_settings.cfg"
+		settings.use_defaults()
 	var files: Array[String] = []
 	for file in DirAccess.get_files_at(TEST_DIR):
 		if file.begins_with("test_") and file.ends_with(".gd") and file != "test_case.gd":

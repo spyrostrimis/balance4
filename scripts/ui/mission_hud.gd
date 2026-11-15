@@ -20,6 +20,8 @@ signal resume_pressed
 signal menu_pressed
 ## A hero's portrait was clicked; `twice` for a double click.
 signal hero_pressed(unit_id: int, twice: bool)
+## Next mission, on the debriefing of a won mission that has one.
+signal next_pressed
 
 const TOP := HudStyle.TOP
 const MAP_WIDTH := HudStyle.SIDEBAR_X
@@ -33,6 +35,7 @@ const HERO_AT := Vector2(10, TOP + 22)
 const HERO_SIZE := Vector2(48, 58)
 const HERO_STEP := 76.0
 const MESSAGE_BOX := Rect2(10, 466, 460, 66)
+const DEBRIEFING := Rect2(146, 92, 460, 356)
 const CARD := Rect2(SIDE_X, 406, SIDE_WIDTH, 80)
 const COMMANDS_Y := 492.0
 const COMMANDS_HEIGHT := 40.0
@@ -88,8 +91,14 @@ var _hero_layer: Control
 
 var _result: Panel
 var _result_title: Label
+var _result_paper: Panel
+var _result_story: Label
 var _result_text: Label
+var _result_rows: Array[Control] = []
 var _again: Button
+var _next: Button
+var _to_title: Button
+var _settings: SettingsPanel
 var _pause: Panel
 var _resume: Button
 ## The build menu, shown in missions with a base.
@@ -227,31 +236,48 @@ func _build_objectives_list() -> void:
 
 
 func _build_pause() -> void:
-	_pause = _dialog(150)
-	var pause_title := HudStyle.label(_pause, Rect2(0, 14, 360, 40), &"serif_bold", 28, HudStyle.GOLD, true)
+	_pause = _dialog(Vector2(440, 150), 170)
+	var pause_title := HudStyle.label(_pause, Rect2(0, 14, 440, 40), &"serif_bold", 28, HudStyle.GOLD, true)
 	pause_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_title.text = "Paused"
-	var pause_text := HudStyle.label(_pause, Rect2(20, 60, 320, 20), &"serif", 12, HudStyle.LIGHT, true)
+	var pause_text := HudStyle.label(_pause, Rect2(20, 60, 400, 20), &"serif", 12, HudStyle.LIGHT, true)
 	pause_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_text.text = "Esc or P carries on."
-	_resume = _menu_button_on(_pause, Rect2(18, 100, 102, 28), "Resume", resume_pressed)
-	_menu_button_on(_pause, Rect2(129, 100, 102, 28), "Restart", again_pressed)
-	_menu_button_on(_pause, Rect2(240, 100, 102, 28), "Title screen", title_pressed)
+	_resume = _menu_button_on(_pause, Rect2(16, 100, 96, 28), "Resume", resume_pressed)
+	var settings := HudStyle.button(_pause, Rect2(120, 100, 96, 28), "navy", "Settings", "", false, 11)
+	settings.focus_mode = Control.FOCUS_ALL
+	settings.pressed.connect(show_settings)
+	_menu_button_on(_pause, Rect2(224, 100, 96, 28), "Restart", again_pressed)
+	_menu_button_on(_pause, Rect2(328, 100, 96, 28), "Title screen", title_pressed)
+	_settings = SettingsPanel.new()
+	add_child(_settings)
+	_settings.position = Vector2(((MAP_WIDTH - SettingsPanel.SIZE.x) / 2.0), 140)
+	_settings.visible = false
+	_settings.closed.connect(func() -> void:
+		if _pause.visible:
+			_resume.grab_focus())
 
 
+## The debriefing: Victory or Defeat, what the mission's story says about it,
+## the time and the losses, and the objectives as they ended.
 func _build_result() -> void:
-	_result = _dialog(180)
-	_result_title = HudStyle.label(_result, Rect2(0, 12, 360, 44), &"serif_bold", 30, HudStyle.GOLD, true)
+	_result = _dialog(DEBRIEFING.size, DEBRIEFING.position.y)
+	_result_title = HudStyle.label(_result, Rect2(0, 10, DEBRIEFING.size.x, 40), &"serif_bold", 30, HudStyle.GOLD, true)
 	_result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_text = HudStyle.label(_result, Rect2(20, 58, 320, 66), &"serif", 12, HudStyle.LIGHT, true)
-	_result_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_paper = HudStyle.panel(_result, Rect2(16, 54, DEBRIEFING.size.x - 32, DEBRIEFING.size.y - 106), "parchment")
+	var width := _result_paper.size.x - 28.0
+	_result_story = HudStyle.label(_result_paper, Rect2(14, 8, width, 80), &"serif", 12, HudStyle.INK)
+	_result_story.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_result_text = HudStyle.label(_result_paper, Rect2(14, 92, width, 34), &"serif_italic", 11, HudStyle.INK_DIM)
 	_result_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_again = _menu_button_on(_result, Rect2(54, 132, 120, 28), "Play again", again_pressed)
-	_menu_button_on(_result, Rect2(186, 132, 120, 28), "Title screen", title_pressed)
+	var y := DEBRIEFING.size.y - 42
+	_again = _menu_button_on(_result, Rect2(16, y, 130, 30), "Play again", again_pressed)
+	_to_title = _menu_button_on(_result, Rect2(154, y, 130, 30), "Title screen", title_pressed)
+	_next = _menu_button_on(_result, Rect2(DEBRIEFING.size.x - 146, y, 130, 30), "Next mission", next_pressed)
 
 
-func _dialog(height: float) -> Panel:
-	var dialog := HudStyle.panel(self, Rect2((MAP_WIDTH - 360) / 2.0, 170, 360, height), "wood_panel")
+func _dialog(dialog_size: Vector2, y: float) -> Panel:
+	var dialog := HudStyle.panel(self, Rect2(Vector2(((MAP_WIDTH - dialog_size.x) / 2.0), y), dialog_size), "wood_panel")
 	dialog.visible = false
 	return dialog
 
@@ -262,6 +288,7 @@ func setup(mission: Mission, map_name := "") -> void:
 	_mission = mission
 	_result.visible = false
 	_pause.visible = false
+	_settings.visible = false
 	_objectives_panel.visible = false
 	_objectives_key = ""
 	_message_panel.visible = false
@@ -764,13 +791,52 @@ class ObjectiveMark extends Control:
 
 # --- pause and result ------------------------------------------------------------------
 
-## Show the win or loss screen.
+## Show the debriefing.
 func show_result(mission: Mission) -> void:
 	_objectives_panel.visible = false
-	_result_title.text = "Victory" if mission.player_won() else "Defeat"
+	_settings.visible = false
+	var won := mission.player_won()
+	_result_title.text = "Victory" if won else "Defeat"
+	var story := mission.def.debriefing_won if won else mission.def.debriefing_lost
+	_result_story.text = story
+	_result_story.visible = story != ""
 	_result_text.text = result_text(mission)
+	var y := 8.0
+	if story != "":
+		y += _result_story.get_line_count() * _result_story.get_line_height() + 8.0
+	_result_text.position.y = y
+	y += _result_text.get_line_count() * _result_text.get_line_height() + 8.0
+	for row in _result_rows:
+		row.queue_free()
+	_result_rows.clear()
+	for line in objective_lines(mission):
+		if y > _result_paper.size.y - 22.0:
+			break
+		var mark := ObjectiveMark.new()
+		mark.state = line.substr(1, line.find("]") - 1)
+		mark.position = Vector2(14, y + 3)
+		mark.size = Vector2(11, 11)
+		_result_paper.add_child(mark)
+		var row := HudStyle.label(_result_paper, Rect2(31, y, _result_paper.size.x - 45, 16), &"serif", 11, HudStyle.INK)
+		row.text = line.substr(line.find("]") + 2)
+		row.clip_text = true
+		_result_rows.append(mark)
+		_result_rows.append(row)
+		y += 17.0
+	# Fit the board to what it says.
+	var paper_height := maxf(y + 4.0, 60.0)
+	_result_paper.size.y = paper_height
+	var height := _result_paper.position.y + paper_height + 54.0
+	_result.size.y = height
+	_result.position.y = roundf(TOP + (540.0 - TOP - height) / 2.0)
+	for b in [_again, _to_title, _next]:
+		b.position.y = height - 42.0
+	_next.visible = won and mission.def.next_mission != ""
 	_result.visible = true
-	_again.grab_focus()
+	if _next.visible:
+		_next.grab_focus()
+	else:
+		_again.grab_focus()
 
 
 func is_result_shown() -> bool:
@@ -782,7 +848,7 @@ func result_text_shown() -> String:
 	return _result_text.text
 
 
-## Show the pause menu: Resume, Restart and Title screen.
+## Show the pause menu: Resume, Settings, Restart and Title screen.
 func show_pause() -> void:
 	_pause.visible = true
 	_resume.grab_focus()
@@ -790,6 +856,16 @@ func show_pause() -> void:
 
 func hide_pause() -> void:
 	_pause.visible = false
+	_settings.visible = false
+
+
+## Show the settings board over the pause menu.
+func show_settings() -> void:
+	_settings.visible = true
+
+
+func is_settings_shown() -> bool:
+	return _settings.visible
 
 
 func is_pause_shown() -> bool:

@@ -44,8 +44,17 @@ enum Kind {
 @export var objectives: Array[Objective] = []
 ## What happens during the mission. See MissionTrigger.
 @export var triggers: Array[MissionTrigger] = []
-## What the hint box teaches, step by step. See MissionHints.
+## What the hints teach, step by step. See MissionHints.
 @export var hints: HintList
+
+@export_group("Briefing")
+## What the briefing screen says before a story mission.
+@export_multiline var briefing := ""
+## What the debriefing says when the player has won, and when they have lost.
+@export_multiline var debriefing_won := ""
+@export_multiline var debriefing_lost := ""
+## The mission that follows when this one is won (a MissionDef file), or "".
+@export_file("*.tres") var next_mission := ""
 
 
 ## A practice mission (see Kind).

@@ -415,3 +415,12 @@ ore_richness = 4
 objectives = Array[ExtResource("16_1skc4")]([SubResource("Resource_lqfc2"), SubResource("Resource_r5xdp"), SubResource("Resource_biqi8"), SubResource("Resource_7wh0k"), SubResource("Resource_fkkb6")])
 triggers = Array[ExtResource("28_l22i0")]([SubResource("Resource_muhom"), SubResource("Resource_x57jk"), SubResource("Resource_50teh"), SubResource("Resource_x4o3f"), SubResource("Resource_w1ej3"), SubResource("Resource_81too")])
 hints = ExtResource("14_j1oux")
+briefing = "The Orichalcum rock is ours, but a claim is only as good as the walls around it. The Prince has come himself, with a small guard and a convoy that can set up a base.
+
+Red has camped across the river to the east and means to take the rock back before we dig in.
+
+Bring the Prince to the stony ground north of where you arrive: the convoy will unpack a headquarters and a refinery there. Build up, beat off Red's attack, then cross the river and destroy their camp.
+
+Keep the Prince and the Field Commander alive: if either of them falls, the mission is lost."
+debriefing_won = "Red's camp burns on the far bank, and both fords are ours. With the base standing and the harvesters at work, Blue can hold its claim. For now."
+debriefing_lost = "Blue's claim is broken. Red holds both banks of the river, and the Orichalcum with them."

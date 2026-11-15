@@ -410,6 +410,6 @@ func test_title_screen_offers_the_skirmish() -> void:
 	check((load(title.MISSIONS["skirmish-desert"]) as MissionDef).skirmish, "it starts a skirmish")
 	var node := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	tree.root.add_child(node)
-	check(node.get_node_or_null("Center/Box/Skirmishes/SkirmishForest") != null, "there is a button for the forest skirmish")
-	check(node.get_node_or_null("Center/Box/Skirmishes/SkirmishDesert") != null, "and one for the desert skirmish")
+	check(node.mission_button("skirmish-forest") != null, "there is a button for the forest skirmish")
+	check(node.mission_button("skirmish-desert") != null, "and one for the desert skirmish")
 	node.free()

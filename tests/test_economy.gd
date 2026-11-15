@@ -540,8 +540,8 @@ func test_title_screen_offers_the_trial() -> void:
 	check((load(title.MISSIONS["harvest-forest"]) as MissionDef).practice, "it starts the practice mission")
 	var node := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	tree.root.add_child(node)
-	check(node.get_node_or_null("Center/Box/Trials/HarvestForest") != null, "there is a button for the forest trial")
-	check(node.get_node_or_null("Center/Box/Trials/HarvestDesert") != null, "and one for the desert trial")
+	check(node.mission_button("harvest-forest") != null, "there is a button for the forest trial")
+	check(node.mission_button("harvest-desert") != null, "and one for the desert trial")
 	node.free()
 
 

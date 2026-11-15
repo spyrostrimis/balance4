@@ -23,6 +23,9 @@ updates the control area, checks the objectives and fires the triggers.
 | `objectives` | What the player must do (`Objective`) |
 | `triggers` | What happens during the mission (`MissionTrigger`) |
 | `hints` | What the message box teaches when nobody is talking (`HintList`, shared files in `data/hints/`) |
+| `briefing` | The story told on the briefing screen before a story mission |
+| `debriefing_won`, `debriefing_lost` | What the debriefing says after a win and after a loss |
+| `next_mission` | The mission that follows a win (its file), offered on the debriefing; empty for none |
 
 `MissionDef.problems()` lists what is wrong with a mission's data (a
 placement for a side that does not exist, a start position the map has not

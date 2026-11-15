@@ -23,9 +23,10 @@ func test_main_scene_loads() -> void:
 		return
 	var node := packed.instantiate()
 	tree.root.add_child(node)
-	check(node.get_node_or_null("Center/Box/Title") != null, "title label exists")
-	check(node.get_node_or_null("Center/Box/Buttons/Forest") != null, "forest button exists")
-	check(node.get_node_or_null("Center/Box/Buttons/Desert") != null, "desert button exists")
+	check(node is TitleScreen, "the title screen")
+	check_eq(node.current_page(), "main", "opens on its main page")
+	check(node.mission_button("forest") != null, "forest button exists")
+	check(node.mission_button("desert") != null, "desert button exists")
 	node.free()
 
 

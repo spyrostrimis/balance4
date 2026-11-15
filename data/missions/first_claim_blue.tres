@@ -96,3 +96,11 @@ forces = Array[ExtResource("1_s2vou")]([SubResource("Resource_5cmv7"), SubResour
 hold_seconds = 45.0
 objectives = Array[ExtResource("8_unupa")]([SubResource("Resource_4gp16")])
 hints = ExtResource("6_q7oq6")
+briefing = "Ten years ago a lieutenant's coup killed the Peacebringer, our just king. His son escaped with a woman of the Royal Guard. Today the Prince leads Blue, and we are ready to take back what was taken.
+
+Our scouts have found Orichalcum in the forest: a rock rich enough to pay for an army. Red has seen it too, and its soldiers are already on the road.
+
+Field Commander, take four Guardsmen and claim the rock before Red does. Hold the ground around it, or drive Red from the field."
+debriefing_won = "The rock is ours. Red's soldiers fall back into the trees, and the first Orichalcum is on its way to the Prince. Red will not leave it at that."
+debriefing_lost = "Red holds the rock, and our force is scattered. Without Orichalcum the Prince cannot raise the army he needs. We must try again."
+next_mission = "res://data/missions/holding_the_claim_blue.tres"

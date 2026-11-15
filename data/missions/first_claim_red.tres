@@ -96,3 +96,10 @@ forces = Array[ExtResource("1_ufy4q")]([SubResource("Resource_ydaav"), SubResour
 hold_seconds = 45.0
 objectives = Array[ExtResource("8_cuqo3")]([SubResource("Resource_yc5u7")])
 hints = ExtResource("6_rb5vh")
+briefing = "For ten years Red has kept the order the old king could not. Now rebels gather in the name of his son, and they need Orichalcum to make war.
+
+Our surveyors have found a rock of it in the desert, and the rebels are marching on it.
+
+Field Commander, take four Legionaries and claim the rock first. Hold the ground around it, or leave no rebel standing."
+debriefing_won = "The rock is Red's. The rebels have learned what it costs to stand against us, and the Orichalcum stays in loyal hands."
+debriefing_lost = "The rebels hold the rock. Its Orichalcum will buy them an army, and that army will come for us."

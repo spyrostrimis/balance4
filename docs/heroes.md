@@ -85,7 +85,7 @@ which counts down while the ability recharges.
 ## The hero trial
 
 A practice mission (`hero_trial_blue.tres`, `-- --map=hero-forest`, or
-"Hero trial" on the title screen), Blue only, on the forest map: a base
+"Hero trial" under Practice on the title screen), Blue only, on the forest map: a base
 (headquarters, refinery, generator, barracks), a harvester, the Prince, the
 Field Commander, four Guardsmen, a light tank and 800 Orichalcum. Three Red
 attacks come from the far corner, after 40 s, 130 s and 230 s, each

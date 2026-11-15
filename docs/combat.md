@@ -71,8 +71,8 @@ These follow the habits of modern strategy games.
 | W A S D or arrow keys, mouse at a screen edge, or drag with the middle mouse button | Scroll the map |
 | F11 or Alt + Enter | Switch between full screen (the default) and a window |
 | Click or drag on the minimap | Jump the camera |
-| Esc or P | Pause: the game stands still and a menu offers Resume, Restart and Title screen. Esc or P again carries on |
-| Esc on the result screen | Back to the title screen |
+| Esc or P | Pause: the game stands still and a menu offers Resume, Settings, Restart and Title screen. Esc or P again carries on |
+| Esc on the debriefing | Back to the title screen |
 
 The sidebar has three buttons that do the same as F, X and Q. Q works whether
 or not the commander is selected. After F or Q the mouse pointer becomes a
@@ -145,13 +145,15 @@ is true:
 - one side has held the control area for the hold time, or
 - one side has no units left.
 
-The game then stops and shows VICTORY or DEFEAT with the reason, the time
-played and the losses on both sides. "Play again" restarts the mission;
-"Title screen" (or Esc) goes back to the title.
+The game then stops and shows the debriefing: Victory or Defeat, what the
+mission's story says about it, the reason, the time played, the losses on
+both sides and the objectives as they ended. "Play again" restarts the
+mission; "Title screen" (or Esc) goes back to the title; after a won mission
+that has a next one, "Next mission" goes on to its briefing.
 
 **Pausing.** Esc or P pauses a mission that is being played: the
 simulation stands still, no orders are taken, and a menu offers Resume,
-Restart and Title screen. Esc or P again carries on. Esc first leaves
+Settings, Restart and Title screen. Esc or P again carries on. Esc first leaves
 attack-move, the ability or placing, if one of them is waiting for a
 click, so it never ends a mission by accident.
 

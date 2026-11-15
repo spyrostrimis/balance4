@@ -8,7 +8,8 @@ campaign (M9).
 
 **The name, the story and every number are provisional.**
 
-Start it from the title screen ("Mission 2: Blue (forest)") or with
+Start it from the title screen (Play, then "Mission 2: Holding the Claim",
+which shows its briefing first; winning Mission 1 as Blue leads on to it too) or with
 `-- --map=mission-2`. The file is
 `data/missions/holding_the_claim_blue.tres`, its hints
 `data/hints/holding_the_claim.tres`; it is made only of the parts described

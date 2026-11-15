@@ -21,6 +21,8 @@ should look like, made by scripts; they are not game art and not game code.
 | [`balance_v11_forest_blue.png`](../mockups/balance_v11_forest_blue.png), [`balance_v11_desert_red.png`](../mockups/balance_v11_desert_red.png) (+ `_zoom`) | Experiment, not approved: v10 with more orange sand, bigger bright purple Orichalcum crystals, lighter high-contrast bases with more team colour, vehicles mostly in team colour |
 | [`balance_v12_hud_a.png`](../mockups/balance_v12_hud_a.png), [`_b`](../mockups/balance_v12_hud_b.png), [`_c`](../mockups/balance_v12_hud_c.png) | Three warm HUD layouts drawn over a real Mission 2 frame (M7.5) |
 | [`balance_v12_hud_d.png`](../mockups/balance_v12_hud_d.png) | **The approved HUD** (2026-11-15): C's look with A's heroes, message box and objectives |
+| [`balance_v13_forest_blue.png`](../mockups/balance_v13_forest_blue.png), [`balance_v13_desert_red.png`](../mockups/balance_v13_desert_red.png) | Experiment, not approved: v9 as 16-bit arcade art (x4 pixels, seamless autotiles, 5-colour ground palettes, sprites under 32 colours, 4 repeating trees) with a gray-blue pixel-font HUD |
+| [`balance_v14_forest_blue.png`](../mockups/balance_v14_forest_blue.png), [`balance_v14_desert_red.png`](../mockups/balance_v14_desert_red.png) | Experiment, not approved: between v9 and v13 (x3 pixels, 8-colour tiles, sprites under 32 colours with coloured outlines), warm-stone HUD with gray-blue buttons and a full-width three-part top bar |
 
 Everything before v4 (`balance_mock_*`, `balance_v2_*`, `balance_v3_*`) was
 rejected and is kept only as a record of what not to do. See "Rejected
@@ -99,6 +101,12 @@ heroes stacked one above the other a little lower down.
 
 The art is made by `tools/make_hud.py` into `assets/ui/`; the portraits there
 are placeholders until the art pass (M7.6).
+
+The screens around a mission use the same skin: the title screen (a wooden
+board of buttons over a slow pan across Mission 2's map), the briefing (a
+parchment dossier beside a picture of the map), the debriefing, the pause
+menu and the settings board. `HudStyle` (`scripts/ui/hud_style.gd`) holds the
+fonts, colours and the panels and buttons they are all built from.
 
 ## Rejected directions
 

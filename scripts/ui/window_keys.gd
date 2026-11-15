@@ -6,7 +6,8 @@ extends Node
 ## The game draws at 960x540 and is scaled up by whole steps only, so pixels
 ## stay sharp. A 1920x1080 monitor fits exactly 2x in full screen, but a
 ## window loses some height to its title bar and the taskbar and drops to 1x.
-## That is why the game starts in full screen.
+## That is why the game starts in full screen, unless the player chose a
+## window last time.
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -18,15 +19,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## Switch, and remember the choice in the settings (see GameSettings).
 func toggle_fullscreen() -> void:
-	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		var size := windowed_size(Vector2(DisplayServer.screen_get_usable_rect().size), Vector2(960, 540))
-		DisplayServer.window_set_size(size)
-		var usable := DisplayServer.screen_get_usable_rect()
-		DisplayServer.window_set_position(usable.position + (usable.size - size) / 2)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	var settings := get_node_or_null("/root/Settings") as GameSettings
+	if settings != null:
+		settings.set_fullscreen(DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 ## The largest whole multiple of the game's size that fits on the screen with

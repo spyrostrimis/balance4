@@ -106,6 +106,7 @@ func _ready() -> void:
 	hud.resume_pressed.connect(set_paused.bind(false))
 	hud.menu_pressed.connect(set_paused.bind(true))
 	hud.hero_pressed.connect(_on_hero_pressed)
+	hud.next_pressed.connect(next_mission)
 	hud.build_panel.build_pressed.connect(queue_build)
 	hud.build_panel.cancel_pressed.connect(cancel_build)
 	hud.build_panel.place_pressed.connect(begin_placement)
@@ -171,6 +172,12 @@ func restart_mission() -> void:
 		show_mission(mission.def)
 
 
+## After a won mission that has a next one: brief the next mission.
+func next_mission() -> void:
+	if mission != null and mission.def.next_mission != "":
+		BriefingScreen.open(get_tree(), mission.def.next_mission)
+
+
 func back_to_title() -> void:
 	requested_mission = ""
 	get_tree().change_scene_to_file(TITLE_SCENE)
@@ -203,6 +210,14 @@ func set_paused(on: bool) -> void:
 		hud.show_pause()
 	else:
 		hud.hide_pause()
+		_apply_settings()       # the settings may have been changed from the pause menu
+
+
+## Use the player's settings (see GameSettings): the scroll speed.
+func _apply_settings() -> void:
+	var settings := get_node_or_null("/root/Settings") as GameSettings
+	if settings != null:
+		camera.scroll_speed = settings.scroll_pixels_per_second()
 
 
 func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
@@ -228,6 +243,7 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	shroud_view.setup(world.shroud_for(SimWorld.PLAYER_TEAM))
 	var view_size := Vector2(SCREEN_SIZE.x - SIDEBAR_WIDTH, SCREEN_SIZE.y - MAP_TOP)
 	camera.offset = Vector2(0, -MAP_TOP)      # the map starts under the top bar
+	_apply_settings()
 	camera.setup(Vector2(map.get_pixel_size()), view_size, SCREEN_SIZE)
 	camera.center_on(focus)
 	minimap.setup(map, camera, world)

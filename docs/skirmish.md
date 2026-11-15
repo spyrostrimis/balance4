@@ -124,7 +124,7 @@ repairs damaged buildings (see [heroes.md](heroes.md)).
 ## The skirmish
 
 M6's playable result is a skirmish against the computer, started from the
-title screen ("Skirmish") or with `-- --map=skirmish-forest` or
+title screen (Practice, then "Skirmish") or with `-- --map=skirmish-forest` or
 `--map=skirmish-desert`.
 
 | | As Blue | As Red |

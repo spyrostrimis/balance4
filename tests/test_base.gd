@@ -470,8 +470,8 @@ func test_title_screen_offers_the_base_trial() -> void:
 	check((load(title.MISSIONS["base-forest"]) as MissionDef).has_base(), "it starts the base trial")
 	var node := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	tree.root.add_child(node)
-	check(node.get_node_or_null("Center/Box/Bases/BaseForest") != null, "there is a button for the forest base")
-	check(node.get_node_or_null("Center/Box/Bases/BaseDesert") != null, "and one for the desert base")
+	check(node.mission_button("base-forest") != null, "there is a button for the forest base")
+	check(node.mission_button("base-desert") != null, "and one for the desert base")
 	node.free()
 
 

@@ -413,8 +413,8 @@ func test_title_screen_offers_the_raid_trial() -> void:
 	check((load(title.MISSIONS["raid-forest"]) as MissionDef).has_raid(), "it starts the raid trial")
 	var node := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	tree.root.add_child(node)
-	check(node.get_node_or_null("Center/Box/Raids/RaidForest") != null, "there is a button for the forest raid")
-	check(node.get_node_or_null("Center/Box/Raids/RaidDesert") != null, "and one for the desert raid")
+	check(node.mission_button("raid-forest") != null, "there is a button for the forest raid")
+	check(node.mission_button("raid-desert") != null, "and one for the desert raid")
 	node.free()
 
 
