@@ -228,6 +228,7 @@ computer opponent and the skirmish in [docs/skirmish.md](docs/skirmish.md).
 - [docs/skirmish.md](docs/skirmish.md): destroying buildings, the light tank, the computer opponent, the skirmish, and every provisional number.
 - [docs/economy.md](docs/economy.md): deposits, the harvester, the refinery and storage, guarding and stealing trailers, the practice missions, and every provisional number.
 - [docs/roadmap.md](docs/roadmap.md): milestones M0 to M10 and what "done" means for each.
+- [docs/m7-plan.md](docs/m7-plan.md): the agreed plan for M7, the vertical slice, and what the audit after M6 found.
 
 ## Roadmap in short
 
@@ -242,7 +243,7 @@ Each milestone ends in something playable and a push to this repository.
 | M4 Economy | Harvester (truck, robot and trailer), refinery, storage: the harvest and raid trials. **Done.** |
 | M5 Base | Base building and production: the base trial. **Done.** |
 | M6 Enemy AI | A computer opponent: the skirmish. **Done.** |
-| M7 Vertical slice | One complete, representative mission. |
+| M7 Vertical slice | Mission 2 as Blue: both heroes, base building, briefing, new HUD, a build anyone can run. **Next.** |
 | M8 Content | The rest of the units, buildings and terrain. |
 | M9 Campaign | The Blue and Red campaigns. |
 | M10 Polish | Final art, audio, balance and bug fixing. |

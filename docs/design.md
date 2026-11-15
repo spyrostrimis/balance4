@@ -112,9 +112,17 @@ passive abilities (always on).
 
 | Hero | Abilities decided so far |
 | --- | --- |
-| Blue leader | An area heal/repair pulse, plus "Encouragement" |
+| Blue leader | Active: an area pulse that heals troops and repairs vehicles nearby, but not buildings. Passive: "Encouragement", own units near him move 5% faster and attack 5% faster |
 | Blue field commander | A single-target heal/repair (in the game as "Mend", a provisional name) |
 | Red leader | "Dominion" (a name only; what it does is undecided) |
+
+Decided on 2026-11-15: the Blue leader's abilities as above, with first
+values of 3 cells and a 30-second recharge for the pulse and 4 cells for
+Encouragement (provisional numbers), and this rule for every mission:
+
+- **When the player loses any hero, the player loses the mission.** Enemy
+  heroes are not covered by this rule: losing one does not lose the enemy
+  the mission, unless that mission's objectives say so.
 
 ## Mission 1: "The First Claim"
 
@@ -136,6 +144,9 @@ are in [combat.md](combat.md).
 These are part of the game but are not in it yet:
 
 - Wandering creature hazards
+- Mission 2 (provisional), the vertical slice of milestone M7: a new mission
+  with base building and both Blue heroes, played as Blue only. Its plan is a
+  draft in [m7-plan.md](m7-plan.md).
 
 Base building, the refinery and the Orichalcum economy, and unit production,
 once listed here, have been in the game since milestones M4 and M5 (see
@@ -160,7 +171,9 @@ Nothing in this section has been decided. Do not treat any guess as canon.
 - **OPEN: How did the coup beat the automated orbital defences?** This is a
   deliberate, unanswered lore question.
 - **OPEN: What does the Red leader's "Dominion" do?**
-- **OPEN: What does "Encouragement" do exactly, and is it active or passive?**
+- **DECIDED: "Encouragement" is the Blue leader's passive ability**: own
+  units within 4 cells of him (provisional) move 5% faster and attack 5%
+  faster.
 - **OPEN: Who is Red's field commander?** Mission 1 gives each side a field
   commander, but only Blue's has been described. Until this is decided the
   game uses a placeholder: a copy of Blue's commander in Red's colours, with
@@ -185,6 +198,10 @@ Nothing in this section has been decided. Do not treat any guess as canon.
 - **OPEN: The robot's values**: its armour, its attack and how near an enemy
   must come before it stops work. The first values are in
   [economy.md](economy.md).
+- **DECIDED: Buildings can be repaired** (from milestone M7): a player
+  selects one of their buildings and repairs it, a little at a time, paid
+  for in Orichalcum. The Blue leader's pulse does not repair buildings.
+  Selling buildings is not planned yet.
 - **OPEN: The rules of base building.** For now: buildings are paid for bit
   by bit while they are built and then placed by hand; they may stand on any
   free building ground the player has explored, not only next to the base;

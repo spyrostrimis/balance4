@@ -11,8 +11,9 @@ Two rules apply to every milestone:
 
 The order of the milestones and the headline content of each are agreed. The
 detailed "Done means" lists are a working draft: those for M1 to M6 follow the
-agreed content closely, and those for **M7 to M10 are a first outline** that will
-be firmed up as those milestones get closer.
+agreed content closely, M7's was agreed on 2026-11-15 (see
+[m7-plan.md](m7-plan.md)), and those for **M8 to M10 are a first outline** that
+will be firmed up as those milestones get closer.
 
 ## M0 Setup (done)
 
@@ -168,16 +169,33 @@ searched there it is told where what is left of the enemy is. Left for
 later: repairing and selling buildings, difficulty levels, heroes in the
 skirmish, and fog of war over ground that is no longer watched.
 
-## M7 Vertical slice (outline)
+## M7 Vertical slice
 
-One mission at the quality the whole game should reach.
+One mission at the quality the whole game should reach: a new Mission 2,
+played as Blue, with base building and both Blue heroes. The plan, the
+decisions behind it and the order of work are in [m7-plan.md](m7-plan.md).
 
 Done means:
 
-- One complete mission with final-quality art, sound, HUD and briefing.
-- It includes heroes with active and passive abilities, and base building.
-- Someone who has never seen the game can start it, play it and finish it
-  without help.
+- Mission 2 can be played as Blue from the title screen, through a briefing,
+  to a win or a loss, and ends in a debriefing.
+- Missions are defined by placed forces, objectives and triggers; Mission 1,
+  the trials and the skirmish work as before in the new form.
+- The prince and the field commander each have an active ability; the
+  prince's Encouragement works as a passive. Losing any of the player's
+  heroes loses the mission.
+- The prince's pulse heals troops and repairs vehicles. Buildings can be
+  selected and repaired for Orichalcum.
+- The HUD follows a newly approved mockup and shows hero portraits,
+  objectives and mission messages.
+- Every action in the mission has a placeholder sound; there is placeholder
+  menu and mission music; volumes can be set. (The real sound comes in M10
+  or later.)
+- Art for everything in Mission 2 is at the quality the whole game should
+  reach; M10 brings the rest of the game up to it.
+- A Windows build is exported and starts on a machine without Godot.
+- A first-time player finishes the mission from the exported build without
+  help.
 
 ## M8 Content (outline)
 
@@ -208,6 +226,7 @@ Make it good.
 Done means:
 
 - The HUD art is revisited and final.
+- The real sound effects and music replace M7's placeholders.
 - Audio is complete: sound effects and music, all original.
 - Missions and units are balanced and the known bugs are fixed.
 - There is an options menu, and a build that runs on a clean Windows machine.
