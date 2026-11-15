@@ -136,13 +136,34 @@ func setup(mission: Mission) -> void:
 	var def := mission.def
 	_top_left.text = top_left_text(def)
 	_objective.text = def.objective
-	build_panel.visible = def.has_base()
+	_show_build_panel(def.has_base())
 	build_panel.open(Production.BUILDINGS)
-	for control in _objective_box:
-		control.visible = not def.has_base()
 	_make_ability_buttons(ability_keys(def))
 	set_selected_building(null)
 	refresh(mission, "")
+
+
+## Has the player a base to build up right now (a headquarters)? A mission
+## can give one later, e.g. when a convoy arrives.
+static func has_base_now(mission: Mission) -> bool:
+	return mission.world.production.builder(Mission.PLAYER_TEAM, Production.BUILDINGS) != null
+
+
+## Show the build menu, or the objective box in its place.
+func _show_build_panel(on: bool) -> void:
+	build_panel.visible = on
+	for control in _objective_box:
+		control.visible = not on
+
+
+## The objective the player is working on: the last primary objective shown
+## that is still open, or else the first one shown.
+static func current_objective(mission: Mission) -> String:
+	var shown := mission.shown_objectives()
+	for i in range(shown.size() - 1, -1, -1):
+		if shown[i].primary and mission.objective_state(shown[i].id) == Mission.OPEN:
+			return shown[i].text
+	return shown[0].text if not shown.is_empty() else ""
 
 
 ## The keys of the active abilities of the heroes the player starts with, in
@@ -213,6 +234,9 @@ func refresh(mission: Mission, hint: String) -> void:
 		button.text = ability_label(hero, _ability_buttons.size() > 1)
 		button.disabled = not ability_ready(hero)
 	var store := store_text(mission.world, Mission.PLAYER_TEAM)
+	if not build_panel.visible and has_base_now(mission):
+		_show_build_panel(true)         # a base given during the mission; the menu then stays
+	var base := build_panel.visible
 	if def.practice:
 		var world := mission.world
 		var storage := world.storage_for(Mission.PLAYER_TEAM)
@@ -233,6 +257,16 @@ func refresh(mission: Mission, hint: String) -> void:
 		return
 	_top_right.text = "%s%s %d   %s %d   Time %s" % [store + "   " if store != "" else "",
 			def.player_side, players, def.enemy_side, enemies, clock(mission.seconds())]
+	if base:
+		_top_right.text = "%s   %s   %s %d   %s %d   Time %s" % [store, BuildPanel.power_text(mission.world, Mission.PLAYER_TEAM),
+				def.player_side, players, def.enemy_side, enemies, clock(mission.seconds())]
+		build_panel.refresh(mission.world, Mission.PLAYER_TEAM)
+	_objective.text = current_objective(mission)
+	if not def.has_control():
+		_status.text = ""
+		_bar.size.x = 0.0
+		_forces.text = "%s units: %d    %s units: %d" % [def.player_side, players, def.enemy_side, enemies]
+		return
 	_status.text = hold_text(mission)
 	_forces.text = "%s units: %d    %s units: %d" % [def.player_side, players, def.enemy_side, enemies]
 	var control := mission.control

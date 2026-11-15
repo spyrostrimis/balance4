@@ -3,6 +3,7 @@ extends Control
 ##
 ## Starting the game with "-- --map=<name>" on the command line skips this
 ## screen and starts the mission of that name: forest or desert for Mission 1,
+## mission-2 for Mission 2 (as Blue),
 ## harvest-forest or harvest-desert for the harvest trial, raid-forest or
 ## raid-desert for the raid trial, base-forest or base-desert for the base
 ## trial, skirmish-forest or skirmish-desert for a skirmish against the
@@ -20,6 +21,7 @@ const MAP_SCENE := "res://scenes/map_view.tscn"
 const MISSIONS := {
 	"forest": "res://data/missions/first_claim_blue.tres",
 	"desert": "res://data/missions/first_claim_red.tres",
+	"mission-2": "res://data/missions/holding_the_claim_blue.tres",
 	"harvest-forest": "res://data/missions/harvest_trial_blue.tres",
 	"harvest-desert": "res://data/missions/harvest_trial_red.tres",
 	"raid-forest": "res://data/missions/raid_trial_blue.tres",
@@ -34,6 +36,7 @@ const MISSIONS := {
 @onready var _status: Label = $Center/Box/Status
 @onready var _forest: Button = $Center/Box/Buttons/Forest
 @onready var _desert: Button = $Center/Box/Buttons/Desert
+@onready var _mission_2: Button = $Center/Box/Buttons/Mission2
 @onready var _quit: Button = $Center/Box/Buttons/Quit
 @onready var _harvest_forest: Button = $Center/Box/Trials/HarvestForest
 @onready var _harvest_desert: Button = $Center/Box/Trials/HarvestDesert
@@ -51,6 +54,7 @@ func _ready() -> void:
 	_status.text = "%s  |  placeholder title screen  |  Godot %s" % [MILESTONE, version]
 	_forest.pressed.connect(open_map.bind("forest"))
 	_desert.pressed.connect(open_map.bind("desert"))
+	_mission_2.pressed.connect(open_map.bind("mission-2"))
 	_harvest_forest.pressed.connect(open_map.bind("harvest-forest"))
 	_harvest_desert.pressed.connect(open_map.bind("harvest-desert"))
 	_raid_forest.pressed.connect(open_map.bind("raid-forest"))

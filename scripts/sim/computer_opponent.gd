@@ -74,6 +74,10 @@ var wave_size := FIRST_WAVE
 var waves := 0
 ## Ids of the units it has sent to attack.
 var attackers := {}
+## Does it attack at all? A camp that only holds its ground does not (see CampOpponentDef).
+var attacks := true
+## How many fighters it keeps at most.
+var army_limit := ARMY_LIMIT
 
 var _home := Vector2.ZERO
 
@@ -83,8 +87,7 @@ func _init(p_world: SimWorld, p_team: int, p_enemy_team: int, p_enemy_start: Vec
 	team = p_team
 	enemy_team = p_enemy_team
 	enemy_start = p_enemy_start
-	var hq := world.production.builder(team, Production.BUILDINGS)
-	_home = hq.center() if hq != null else Vector2(enemy_start)
+	_home = home_of(world, team, enemy_start)
 	var toward := (Vector2(world.size) / 2.0 - _home).normalized()
 	var region := 0
 	for unit in world.units:
@@ -92,6 +95,21 @@ func _init(p_world: SimWorld, p_team: int, p_enemy_team: int, p_enemy_start: Vec
 			region = world.region_at(unit.cell)
 			break
 	rally = world.nearest_free_cell(Vector2i((_home + toward * RALLY_CELLS).floor()), region)
+
+
+## Where a side is at home: its headquarters, or else its first building,
+## or else its first unit; `fallback` if it has nothing.
+static func home_of(p_world: SimWorld, p_team: int, fallback: Vector2i) -> Vector2:
+	var hq := p_world.production.builder(p_team, Production.BUILDINGS)
+	if hq != null:
+		return hq.center()
+	for building in p_world.buildings:
+		if building.team == p_team:
+			return building.center()
+	for unit in p_world.units:
+		if unit.team == p_team:
+			return Vector2(unit.cell)
+	return Vector2(fallback)
 
 
 ## What a building of a side is for, as the computer sees it: &"power",
@@ -293,7 +311,7 @@ func _train() -> void:
 				if harvesters + queued_harvesters < HARVESTERS and world.ore_left() > 0:
 					wanted = item
 					break
-			elif wanted == null and rich and world.fighter_count(team) + _queued_fighters() < ARMY_LIMIT:
+			elif wanted == null and rich and world.fighter_count(team) + _queued_fighters() < army_limit:
 				wanted = item
 		if wanted != null and the_line.items.size() < (1 if not wanted.is_harvester() else 2):
 			production.queue(team, key, wanted)
@@ -390,6 +408,8 @@ func _attack(defending: bool) -> void:
 		return
 	if not waiting.is_empty():
 		world.order_attack_move(waiting, rally)
+	if not attacks:
+		return
 	var late_enough := world.tick_count >= roundi(ATTACK_AFTER_SECONDS * SimWorld.TICKS_PER_SECOND)
 	if late_enough and home.size() >= wave_size:
 		var target := next_target(rally)

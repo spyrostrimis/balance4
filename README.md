@@ -17,6 +17,10 @@ placeholder title screen:
   trains soldiers and light tanks, defends, and attacks in waves, under the
   same rules as you. Destroy every enemy building and soldier to win.
 
+- **Mission 2, "Holding the Claim"** (M7, in progress; placeholder art, no
+  sound yet), as Blue on a new map, River Fords: the Prince sets up a base
+  by the rock, beats off Red's assault and crosses the river to destroy
+  Red's camp. Base building, both heroes, and a story told as you play.
 - **Mission 1, "The First Claim"** (provisional name), to a win or a loss: as
   Blue on the forest map or as Red on the desert map. Each side has four
   troops and a field commander and fights over the Orichalcum rock in the
@@ -44,6 +48,9 @@ placeholder title screen:
   repaired (R). Lose a hero and the mission is lost.
 
 See [docs/roadmap.md](docs/roadmap.md) for what comes next.
+
+![Mission 2: the convoy has set up Blue's base on the stony ground](docs/screenshots/m7_mission2_base.png)
+![Mission 2's map, River Fords: Blue's rock, the river and Red's rock](docs/screenshots/m7_river_fords.png)
 
 ![A skirmish as Red: light tanks and a soldier attack Blue's burning headquarters](docs/screenshots/m6_attack.png)
 ![A skirmish as Blue: a light tank shells Red's headquarters from a distance](docs/screenshots/m6_burning.png)
@@ -121,7 +128,7 @@ You need Godot 4.7.2 (standard build, not .NET).
   godot --path . -- --map=harvest-forest
   ```
 
-  And the hero trial (`hero-forest`), or a skirmish against the computer (`skirmish-forest` or `skirmish-desert`):
+  And Mission 2 (`mission-2`), the hero trial (`hero-forest`), or a skirmish against the computer (`skirmish-forest` or `skirmish-desert`):
 
   ```bash
   godot --path . -- --map=skirmish-forest
@@ -233,6 +240,7 @@ computer opponent and the skirmish in [docs/skirmish.md](docs/skirmish.md).
 - [docs/combat.md](docs/combat.md): fighting, orders and keys, the field commander, the control point, Mission 1, and every provisional number.
 - [docs/base.md](docs/base.md): the buildings and their costs, build queues, placing, production, power, the build menu and the base trial.
 - [docs/skirmish.md](docs/skirmish.md): destroying buildings, the light tank, the computer opponent, the skirmish, and every provisional number.
+- [docs/mission2.md](docs/mission2.md): Mission 2, its map, how it plays and its numbers.
 - [docs/heroes.md](docs/heroes.md): the Prince, abilities, losing a hero, and repairing buildings.
 - [docs/missions.md](docs/missions.md): how a mission is made: sides, placed forces, objectives, triggers, conditions and hints.
 - [docs/economy.md](docs/economy.md): deposits, the harvester, the refinery and storage, guarding and stealing trailers, the practice missions, and every provisional number.
@@ -252,7 +260,7 @@ Each milestone ends in something playable and a push to this repository.
 | M4 Economy | Harvester (truck, robot and trailer), refinery, storage: the harvest and raid trials. **Done.** |
 | M5 Base | Base building and production: the base trial. **Done.** |
 | M6 Enemy AI | A computer opponent: the skirmish. **Done.** |
-| M7 Vertical slice | Mission 2 as Blue: both heroes, base building, briefing, new HUD, a build anyone can run. **Next.** |
+| M7 Vertical slice | Mission 2 as Blue: both heroes, base building, briefing, new HUD, a build anyone can run. **In progress.** |
 | M8 Content | The rest of the units, buildings and terrain. |
 | M9 Campaign | The Blue and Red campaigns. |
 | M10 Polish | Final art, audio, balance and bug fixing. |

@@ -1,0 +1,95 @@
+[gd_resource type="Resource" script_class="HintList" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/missions/hint.gd" id="1_qwuab"]
+[ext_resource type="Script" path="res://scripts/sim/missions/event_condition.gd" id="2_pkomq"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective_condition.gd" id="3_iy7dx"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_condition.gd" id="4_pwh7i"]
+[ext_resource type="Script" path="res://scripts/sim/missions/any_condition.gd" id="5_pmb2d"]
+[ext_resource type="Script" path="res://scripts/sim/missions/hint_list.gd" id="6_gup15"]
+
+[sub_resource type="Resource" id="Resource_up8a4"]
+script = ExtResource("2_pkomq")
+event = &"select"
+
+[sub_resource type="Resource" id="Resource_d7agl"]
+script = ExtResource("1_qwuab")
+id = &"select"
+text = "Drag a box around your force to select it. The Prince (blue cloak) and the Field Commander (gold helmet) are heroes: if either falls, the mission is lost."
+done_when = SubResource("Resource_up8a4")
+
+[sub_resource type="Resource" id="Resource_8kuxi"]
+script = ExtResource("3_iy7dx")
+objective = &"establish"
+
+[sub_resource type="Resource" id="Resource_6v6xo"]
+script = ExtResource("1_qwuab")
+id = &"move"
+text = "Right-click to move. Take the Prince to the stony ground north of here, where the map is lit: the convoy will set up camp there."
+done_when = SubResource("Resource_8kuxi")
+
+[sub_resource type="Resource" id="Resource_460fc"]
+script = ExtResource("2_pkomq")
+event = &"build"
+
+[sub_resource type="Resource" id="Resource_r5whu"]
+script = ExtResource("1_qwuab")
+id = &"build"
+text = "Your headquarters and a refinery are set up. Click Generator in the build menu, and when it is ready place it on the stony ground."
+done_when = SubResource("Resource_460fc")
+
+[sub_resource type="Resource" id="Resource_d7rct"]
+script = ExtResource("2_pkomq")
+event = &"harvest"
+
+[sub_resource type="Resource" id="Resource_iw61l"]
+script = ExtResource("1_qwuab")
+id = &"harvest"
+text = "Send the harvester (the truck) to the Orichalcum rock: select it, then right-click the rock. Everything you build is paid for with Orichalcum."
+done_when = SubResource("Resource_d7rct")
+
+[sub_resource type="Resource" id="Resource_rh86u"]
+script = ExtResource("2_pkomq")
+event = &"train"
+
+[sub_resource type="Resource" id="Resource_r24ui"]
+script = ExtResource("1_qwuab")
+id = &"train"
+text = "Build a Barracks too, then train soldiers in its tab. Red's camp is across the river; it can be crossed only at the two fords."
+done_when = SubResource("Resource_rh86u")
+
+[sub_resource type="Resource" id="Resource_isv7c"]
+script = ExtResource("2_pkomq")
+event = &"ability"
+
+[sub_resource type="Resource" id="Resource_m28g3"]
+script = ExtResource("1_qwuab")
+id = &"ability"
+text = "In a fight press E: the Prince's Restore heals and repairs everyone around him. Q and a click: the Field Commander's Mend heals one unit."
+done_when = SubResource("Resource_isv7c")
+
+[sub_resource type="Resource" id="Resource_86qxv"]
+script = ExtResource("2_pkomq")
+event = &"repair"
+
+[sub_resource type="Resource" id="Resource_mtkyr"]
+script = ExtResource("3_iy7dx")
+objective = &"hold"
+
+[sub_resource type="Resource" id="Resource_0bshm"]
+script = ExtResource("5_pmb2d")
+conditions = Array[ExtResource("4_pwh7i")]([SubResource("Resource_86qxv"), SubResource("Resource_mtkyr")])
+
+[sub_resource type="Resource" id="Resource_262xh"]
+script = ExtResource("1_qwuab")
+id = &"repair"
+text = "A damaged building can be repaired: left-click it, then press R. Repairs cost Orichalcum."
+done_when = SubResource("Resource_0bshm")
+
+[sub_resource type="Resource" id="Resource_uwt8g"]
+script = ExtResource("1_qwuab")
+id = &"strike"
+text = "Your units near the Prince move and fight 5% faster. Attack-move (F) across a ford into Red's camp, and keep your heroes behind the line."
+
+[resource]
+script = ExtResource("6_gup15")
+hints = Array[ExtResource("1_qwuab")]([SubResource("Resource_d7agl"), SubResource("Resource_6v6xo"), SubResource("Resource_r5whu"), SubResource("Resource_iw61l"), SubResource("Resource_r24ui"), SubResource("Resource_m28g3"), SubResource("Resource_262xh"), SubResource("Resource_uwt8g")])

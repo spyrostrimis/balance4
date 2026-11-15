@@ -293,6 +293,7 @@ func _process(delta: float) -> void:
 		var chosen := world.get_building(selection.building_id) if selection.building_id != 0 else null
 		hud.set_selected_building(chosen if chosen != null and chosen.team == SimWorld.PLAYER_TEAM else null)
 		hud.refresh(mission, hint_text())
+		_help.visible = not hud.build_panel.visible      # the build menu takes the place of the controls
 		if mission.is_over() and not _result_shown:
 			_show_result()
 

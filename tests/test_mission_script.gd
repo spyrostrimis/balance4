@@ -117,7 +117,7 @@ func test_every_mission_file_is_sound() -> void:
 		check(def.sides[PLAYER].opponent == null, "the player's side in %s is not played by the computer" % file)
 		var mission := Mission.new(def)
 		check(mission.world.team_size(PLAYER) > 0, "%s puts the player's units on the map" % file)
-	check_eq(count, 11, "all eleven missions are checked")
+	check_eq(count, 12, "all twelve missions are checked")
 
 
 func test_problems_are_reported() -> void:

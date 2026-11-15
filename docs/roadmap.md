@@ -175,8 +175,9 @@ One mission at the quality the whole game should reach: a new Mission 2,
 played as Blue, with base building and both Blue heroes. The plan, the
 decisions behind it and the order of work are in [m7-plan.md](m7-plan.md).
 Progress: M7.1 (decisions), M7.2 (missions as data: see
-[missions.md](missions.md)) and M7.3 (the Prince, his abilities, losing a
-hero, repairing buildings: see [heroes.md](heroes.md)) are done.
+[missions.md](missions.md)) M7.3 (the Prince, his abilities, losing a
+hero, repairing buildings: see [heroes.md](heroes.md)) and M7.4 (the map and
+Mission 2, with placeholder art: see [mission2.md](mission2.md)) are done.
 
 Done means:
 

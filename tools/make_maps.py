@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate the two maps for Balance as Godot resources.
+"""Generate the maps for Balance as Godot resources.
 
 Run from the repo root:  python tools/make_maps.py
 
-Writes data/maps/forest_01.tres and data/maps/desert_01.tres. Each map is a grid of
+Writes data/maps/forest_01.tres and data/maps/desert_01.tres (the maps of Mission 1, the
+trials and the skirmish), and data/maps/forest_02.tres ("River Fords", the map of Mission 2). Each map is a grid of
 one-character terrain symbols (see the terrain files in data/terrain/ for the symbols).
 The layouts follow the style mockups: a central clearing with the Orichalcum rock formation
 in the middle of it, two tracks leading to opposite corners, rock patches for future bases.
@@ -95,11 +96,12 @@ CENTRE = (W // 2, H // 2)
 IMPASSABLE = 'fwo'
 
 
-def ore_rock(rng):
-    """The cells of the Orichalcum rock formation: a small lumpy patch around the map centre."""
+def ore_rock(rng, centre=CENTRE, size=(3.0, 2.0)):
+    """The cells of an Orichalcum rock formation: a small lumpy patch around `centre` (the map
+    centre unless given; best on a grid corner whose coordinates are multiples of 8)."""
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     lumps = (fbm(rng, 4, 2) - 0.5) * 0.5
-    return tidy(blob(xx + 0.5, yy + 0.5, CENTRE[0], CENTRE[1], 3.0, 2.0) + lumps < 0)
+    return tidy(blob(xx + 0.5, yy + 0.5, centre[0], centre[1], size[0], size[1]) + lumps < 0)
 
 
 def check_reachable(name, grid, starts):
@@ -202,7 +204,74 @@ def desert_map():
     return grid, [nw, se]
 
 
-def write_map(name, display_name, biome, grid, starts):
+def river_fords_map():
+    """Mission 2's map: Blue arrives in the south-west, where stony ground by a clearing makes a
+    good base, near the Orichalcum rock that Mission 1 took. A river runs from the north edge
+    to the south edge east of it and can be crossed only at two fords. Red's forward camp
+    stands on stony ground in the north-east, by a smaller rock of its own."""
+    rng = np.random.default_rng(37)
+    X, Y, xx, yy = coords(rng, warp=2.0)
+    arrive, camp = (4, 44), (56, 9)
+    base, rock, red_rock = (14, 33), (24, 24), (48, 24)
+    north_ford, south_ford = (37, 13), (36, 37)
+
+    clearing = np.minimum.reduce([blob(X, Y, rock[0], rock[1], 6.5, 5.0), blob(X, Y, red_rock[0], red_rock[1], 4.6, 3.6),
+                                  blob(X, Y, base[0] + 2, base[1] - 5, 5.0, 3.0)])
+    track = np.minimum.reduce([
+        polydist(X, Y, [arrive, (8, 40), base]),
+        polydist(X, Y, [base, (19, 29), rock]),
+        polydist(X, Y, [rock, (30, 17), north_ford, (44, 12), (50, 10), camp]),
+        polydist(X, Y, [base, (24, 37), south_ford, (43, 33), red_rock, (52, 17), camp]),
+    ]) - 1.2
+    dirt = tidy((clearing < 0) | (track < 0))
+
+    stone_d = np.minimum.reduce([blob(X, Y, base[0], base[1], 6.4, 4.6), blob(X, Y, camp[0] - 3, camp[1] + 1, 6.0, 4.4),
+                                 blob(X, Y, 7, 20, 3.0, 2.4), blob(X, Y, 28, 44, 3.4, 2.2)])
+    stone = tidy(stone_d < 0)
+    dirt &= ~stone
+
+    river_d = polydist(xx, yy, [(38, -2), (36.5, 6), (38.5, 13), (37, 20), (38.5, 27), (36.5, 34), (37.5, 41), (36, 50)])         + (fbm(rng, 5, 2) - 0.5) * 0.8 - 1.6
+    fords = np.minimum(blob(xx, yy, north_ford[0], north_ford[1], 4.0, 2.3), blob(xx, yy, south_ford[0], south_ford[1], 4.0, 2.3))
+    water = tidy(river_d < 0) & ~(fords < 0) & ~stone
+    dirt &= ~water
+
+    edge = 1 - np.minimum(np.minimum(xx, W - xx), np.minimum(yy, H - yy)) / 12
+    fn = (fbm(rng, 9) - 0.5) * 2.4 + np.clip(edge, 0, 1) * 0.5
+    near_open = np.minimum.reduce([clearing * 4.0, track, stone_d * 3.0, river_d + 1.0])
+    forest = drop_small(tidy((fn > 0.1) & (near_open > 1.7), 3) & ~dirt & ~stone & ~water, 6)
+
+    grid = np.full((H, W), '.', '<U1')
+    grid[dirt] = 'd'
+    grid[stone] = 's'
+    grid[water] = 'w'
+    grid[forest] = 'f'
+    grid[ore_rock(np.random.default_rng(371), rock, (3.0, 2.0))] = 'o'
+    grid[ore_rock(np.random.default_rng(372), red_rock, (2.2, 1.6))] = 'o'
+    check_river(grid)
+    return grid, [arrive, camp], rock
+
+
+def check_river(grid):
+    """Stop if the river can be crossed anywhere but at the fords (rows 10-16 and 34-40)."""
+    open_ = ~np.isin(grid, list(IMPASSABLE))
+    blocked = open_.copy()
+    blocked[10:17, 30:46] = False
+    blocked[34:41, 30:46] = False
+    seen = np.zeros_like(blocked)
+    seen[44, 4] = True
+    stack = [(44, 4)]
+    while stack:
+        y, x = stack.pop()
+        for (ny, nx) in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+            if 0 <= ny < H and 0 <= nx < W and blocked[ny, nx] and not seen[ny, nx]:
+                seen[ny, nx] = True
+                stack.append((ny, nx))
+    if seen[:, 44:].any():
+        raise SystemExit('river_fords: the river can be crossed away from the fords')
+    print('river_fords: the river is crossed only at the fords')
+
+
+def write_map(name, display_name, biome, grid, starts, control=CENTRE):
     check_reachable(name, grid, starts)
     rows = [''.join(r) for r in grid]
     body = ', '.join('"%s"' % r for r in rows)
@@ -217,7 +286,7 @@ def write_map(name, display_name, biome, grid, starts):
             'control_point = Vector2(%d, %d)\n'
             'rows = PackedStringArray(%s)\n') % (biome, display_name,
                                                   ', '.join('Vector2i(%d, %d)' % s for s in starts),
-                                                  CENTRE[0], CENTRE[1], body)
+                                                  control[0], control[1], body)
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name + '.tres')
     with open(path, 'w', encoding='utf-8', newline='\n') as f:
@@ -231,3 +300,5 @@ def write_map(name, display_name, biome, grid, starts):
 if __name__ == '__main__':
     write_map('forest_01', 'Forest', 'forest', *forest_map())
     write_map('desert_01', 'Desert', 'desert', *desert_map())
+    grid, starts, rock = river_fords_map()
+    write_map('forest_02', 'River Fords', 'forest', grid, starts, rock)

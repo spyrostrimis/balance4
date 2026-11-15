@@ -1,0 +1,413 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/missions/placement.gd" id="1_pkn38"]
+[ext_resource type="Resource" path="res://data/buildings/red_refinery.tres" id="2_ydkda"]
+[ext_resource type="Resource" path="res://data/buildings/red_generator.tres" id="3_jusp2"]
+[ext_resource type="Resource" path="res://data/buildings/red_barracks.tres" id="4_72fuc"]
+[ext_resource type="Resource" path="res://data/buildings/red_workshop.tres" id="5_x3w5y"]
+[ext_resource type="Resource" path="res://data/units/blue_leader.tres" id="6_jthmg"]
+[ext_resource type="Resource" path="res://data/units/blue_commander.tres" id="7_rmij5"]
+[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="8_hkgdn"]
+[ext_resource type="Resource" path="res://data/units/blue_tank.tres" id="9_kod0h"]
+[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="10_vw1jt"]
+[ext_resource type="Resource" path="res://data/units/red_harvester.tres" id="11_k2ewx"]
+[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="12_v2jm3"]
+[ext_resource type="Resource" path="res://data/units/red_tank.tres" id="13_a6o6m"]
+[ext_resource type="Resource" path="res://data/hints/holding_the_claim.tres" id="14_j1oux"]
+[ext_resource type="Resource" path="res://data/maps/forest_02.tres" id="15_4r8j6"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective.gd" id="16_1skc4"]
+[ext_resource type="Script" path="res://scripts/sim/missions/gone_condition.gd" id="17_774jl"]
+[ext_resource type="Script" path="res://scripts/sim/missions/defeat_condition.gd" id="18_yewca"]
+[ext_resource type="Script" path="res://scripts/sim/missions/area_condition.gd" id="19_bjs3b"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_condition.gd" id="20_o4u3r"]
+[ext_resource type="Script" path="res://scripts/sim/missions/building_condition.gd" id="21_cle1b"]
+[ext_resource type="Resource" path="res://data/buildings/blue_generator.tres" id="22_tnh1d"]
+[ext_resource type="Resource" path="res://data/buildings/blue_barracks.tres" id="23_wsv76"]
+[ext_resource type="Script" path="res://scripts/sim/missions/all_condition.gd" id="24_b827y"]
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="25_d4hpa"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_side.gd" id="26_xypnx"]
+[ext_resource type="Script" path="res://scripts/sim/missions/camp_opponent_def.gd" id="27_bf714"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_trigger.gd" id="28_l22i0"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_action.gd" id="29_vq8jj"]
+[ext_resource type="Script" path="res://scripts/sim/missions/message_action.gd" id="30_806h7"]
+[ext_resource type="Script" path="res://scripts/sim/missions/reveal_action.gd" id="31_qim4j"]
+[ext_resource type="Resource" path="res://data/buildings/blue_headquarters.tres" id="32_4b0wp"]
+[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="33_d8fw3"]
+[ext_resource type="Script" path="res://scripts/sim/missions/reinforce_action.gd" id="34_wr8ln"]
+[ext_resource type="Script" path="res://scripts/sim/missions/give_action.gd" id="35_gr83w"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective_action.gd" id="36_nxals"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective_condition.gd" id="37_t51sy"]
+[ext_resource type="Script" path="res://scripts/sim/missions/send_action.gd" id="38_00c0c"]
+[ext_resource type="Script" path="res://scripts/sim/missions/time_condition.gd" id="39_b43u6"]
+[ext_resource type="Script" path="res://scripts/sim/missions/any_condition.gd" id="40_s20by"]
+
+[sub_resource type="Resource" id="Resource_l1jgx"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("2_ydkda")
+tag = &"camp"
+
+[sub_resource type="Resource" id="Resource_1qp54"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("3_jusp2")
+tag = &"camp"
+
+[sub_resource type="Resource" id="Resource_pjr3y"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("4_72fuc")
+tag = &"camp"
+
+[sub_resource type="Resource" id="Resource_ae7t8"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("5_x3w5y")
+tag = &"camp"
+
+[sub_resource type="Resource" id="Resource_j0yen"]
+script = ExtResource("1_pkn38")
+type = ExtResource("6_jthmg")
+tag = &"prince"
+
+[sub_resource type="Resource" id="Resource_wak0w"]
+script = ExtResource("1_pkn38")
+type = ExtResource("7_rmij5")
+tag = &"commander"
+
+[sub_resource type="Resource" id="Resource_ug3aw"]
+script = ExtResource("1_pkn38")
+type = ExtResource("8_hkgdn")
+count = 4
+
+[sub_resource type="Resource" id="Resource_pre4j"]
+script = ExtResource("1_pkn38")
+type = ExtResource("9_kod0h")
+
+[sub_resource type="Resource" id="Resource_2qu50"]
+script = ExtResource("1_pkn38")
+type = ExtResource("10_vw1jt")
+
+[sub_resource type="Resource" id="Resource_odqgf"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("11_k2ewx")
+at = 2
+
+[sub_resource type="Resource" id="Resource_kyod6"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("12_v2jm3")
+count = 4
+tag = &"camp_guard"
+
+[sub_resource type="Resource" id="Resource_wasvs"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("13_a6o6m")
+tag = &"camp_guard"
+
+[sub_resource type="Resource" id="Resource_mh2qd"]
+script = ExtResource("17_774jl")
+tag = &"camp"
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_2k63i"]
+script = ExtResource("18_yewca")
+team = 0
+buildings_count = true
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_lqfc2"]
+script = ExtResource("16_1skc4")
+id = &"survive"
+text = "Keep the Prince and the Field Commander alive, and your base standing."
+done_when = SubResource("Resource_mh2qd")
+failed_when = SubResource("Resource_2k63i")
+
+[sub_resource type="Resource" id="Resource_mpj2u"]
+script = ExtResource("19_bjs3b")
+cell = Vector2i(14, 33)
+radius = 4.0
+tag = &"prince"
+
+[sub_resource type="Resource" id="Resource_r5xdp"]
+script = ExtResource("16_1skc4")
+id = &"establish"
+text = "Bring the Prince to the stony ground north of where you arrive."
+done_when = SubResource("Resource_mpj2u")
+
+[sub_resource type="Resource" id="Resource_1r0kb"]
+script = ExtResource("21_cle1b")
+type = ExtResource("22_tnh1d")
+
+[sub_resource type="Resource" id="Resource_0jiw0"]
+script = ExtResource("21_cle1b")
+type = ExtResource("23_wsv76")
+
+[sub_resource type="Resource" id="Resource_bmt07"]
+script = ExtResource("24_b827y")
+conditions = Array[ExtResource("20_o4u3r")]([SubResource("Resource_1r0kb"), SubResource("Resource_0jiw0")])
+
+[sub_resource type="Resource" id="Resource_biqi8"]
+script = ExtResource("16_1skc4")
+id = &"dig_in"
+text = "Build a Generator and a Barracks."
+hidden = true
+done_when = SubResource("Resource_bmt07")
+
+[sub_resource type="Resource" id="Resource_mbax2"]
+script = ExtResource("17_774jl")
+tag = &"assault"
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_7wh0k"]
+script = ExtResource("16_1skc4")
+id = &"hold"
+text = "Beat off Red's assault."
+hidden = true
+done_when = SubResource("Resource_mbax2")
+
+[sub_resource type="Resource" id="Resource_rc62q"]
+script = ExtResource("17_774jl")
+tag = &"camp"
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_fkkb6"]
+script = ExtResource("16_1skc4")
+id = &"strike"
+text = "Destroy Red's forward camp across the river."
+hidden = true
+done_when = SubResource("Resource_rc62q")
+
+[sub_resource type="Resource" id="Resource_rdfs7"]
+script = ExtResource("26_xypnx")
+name = "Blue"
+color = Color(0.45, 0.72, 1, 1)
+knows_deposits = true
+
+[sub_resource type="Resource" id="Resource_5msuu"]
+script = ExtResource("27_bf714")
+
+[sub_resource type="Resource" id="Resource_62uiv"]
+script = ExtResource("26_xypnx")
+name = "Red"
+color = Color(1, 0.45, 0.35, 1)
+start = 1
+orichalcum = 400
+knows_deposits = true
+opponent = SubResource("Resource_5msuu")
+
+[sub_resource type="Resource" id="Resource_nfekw"]
+script = ExtResource("30_806h7")
+speaker = "Field Commander"
+text = "The rock is ours, but Red will not let it go. Bring the Prince to the stony ground to the north: the convoy will set up camp there."
+
+[sub_resource type="Resource" id="Resource_tx44p"]
+script = ExtResource("31_qim4j")
+cell = Vector2i(14, 33)
+radius = 6
+
+[sub_resource type="Resource" id="Resource_muhom"]
+script = ExtResource("28_l22i0")
+actions = Array[ExtResource("29_vq8jj")]([SubResource("Resource_nfekw"), SubResource("Resource_tx44p")])
+
+[sub_resource type="Resource" id="Resource_x1780"]
+script = ExtResource("1_pkn38")
+type = ExtResource("32_4b0wp")
+at = 1
+cell = Vector2i(12, 32)
+tag = &"base"
+
+[sub_resource type="Resource" id="Resource_clyph"]
+script = ExtResource("1_pkn38")
+type = ExtResource("33_d8fw3")
+at = 1
+cell = Vector2i(16, 34)
+tag = &"base"
+
+[sub_resource type="Resource" id="Resource_04q55"]
+script = ExtResource("34_wr8ln")
+placements = Array[ExtResource("1_pkn38")]([SubResource("Resource_x1780"), SubResource("Resource_clyph")])
+
+[sub_resource type="Resource" id="Resource_t0r51"]
+script = ExtResource("35_gr83w")
+amount = 700
+
+[sub_resource type="Resource" id="Resource_k371q"]
+script = ExtResource("30_806h7")
+speaker = "The Prince"
+text = "Here we stand. We need power and soldiers: build a Generator and a Barracks, and set the harvester to work."
+
+[sub_resource type="Resource" id="Resource_i0rks"]
+script = ExtResource("36_nxals")
+objective = &"dig_in"
+
+[sub_resource type="Resource" id="Resource_4i3n2"]
+script = ExtResource("37_t51sy")
+objective = &"establish"
+
+[sub_resource type="Resource" id="Resource_x57jk"]
+script = ExtResource("28_l22i0")
+when = SubResource("Resource_4i3n2")
+actions = Array[ExtResource("29_vq8jj")]([SubResource("Resource_04q55"), SubResource("Resource_t0r51"), SubResource("Resource_k371q"), SubResource("Resource_i0rks")])
+
+[sub_resource type="Resource" id="Resource_bx4qb"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("12_v2jm3")
+count = 3
+at = 1
+cell = Vector2i(42, 33)
+tag = &"scouts"
+
+[sub_resource type="Resource" id="Resource_40apy"]
+script = ExtResource("34_wr8ln")
+placements = Array[ExtResource("1_pkn38")]([SubResource("Resource_bx4qb")])
+
+[sub_resource type="Resource" id="Resource_0k6ne"]
+script = ExtResource("38_00c0c")
+tag = &"scouts"
+cell = Vector2i(14, 33)
+
+[sub_resource type="Resource" id="Resource_u6ugo"]
+script = ExtResource("30_806h7")
+speaker = "Scout"
+text = "Red scouts at the southern ford!"
+
+[sub_resource type="Resource" id="Resource_lfk58"]
+script = ExtResource("37_t51sy")
+objective = &"establish"
+
+[sub_resource type="Resource" id="Resource_50teh"]
+script = ExtResource("28_l22i0")
+when = SubResource("Resource_lfk58")
+delay_seconds = 75.0
+actions = Array[ExtResource("29_vq8jj")]([SubResource("Resource_40apy"), SubResource("Resource_0k6ne"), SubResource("Resource_u6ugo")])
+
+[sub_resource type="Resource" id="Resource_nxdju"]
+script = ExtResource("30_806h7")
+speaker = "Scout"
+text = "A large Red force is gathering at their camp. It will cross the river soon."
+
+[sub_resource type="Resource" id="Resource_keuyg"]
+script = ExtResource("37_t51sy")
+objective = &"dig_in"
+
+[sub_resource type="Resource" id="Resource_3mamo"]
+script = ExtResource("39_b43u6")
+seconds = 270.0
+
+[sub_resource type="Resource" id="Resource_p4mod"]
+script = ExtResource("24_b827y")
+conditions = Array[ExtResource("20_o4u3r")]([SubResource("Resource_keuyg"), SubResource("Resource_3mamo")])
+
+[sub_resource type="Resource" id="Resource_gwq84"]
+script = ExtResource("39_b43u6")
+seconds = 480.0
+
+[sub_resource type="Resource" id="Resource_5efwv"]
+script = ExtResource("40_s20by")
+conditions = Array[ExtResource("20_o4u3r")]([SubResource("Resource_p4mod"), SubResource("Resource_gwq84")])
+
+[sub_resource type="Resource" id="Resource_x4o3f"]
+script = ExtResource("28_l22i0")
+when = SubResource("Resource_5efwv")
+delay_seconds = 30.0
+actions = Array[ExtResource("29_vq8jj")]([SubResource("Resource_nxdju")])
+
+[sub_resource type="Resource" id="Resource_omavo"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("12_v2jm3")
+count = 6
+at = 1
+cell = Vector2i(50, 16)
+tag = &"assault"
+
+[sub_resource type="Resource" id="Resource_abk4c"]
+script = ExtResource("1_pkn38")
+team = 1
+type = ExtResource("13_a6o6m")
+count = 2
+at = 1
+cell = Vector2i(50, 16)
+tag = &"assault"
+
+[sub_resource type="Resource" id="Resource_tir68"]
+script = ExtResource("34_wr8ln")
+placements = Array[ExtResource("1_pkn38")]([SubResource("Resource_omavo"), SubResource("Resource_abk4c")])
+
+[sub_resource type="Resource" id="Resource_d41i8"]
+script = ExtResource("38_00c0c")
+tag = &"assault"
+cell = Vector2i(14, 33)
+toward_tag = &"prince"
+
+[sub_resource type="Resource" id="Resource_p2cp2"]
+script = ExtResource("30_806h7")
+speaker = "Scout"
+text = "Here they come, over both fords!"
+
+[sub_resource type="Resource" id="Resource_nwm51"]
+script = ExtResource("36_nxals")
+objective = &"hold"
+
+[sub_resource type="Resource" id="Resource_w1ej3"]
+script = ExtResource("28_l22i0")
+when = SubResource("Resource_5efwv")
+delay_seconds = 100.0
+actions = Array[ExtResource("29_vq8jj")]([SubResource("Resource_tir68"), SubResource("Resource_d41i8"), SubResource("Resource_p2cp2"), SubResource("Resource_nwm51")])
+
+[sub_resource type="Resource" id="Resource_q1woo"]
+script = ExtResource("1_pkn38")
+type = ExtResource("8_hkgdn")
+count = 4
+tag = &"reinforcements"
+
+[sub_resource type="Resource" id="Resource_giq62"]
+script = ExtResource("1_pkn38")
+type = ExtResource("9_kod0h")
+count = 2
+tag = &"reinforcements"
+
+[sub_resource type="Resource" id="Resource_ocry5"]
+script = ExtResource("34_wr8ln")
+placements = Array[ExtResource("1_pkn38")]([SubResource("Resource_q1woo"), SubResource("Resource_giq62")])
+
+[sub_resource type="Resource" id="Resource_k7fa4"]
+script = ExtResource("30_806h7")
+speaker = "The Prince"
+text = "They are broken, and help has come from the south. Now we cross the river and take their camp."
+
+[sub_resource type="Resource" id="Resource_ij0e6"]
+script = ExtResource("31_qim4j")
+cell = Vector2i(56, 9)
+radius = 7
+
+[sub_resource type="Resource" id="Resource_bfjoq"]
+script = ExtResource("36_nxals")
+objective = &"strike"
+
+[sub_resource type="Resource" id="Resource_bpv0c"]
+script = ExtResource("37_t51sy")
+objective = &"hold"
+
+[sub_resource type="Resource" id="Resource_81too"]
+script = ExtResource("28_l22i0")
+when = SubResource("Resource_bpv0c")
+delay_seconds = 5.0
+actions = Array[ExtResource("29_vq8jj")]([SubResource("Resource_ocry5"), SubResource("Resource_k7fa4"), SubResource("Resource_ij0e6"), SubResource("Resource_bfjoq")])
+
+[resource]
+script = ExtResource("25_d4hpa")
+id = &"holding_the_claim_blue"
+number = 2
+display_name = "Holding the Claim"
+map = ExtResource("15_4r8j6")
+sides = Array[ExtResource("26_xypnx")]([SubResource("Resource_rdfs7"), SubResource("Resource_62uiv")])
+forces = Array[ExtResource("1_pkn38")]([SubResource("Resource_l1jgx"), SubResource("Resource_1qp54"), SubResource("Resource_pjr3y"), SubResource("Resource_ae7t8"), SubResource("Resource_j0yen"), SubResource("Resource_wak0w"), SubResource("Resource_ug3aw"), SubResource("Resource_pre4j"), SubResource("Resource_2qu50"), SubResource("Resource_odqgf"), SubResource("Resource_kyod6"), SubResource("Resource_wasvs")])
+ore_richness = 4
+objectives = Array[ExtResource("16_1skc4")]([SubResource("Resource_lqfc2"), SubResource("Resource_r5xdp"), SubResource("Resource_biqi8"), SubResource("Resource_7wh0k"), SubResource("Resource_fkkb6")])
+triggers = Array[ExtResource("28_l22i0")]([SubResource("Resource_muhom"), SubResource("Resource_x57jk"), SubResource("Resource_50teh"), SubResource("Resource_x4o3f"), SubResource("Resource_w1ej3"), SubResource("Resource_81too")])
+hints = ExtResource("14_j1oux")

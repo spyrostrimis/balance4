@@ -41,6 +41,7 @@ start, and who plays it:
 | `RushOpponentDef` | Mission 1's script (`ScriptedOpponent`): after a delay, sends its force to the control area in two waves |
 | `RaidersDef` | The raid trial's raiders (`Raiders`): after a delay, go for the harvesters and their trailers |
 | `ComputerOpponentDef` | The computer opponent of the skirmish (`ComputerOpponent`) |
+| `CampOpponentDef` | The same in camp mode: it harvests, trains, defends and repairs, but never attacks (Mission 2's Red camp) |
 
 ### Placed forces
 
@@ -82,10 +83,11 @@ order.
 | Action | What it does |
 | --- | --- |
 | `MessageAction` | Shows a message, with who says it. For now it appears in the hint box for eight seconds; the HUD gets a message box in M7.5 |
-| `ObjectiveAction` | Shows a hidden objective |
+| `ObjectiveAction` | Shows a hidden objective, and says so in a message |
+| `GiveAction` | Puts Orichalcum into a side's store, as far as it fits |
 | `ReinforceAction` | Puts more units or buildings on the map (placements) |
 | `RevealAction` | Lifts the shroud for a side around a cell |
-| `SendAction` | Sends a side's units (those with a tag, or all its fighters) somewhere with attack-move |
+| `SendAction` | Sends a side's units (those with a tag, or all its fighters) somewhere with attack-move: to a cell, or to where a tagged unit stands (e.g. the Prince) |
 | `EndAction` | Ends the mission: a side wins, for a reason |
 
 ### Conditions
@@ -100,7 +102,7 @@ when that condition decides the mission.
 | `DefeatCondition` | A side has no units left, or (in a base game) no buildings and no troops |
 | `HoldCondition` | A side has held the control area for the hold time |
 | `GoneCondition` | Everything placed under a tag is destroyed |
-| `AreaCondition` | A side has so many units near a cell |
+| `AreaCondition` | A side has so many units (or units with a tag) near a cell |
 | `BuildingCondition` | A side has so many buildings (of a type) |
 | `StoreCondition` | A side has so much Orichalcum in store |
 | `ObjectiveCondition` | An objective is done (or has failed) |
@@ -125,6 +127,7 @@ things share a list.
 | Raid trial (`raid_trial_*`) | The player; raiders | None that can be done |
 | Base trial (`base_trial_*`) | The player; nobody | None that can be done |
 | Skirmish (`skirmish_*`) | The player; the computer | Done: the enemy has no buildings and no troops. Failed: the player has none |
+| Mission 2 (`holding_the_claim_blue`) | The player; Red's camp (camp mode), and triggers that bring scouts and an assault | Five objectives, four shown one after another: see [mission2.md](mission2.md) |
 | Hero trial (`hero_trial_blue`) | The player; nobody, but triggers bring three attacks | Hidden until the last attack: beat it off (everything tagged `wave1` to `wave3` gone) |
 
 They play exactly as before the format changed; the tests that check their
