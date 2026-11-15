@@ -134,9 +134,15 @@ border tiles in `assets/tiles/shroud.png`.
 
 ## Camera and minimap
 
-- `MapCamera` (`scripts/ui/map_camera.gd`) scrolls with the arrow keys and when
-  the mouse touches a screen edge, at 480 pixels (15 cells) per second, and
-  stops at the map border. It always sits on whole pixels.
+- `MapCamera` (`scripts/ui/map_camera.gd`) scrolls with W A S D or the arrow
+  keys and when the mouse is within 8 pixels of a screen edge, at 480 pixels
+  (15 cells) per second, and follows the mouse while the middle button drags
+  the map. It stops at the map border and always sits on whole pixels. The
+  mouse is kept inside the window while a map is shown, so pushing it against
+  an edge scrolls instead of leaving the window.
+- The game starts in full screen: a 1920x1080 monitor shows it at exactly 2x.
+  In a window the title bar and taskbar take some height and the whole-step
+  scaling drops to 1x. F11 or Alt+Enter switches (`scripts/ui/window_keys.gd`).
 - The map is shown in the left 748 pixels of the 960-pixel-wide screen; the
   right 212 pixels are the sidebar.
 - `Minimap` (`scripts/ui/minimap.gd`) draws one coloured pixel per cell, scaled

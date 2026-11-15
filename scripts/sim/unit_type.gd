@@ -23,6 +23,12 @@ extends Resource
 ## How far away it notices enemies on its own, in cells.
 @export var acquire_range := 4
 
+@export_group("Production")
+## What it costs in Orichalcum, and how long a production building takes to
+## turn one out, in seconds. Units that are not produced leave these alone.
+@export var cost := 0
+@export var build_seconds := 5.0
+
 @export_group("Hero")
 ## Heroes are special units; the HUD treats them differently from troops.
 @export var is_hero := false

@@ -28,6 +28,14 @@ extends Resource
 @export var enemy_commander: UnitType
 
 @export_group("Economy")
+## The player's headquarters, or null for a mission without base building. It
+## is put on the ground nearest to the player's start that can be built on,
+## before the refinery. What the player can build is listed in its type.
+@export var player_headquarters: BuildingType
+## Orichalcum in the player's store at the start (never more than fits).
+@export var start_orichalcum := 0
+## How many times richer than usual the map's Orichalcum rock is.
+@export_range(1, 10) var ore_richness := 1
 ## The player's refinery, or null for a mission without one. It is put on the
 ## ground nearest to the player's start that can be built on.
 @export var player_refinery: BuildingType
@@ -57,6 +65,11 @@ extends Resource
 ## How many troops the enemy starts with.
 func enemy_troops() -> int:
 	return troop_count if enemy_troop_count < 0 else enemy_troop_count
+
+
+## Does the player have a base to build up in this mission?
+func has_base() -> bool:
+	return player_headquarters != null
 
 
 ## Is this a practice mission in which raiders come for the harvesters?

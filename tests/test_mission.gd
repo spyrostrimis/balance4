@@ -328,7 +328,7 @@ func test_hints_follow_what_the_player_has_done() -> void:
 	check(hints.text(def).contains("Right-click"), "the second hint is about moving")
 	hints.note(&"move")
 	check_eq(hints.current(), &"attack", "then: attack")
-	check(hints.text(def).contains("Press A"), "the third hint is about attacking")
+	check(hints.text(def).contains("Press F"), "the third hint is about attacking")
 	hints.note(&"attack")
 	check_eq(hints.current(), &"ability", "then: the commander's ability")
 	check(hints.text(def).contains("Mend") and hints.text(def).contains("Q"), "the fourth hint names the ability and its key")
@@ -475,24 +475,24 @@ func test_right_click_attacks_an_enemy_or_moves() -> void:
 func test_attack_move_key() -> void:
 	var view := _view()
 	var soldier := _soldier(view)
-	_key(view, KEY_A)
-	check_eq(view.mode, MapView.Mode.NORMAL, "A does nothing with no units selected")
+	_key(view, KEY_F)
+	check_eq(view.mode, MapView.Mode.NORMAL, "F does nothing with no units selected")
 	_select_all(view)
-	_key(view, KEY_A)
-	check_eq(view.mode, MapView.Mode.ATTACK_MOVE, "A waits for a click")
+	_key(view, KEY_F)
+	check_eq(view.mode, MapView.Mode.ATTACK_MOVE, "F waits for a click")
 	check(view.hint_text().begins_with("Attack-move"), "and the hint box says so")
 	_click(view, _body(soldier) + Vector2(96, 0), MOUSE_BUTTON_RIGHT)
 	check_eq(view.mode, MapView.Mode.NORMAL, "a right click cancels")
 	check_eq(soldier.order, SimUnit.Order.NONE, "without giving an order")
-	_key(view, KEY_A)
+	_key(view, KEY_F)
 	_click(view, _body(soldier) + Vector2(96, 64))
-	check_eq(soldier.order, SimUnit.Order.ATTACK_MOVE, "A then a left click is an attack-move order")
+	check_eq(soldier.order, SimUnit.Order.ATTACK_MOVE, "F then a left click is an attack-move order")
 	check_eq(view.mode, MapView.Mode.NORMAL, "and the next click selects again")
 	check_eq(view.selection.ids.size(), 5, "the click that gave the order did not change the selection")
-	_key(view, KEY_S)
-	check_eq(soldier.order, SimUnit.Order.NONE, "S stops the selected units")
+	_key(view, KEY_X)
+	check_eq(soldier.order, SimUnit.Order.NONE, "X stops the selected units")
 	# Esc leaves the mode instead of leaving the mission.
-	_key(view, KEY_A)
+	_key(view, KEY_F)
 	var escape := InputEventAction.new()
 	escape.action = "ui_cancel"
 	escape.pressed = true
@@ -527,7 +527,7 @@ func test_ability_key() -> void:
 	check(view.hint_text().contains("Select"), "the Attack button asks for a selection first")
 	_select_all(view)
 	view.hud.command_pressed.emit(&"attack")
-	check_eq(view.mode, MapView.Mode.ATTACK_MOVE, "the Attack button does what A does")
+	check_eq(view.mode, MapView.Mode.ATTACK_MOVE, "the Attack button does what F does")
 	view.free()
 
 
@@ -567,7 +567,7 @@ func test_win_screen_and_restart() -> void:
 	var ticks := view.world.tick_count
 	var order_before := soldier.order
 	view.order_move_to(MapData.cell_center(view.map.starts[0]))
-	_key(view, KEY_A)
+	_key(view, KEY_F)
 	view._process(0.2)
 	check_eq(soldier.order, order_before, "orders are ignored once the mission is over")
 	check_eq(view.mode, MapView.Mode.NORMAL, "and so are the command keys")

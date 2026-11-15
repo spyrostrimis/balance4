@@ -19,6 +19,8 @@ var raiders: Raiders
 var player_commander_id := 0
 ## Id of the player's refinery, or 0 if the mission gives none.
 var player_refinery_id := 0
+## Id of the player's headquarters, or 0 if the mission gives none.
+var player_headquarters_id := 0
 ## The team that has won, or NOBODY while the mission is being played.
 var winner := NOBODY
 ## How it was won: &"hold" (held the control area) or &"eliminated" (the other
@@ -30,16 +32,24 @@ func _init(p_def: MissionDef) -> void:
 	def = p_def
 	var map := def.map
 	world = SimWorld.new(map)
+	if def.ore_richness > 1:
+		for deposit in world.deposits:
+			deposit.multiply(def.ore_richness)
 	var center := map.control_point if map.has_control_point() else Vector2(map.get_size()) / 2.0
 	control = ControlPoint.new(center, def.control_radius, def.hold_seconds)
 	var starts := map.starts
 	var player_start := starts[0] if starts.size() > 0 else Vector2i.ZERO
 	var enemy_start := starts[1] if starts.size() > 1 else map.get_size() - Vector2i.ONE
-	# The refinery goes down first, so that nobody is put where it will stand.
+	# The buildings go down first, so that nobody is put where they will stand.
+	if def.player_headquarters != null:
+		var hq_site := world.nearest_build_site(def.player_headquarters, player_start)
+		if hq_site != SimWorld.NO_CELL:
+			player_headquarters_id = world.add_building(def.player_headquarters, PLAYER_TEAM, hq_site).id
 	if def.player_refinery != null:
 		var site := world.nearest_build_site(def.player_refinery, player_start)
 		if site != SimWorld.NO_CELL:
 			player_refinery_id = world.add_building(def.player_refinery, PLAYER_TEAM, site).id
+	world.stored[PLAYER_TEAM] = mini(def.start_orichalcum, world.storage_for(PLAYER_TEAM))
 	var commander := _spawn(PLAYER_TEAM, player_start, def.player_commander, def.player_troop, def.troop_count)
 	player_commander_id = commander.id if commander != null else 0
 	if def.practice:

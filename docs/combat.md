@@ -61,18 +61,19 @@ These follow the habits of modern strategy games.
 | Shift + click or drag | Add to the selection (Shift + click on a selected unit removes it) |
 | Right click on the ground | Move the selected units there |
 | Right click on an enemy | Attack that enemy |
-| A, then left click | Attack-move to the spot (or attack the enemy clicked on) |
-| S | Stop |
+| F, then left click | Attack-move to the spot (or attack the enemy clicked on) |
+| X | Stop |
 | Q, then left click on one of your units | The commander uses its ability on that unit |
-| Right click or Esc after A or Q | Cancel |
+| Right click or Esc after F or Q | Cancel |
 | Ctrl + 1 to 9 | Store the selection as a numbered group |
 | 1 to 9 | Select that group; press twice quickly to jump the camera to it |
-| Arrow keys, or mouse at a screen edge | Scroll the map |
+| W A S D or arrow keys, mouse at a screen edge, or drag with the middle mouse button | Scroll the map |
+| F11 or Alt + Enter | Switch between full screen (the default) and a window |
 | Click or drag on the minimap | Jump the camera |
 | Esc | Back to the title screen |
 
-The sidebar has three buttons that do the same as A, S and Q. Q works whether
-or not the commander is selected. After A or Q the mouse pointer becomes a
+The sidebar has three buttons that do the same as F, X and Q. Q works whether
+or not the commander is selected. After F or Q the mouse pointer becomes a
 cross and the hint box says what the next click will do.
 
 ## What the player sees
@@ -170,7 +171,7 @@ moves on when the player has done it:
 
 1. Select your troops.
 2. Right-click to move; where the rock is.
-3. Attack-move (A) and attacking an enemy with a right click.
+3. Attack-move (F) and attacking an enemy with a right click.
 4. The commander's ability (Q).
 5. The control area and the hold time.
 
@@ -196,7 +197,7 @@ All of these are first values, kept in data so they are easy to change.
 | Contested area | the count waits (it does not reset) | `scripts/sim/control_point.gd` |
 | Empty area | the count resets | same |
 | Help range, chase limit, fight-back time | 6 cells, 2 cells beyond notice range, 5 s | `scripts/sim/sim_world.gd` |
-| Keys | A attack-move, S stop, Q ability | `scripts/ui/map_view.gd` |
+| Keys | F attack-move, X stop, Q ability (W A S D scroll the map) | `scripts/ui/map_view.gd` |
 | Red's field commander | a recoloured copy of Blue's | `data/units/red_commander.tres` |
 
 ## Left out of M3

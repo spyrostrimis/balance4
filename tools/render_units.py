@@ -19,7 +19,7 @@
 # Buildings have one pose and one facing.
 #
 # The models and the lighting are those of the approved style mockups (mockups/src/v5_units.py
-# and v6_radar.py). The harvester's robot shape, its trailer and the refinery are new, in the
+# and v6_radar.py). The harvester's robot shape, its trailer and the buildings are new, in the
 # same manner.
 import bpy, sys, math, os
 from mathutils import Vector, noise
@@ -495,6 +495,97 @@ def refinery(team):
     box(0.22, 0.12, 0.02, x=-0.1, y=-0.4, z=0.12, m=T2)
 
 
+def headquarters(team):
+    """The headquarters, 2 by 2 cells: a square keep with a low turret at each corner, a taller
+    block in the middle that carries the team colour, and a flag."""
+    T, T2 = TEAM[team]
+    box(1.5, 1.5, 0.2, z=0, m=WALL, bevel=0.03)                                      # the keep
+    box(1.3, 1.3, 0.03, z=0.2, m=ROOF, bevel=0)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            cyl(0.2, 0.3, x=sx * 0.7, y=sy * 0.7, z=0, m=WALL_D, verts=10)           # corner turrets
+            cyl(0.15, 0.03, x=sx * 0.7, y=sy * 0.7, z=0.3, m=T2, verts=10)
+    box(0.8, 0.8, 0.2, z=0.2, m=WALL_D, bevel=0.03)                                  # the middle block
+    box(0.66, 0.66, 0.03, z=0.4, m=T, bevel=0)
+    box(0.3, 0.3, 0.06, z=0.43, m=T2, bevel=0.01)
+    cyl(0.02, 0.4, x=0.22, y=0.22, z=0.43, m=IRON, verts=6)                          # flag pole
+    box(0.22, 0.02, 0.12, x=0.34, y=0.22, z=0.7, m=T, bevel=0)                       # flag
+    box(0.34, 0.04, 0.14, y=-0.76, z=0, m=GLASS, bevel=0.01)                         # gate
+    box(0.5, 0.05, 0.03, y=-0.77, z=0.16, m=T2, bevel=0)
+    for sx in (-1, 1):
+        box(0.1, 0.5, 0.02, x=sx * 0.42, y=0.0, z=0.23, m=HULL_D, bevel=0)           # roof ribs
+
+
+def generator(team):
+    """The generator, 2 by 2 cells: a round furnace that burns Orichalcum (its top glows), a
+    stack, a small control house and the pipe between them."""
+    T, T2 = TEAM[team]
+    box(1.6, 1.6, 0.05, z=0, m=WALL_D, bevel=0.02)                                   # slab
+    cyl(0.56, 0.26, x=-0.2, y=0.15, z=0.05, m=TANK, verts=22)                        # furnace
+    cyl(0.57, 0.06, x=-0.2, y=0.15, z=0.13, m=T, verts=22)                           # team band
+    cyl(0.42, 0.03, x=-0.2, y=0.15, z=0.31, m=WALL_D, verts=22)
+    cyl(0.24, 0.03, x=-0.2, y=0.15, z=0.34, m=ORE_L, verts=16)                       # the glowing core
+    torus(0.24, 0.035, x=-0.2, y=0.15, z=0.36, m=IRON)
+    cyl(0.11, 0.42, x=0.56, y=0.56, z=0.05, m=WALL, verts=10)                        # stack
+    cyl(0.08, 0.03, x=0.56, y=0.56, z=0.47, m=TIRE, verts=10)
+    box(0.42, 0.5, 0.2, x=0.52, y=-0.48, z=0.05, m=WALL, bevel=0.02)                 # control house
+    box(0.34, 0.42, 0.03, x=0.52, y=-0.48, z=0.25, m=T2, bevel=0)
+    box(0.14, 0.03, 0.1, x=0.52, y=-0.74, z=0.05, m=GLASS, bevel=0)
+    seg((0.3, 0.0, 0.16), (0.52, -0.25, 0.16), 0.05, HULL)                           # pipe
+    seg((0.2, 0.45, 0.2), (0.5, 0.56, 0.2), 0.05, HULL)
+    for a in range(4):                                                               # bolts round the furnace
+        an = a * pi / 2 + pi / 4
+        box(0.1, 0.1, 0.1, x=-0.2 + 0.6 * cos(an), y=0.15 + 0.6 * sin(an), z=0.05, m=HULL_D, bevel=0.01)
+
+
+def barracks(team):
+    """The barracks, 2 by 2 cells: a long hall with a ribbed roof in the team colour at the
+    back and a drill yard with practice posts in front."""
+    T, T2 = TEAM[team]
+    box(1.6, 0.8, 0.22, y=0.38, z=0, m=WALL, bevel=0.03)                             # hall
+    box(1.46, 0.66, 0.03, y=0.38, z=0.22, m=ROOF, bevel=0)
+    for i in range(6):                                                               # roof ribs
+        box(0.14, 0.6, 0.025, x=-0.6 + i * 0.24, y=0.38, z=0.25, m=T if i % 2 == 0 else T2, bevel=0)
+    box(0.26, 0.04, 0.14, x=-0.3, y=-0.03, z=0, m=GLASS, bevel=0.01)                 # door
+    box(0.4, 0.05, 0.03, x=-0.3, y=-0.04, z=0.15, m=T2, bevel=0)
+    box(1.6, 0.74, 0.03, y=-0.42, z=0, m=WALL_D, bevel=0.01)                         # yard
+    for sx in (-1, 1):
+        box(0.05, 0.74, 0.07, x=sx * 0.78, y=-0.42, z=0, m=WALL, bevel=0.01)         # yard walls
+    for x in (0.2, 0.45, 0.7):                                                       # practice posts
+        cyl(0.03, 0.2, x=x, y=-0.5, z=0.03, m=WOODS, verts=6)
+        ell(0.06, 0.06, 0.07, x=x, y=-0.5, z=0.25, m=LEATHER)
+    box(0.3, 0.2, 0.08, x=-0.5, y=-0.55, z=0.03, m=WOODS, bevel=0.01)                # rack
+    box(0.26, 0.03, 0.06, x=-0.5, y=-0.55, z=0.11, m=STEEL, bevel=0)
+    cyl(0.02, 0.34, x=0.7, y=0.7, z=0.22, m=IRON, verts=6)                           # flag
+    box(0.2, 0.02, 0.1, x=0.59, y=0.7, z=0.44, m=T, bevel=0)
+
+
+def workshop(team):
+    """The workshop, 3 by 2 cells: a large hall with a wide door, skylights and vents, and in
+    front of the door the apron where finished vehicles roll out, with a crane beside it."""
+    T, T2 = TEAM[team]
+    box(2.5, 1.0, 0.3, x=0.0, y=0.4, z=0, m=WALL, bevel=0.03)                        # hall
+    box(2.34, 0.86, 0.03, x=0.0, y=0.4, z=0.3, m=ROOF, bevel=0)
+    for i in range(4):                                                               # skylights
+        box(0.34, 0.24, 0.02, x=-0.9 + i * 0.6, y=0.56, z=0.33, m=GLASS, bevel=0)
+    box(2.34, 0.08, 0.025, x=0.0, y=0.12, z=0.33, m=T, bevel=0)                      # team stripe along the front
+    for x in (-1.0, 1.0):
+        cyl(0.07, 0.08, x=x, y=0.3, z=0.33, m=HULL_D, verts=8)                       # vents
+    box(0.9, 0.05, 0.24, x=0.5, y=-0.1, z=0, m=TIRE, bevel=0)                        # the door
+    box(1.0, 0.06, 0.03, x=0.5, y=-0.11, z=0.25, m=T2, bevel=0)
+    box(1.1, 0.7, 0.03, x=0.5, y=-0.5, z=0, m=HULL_D, bevel=0.01)                    # apron
+    for sx in (-1, 1):
+        box(0.05, 0.7, 0.06, x=0.5 + sx * 0.55, y=-0.5, z=0, m=T2, bevel=0.01)
+    box(0.5, 0.02, 0.01, x=0.5, y=-0.5, z=0.035, m=GOLD, bevel=0)                    # marking
+    cyl(0.07, 0.36, x=-0.5, y=-0.5, z=0, m=HULL, verts=8)                            # crane post
+    seg((-0.5, -0.5, 0.36), (-0.05, -0.62, 0.36), 0.035, T2)                         # crane arm
+    seg((-0.05, -0.62, 0.36), (-0.05, -0.62, 0.2), 0.012, IRON, verts=6)
+    box(0.24, 0.24, 0.14, x=-1.0, y=-0.5, z=0, m=WOODS, bevel=0.01)                  # crates
+    box(0.2, 0.2, 0.12, x=-0.95, y=-0.5, z=0.14, m=WOODS, bevel=0.01)
+    box(0.22, 0.22, 0.12, x=-0.72, y=-0.72, z=0, m=HULL, bevel=0.01)
+    wheel(-0.95, -0.2, 0.0)                                                          # a spare wheel
+
+
 # Infantry are a third of a cell tall and are seen from a little lower than vehicles so they stay
 # readable. Commanders are a little larger so they stand out in a squad.
 MODELS = [('infantry_blue', infantry, 'blue', 0.33), ('infantry_red', infantry, 'red', 0.33),
@@ -522,8 +613,10 @@ for team in ('blue', 'red'):
         for pose in range(2):
             harvester_trailer(team, pose == 1)
             render(f'{trailer}_p{pose}', 2, 8, 1.0, STEEP)
-    building = f'refinery_{team}'
-    if not ONLY or building in ONLY:
-        refinery(team)
-        render(f'{building}_p0', 4, 1, 1.0, STEEP)
+    for kind, model in (('refinery', refinery), ('headquarters', headquarters), ('generator', generator),
+                        ('barracks', barracks), ('workshop', workshop)):
+        building = f'{kind}_{team}'
+        if not ONLY or building in ONLY:
+            model(team)
+            render(f'{building}_p0', 4, 1, 1.0, STEEP)
 print('DONE')

@@ -94,6 +94,23 @@ func test_picking_a_unit() -> void:
 	check(UnitsView.unit_at_point(world, _body(a) + Vector2(16, 0), 0) == null, "half-way between two units picks neither")
 	check(UnitsView.unit_at_point(world, Vector2(200, 40), 0) == null, "empty ground picks nothing")
 	check(UnitsView.unit_at_point(world, _body(enemy), 0) == null, "another team's unit is not picked")
+	var feet := UnitsView.feet_position(a)
+	check(UnitsView.unit_at_point(world, feet + Vector2(0, -15), 0) == a, "the top of its head picks it")
+	check(UnitsView.unit_at_point(world, feet + Vector2(-8, 2), 0) == a, "so does the edge by its feet")
+	check(UnitsView.unit_at_point(world, feet + Vector2(0, -24), 0) == null, "well above its head does not")
+
+
+func test_picking_the_unit_in_front() -> void:
+	var world := _world()
+	var tall := _type().duplicate() as UnitType      # tall enough to overlap the unit behind it
+	tall.sprite_size = Vector2i(24, 48)
+	tall.sprite_anchor = Vector2i(12, 40)
+	var back := world.add_unit(tall, 0, Vector2i(2, 2))
+	var front := world.add_unit(tall, 0, Vector2i(2, 3))
+	var between := Vector2(UnitsView.feet_position(back).x, UnitsView.feet_position(back).y - 2)
+	check(UnitsView.pick_rect(back).has_point(between) and UnitsView.pick_rect(front).has_point(between),
+			"the point is on both units")
+	check(UnitsView.unit_at_point(world, between, 0) == front, "the one drawn in front is picked")
 
 
 func test_box_selection() -> void:
@@ -107,6 +124,9 @@ func test_box_selection() -> void:
 			"dragging up and to the left works the same")
 	check_eq(UnitsView.units_in_rect(world, Rect2(0, 0, 400, 400), 0).size(), 3, "a big box takes all three")
 	check_eq(UnitsView.units_in_rect(world, Rect2(250, 0, 30, 30), 0), [] as Array[int], "an empty box takes none")
+	var head := UnitsView.feet_position(a) + Vector2(0, -12)
+	check_eq(UnitsView.units_in_rect(world, Rect2(head - Vector2(30, 2), Vector2(32, 4)), 0), [a.id] as Array[int],
+			"a thin box across a unit's head takes it")
 	check(c != null, "third unit exists")
 
 

@@ -30,7 +30,8 @@ SLAB = ['#555950', '#61655a', '#6d7165', '#797d70']
 SLAB_LIT, SLAB_DARK = '#8d9184', '#3a3d36'
 OUT = os.path.join(ROOT, 'assets', 'sprites', 'buildings')
 # building -> the cells it covers (across, down)
-BUILDINGS = {'refinery_blue': (3, 2), 'refinery_red': (3, 2)}
+SIZES = {'refinery': (3, 2), 'headquarters': (2, 2), 'generator': (2, 2), 'barracks': (2, 2), 'workshop': (3, 2)}
+BUILDINGS = {'%s_%s' % (kind, team): size for kind, size in SIZES.items() for team in ('blue', 'red')}
 
 
 def hexc(s):

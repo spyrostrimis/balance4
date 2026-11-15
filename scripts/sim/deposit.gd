@@ -39,6 +39,15 @@ func left_at(cell: Vector2i) -> int:
 	return _left[_slot[cell]] if _slot.has(cell) else 0
 
 
+## Make every cell hold `factor` times as much. For missions that want a
+## richer rock than the terrain gives; call it before anything is dug.
+func multiply(factor: int) -> void:
+	for i in _left.size():
+		_left[i] *= factor
+	capacity *= factor
+	amount *= factor
+
+
 ## Has this cell of the deposit been emptied?
 func is_spent(cell: Vector2i) -> bool:
 	return _slot.has(cell) and _left[_slot[cell]] == 0

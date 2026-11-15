@@ -3,7 +3,8 @@ extends Control
 ## The mission parts of the HUD: a bar along the top of the map (with the
 ## Orichalcum in store, once the player has a refinery), a hint box, the
 ## command buttons, the objective with the hold progress (in a practice
-## mission: how full the store is), and the win or loss screen. It builds its
+## mission: how full the store is; in a mission with a base: the build menu
+## instead, see BuildPanel), and the win or loss screen. It builds its
 ## own controls. It is functional only; the HUD art will be redone later.
 
 signal command_pressed(command: StringName)     # &"attack", &"stop" or &"ability"
@@ -34,6 +35,10 @@ var _result: Panel
 var _result_title: Label
 var _result_text: Label
 var _again: Button
+## The build menu, shown in missions with a base.
+var build_panel: BuildPanel
+## The controls of the objective box, which the build menu takes the place of.
+var _objective_box: Array[Control] = []
 
 
 func _ready() -> void:
@@ -50,11 +55,12 @@ func _ready() -> void:
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
-	_attack = _button(Rect2(SIDE_X, 290, 62, 22), "Attack (A)", &"attack")
-	_stop = _button(Rect2(SIDE_X + 65, 290, 62, 22), "Stop (S)", &"stop")
+	_attack = _button(Rect2(SIDE_X, 290, 62, 22), "Attack (F)", &"attack")
+	_stop = _button(Rect2(SIDE_X + 65, 290, 62, 22), "Stop (X)", &"stop")
 	_ability = _button(Rect2(SIDE_X + 130, 290, 62, 22), "", &"ability")
 
-	_label(Rect2(SIDE_X, 318, SIDE_WIDTH, 16), 12, GOLD).text = "Objective"
+	var objective_title := _label(Rect2(SIDE_X, 318, SIDE_WIDTH, 16), 12, GOLD)
+	objective_title.text = "Objective"
 	_objective = _label(Rect2(SIDE_X, 334, SIDE_WIDTH, 34), 11, TEXT)
 	_objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status = _label(Rect2(SIDE_X, 370, SIDE_WIDTH, 16), 11, GOLD)
@@ -70,6 +76,11 @@ func _ready() -> void:
 	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_bar)
 	_forces = _label(Rect2(SIDE_X, 399, SIDE_WIDTH, 16), 11, DIM)
+	_objective_box = [objective_title, _objective, _status, back, _bar, _forces]
+	build_panel = BuildPanel.new()
+	build_panel.position = Vector2(SIDE_X, 317)
+	add_child(build_panel)
+	build_panel.visible = false
 
 	_result = _panel(Rect2((MAP_WIDTH - 360) / 2.0, 170, 360, 180), Color(0.06, 0.06, 0.05, 0.95))
 	_result.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -103,6 +114,10 @@ func setup(mission: Mission) -> void:
 	var def := mission.def
 	_top_left.text = def.display_name if def.practice else "Mission %d: %s" % [def.number, def.display_name]
 	_objective.text = def.objective
+	build_panel.visible = def.has_base()
+	build_panel.open(Production.BUILDINGS)
+	for control in _objective_box:
+		control.visible = not def.has_base()
 	refresh(mission, "")
 
 
@@ -119,6 +134,9 @@ func refresh(mission: Mission, hint: String) -> void:
 		var world := mission.world
 		var storage := world.storage_for(Mission.PLAYER_TEAM)
 		_top_right.text = "%s   Time %s" % [store, clock(mission.seconds())]
+		if def.has_base():
+			_top_right.text = "%s   %s   Time %s" % [store, BuildPanel.power_text(world, Mission.PLAYER_TEAM), clock(mission.seconds())]
+			build_panel.refresh(world, Mission.PLAYER_TEAM)
 		_status.text = rock_text(world)
 		_forces.text = practice_forces_text(mission)
 		_bar.size.x = roundf((SIDE_WIDTH - 2.0) * (float(world.stored_for(Mission.PLAYER_TEAM)) / storage if storage > 0 else 0.0))

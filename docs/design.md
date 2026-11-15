@@ -184,6 +184,15 @@ Nothing in this section has been decided. Do not treat any guess as canon.
 - **OPEN: The robot's values**: its armour, its attack and how near an enemy
   must come before it stops work. The first values are in
   [economy.md](economy.md).
+- **OPEN: The rules of base building.** For now: buildings are paid for bit
+  by bit while they are built and then placed by hand; they may stand on any
+  free building ground the player has explored, not only next to the base;
+  low power halves the building speed and does nothing else; nothing has to
+  be built before anything else. Names, costs and build times are first
+  guesses. All of it is in [base.md](base.md).
+- **OPEN: How rich should the Orichalcum rock be?** The maps' rock (1000 on a
+  map) is too little to build a base with, so the base trial makes it three
+  times as rich. "Scarce" has not been given a number.
 - **OPEN: What becomes of mined-out rock?** For now it stays rock that cannot
   be crossed. It could instead become open ground.
 - **OPEN: The numbers of the economy**: how much a rock holds, what a

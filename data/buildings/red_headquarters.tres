@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="BuildingType" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/building_type.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/buildings/headquarters_red.png" id="2"]
+[ext_resource type="Resource" path="res://data/buildings/red_generator.tres" id="3"]
+[ext_resource type="Resource" path="res://data/buildings/red_refinery.tres" id="4"]
+[ext_resource type="Resource" path="res://data/buildings/red_barracks.tres" id="5"]
+[ext_resource type="Resource" path="res://data/buildings/red_workshop.tres" id="6"]
+
+[resource]
+script = ExtResource("1")
+id = &"red_headquarters"
+display_name = "Headquarters"
+role = "Red Headquarters"
+footprint = Vector2i(2, 2)
+sight = 5
+power = 30
+builds = Array[Resource]([ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6")])
+blurb = "Constructs your buildings. Stores 200 Orichalcum."
+storage = 200
+sprite = ExtResource("2")
+sprite_origin = Vector2i(8, 8)
+minimap_color = Color(1, 0.45, 0.35, 1)

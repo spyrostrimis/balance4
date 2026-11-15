@@ -135,8 +135,9 @@ only on ground that can be built on (stone in the forest, rock in the desert).
 
 In M4 the refinery is put on the map by the mission, on the nearest ground to
 the player's start that it fits on. Placing buildings, their cost, their
-health and attacking them come with M5. Nothing can be bought yet, so the
-store only fills.
+health and attacking them came later: see [base.md](base.md) for building and
+spending. In the harvest and raid trials nothing can be bought, so the store
+only fills.
 
 ## Controls
 
@@ -144,7 +145,7 @@ store only fills.
 | --- | --- |
 | Right click on the Orichalcum rock, with harvesters selected | They start harvesting it |
 | Right click on your refinery, with harvesters selected | They unload there now, then go back to work |
-| Right click anywhere else, S | Move and stop, as for any unit (a robot hitches up first) |
+| Right click anywhere else, X | Move and stop, as for any unit (a robot hitches up first) |
 | Right click on an orphaned enemy trailer | The selected units walk up to it and take its Orichalcum |
 
 Other units in the same selection walk to the spot that was clicked. The rock
@@ -229,7 +230,8 @@ the rock.
 
 ## Left out of M4
 
-- Spending Orichalcum, and placing, damaging or destroying buildings (M5).
+- Spending Orichalcum and placing buildings (M5, see [base.md](base.md));
+  damaging and destroying buildings (M6).
 - A harvester or refinery for the opponent (M6).
 - Taking back one's own orphaned trailer, and a proper way to carry stolen
   Orichalcum home.

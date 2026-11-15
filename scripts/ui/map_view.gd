@@ -9,19 +9,25 @@ extends Node2D
 ## (hold Shift to add to the selection). Right click sends the selected units
 ## to that spot, or at the enemy under the mouse; harvesters right-clicked onto
 ## the Orichalcum rock start harvesting, and onto their refinery unload; units sent to a trailer
-## whose harvester is destroyed take the Orichalcum in it. A then left click is
-## attack-move; S stops; Q then left click on one of your units uses the
+## whose harvester is destroyed take the Orichalcum in it. F then left click is
+## attack-move; X stops; Q then left click on one of your units uses the
 ## commander's ability on it. Ctrl+1..9 stores the selection as a group, 1..9
 ## selects the group again and pressing the number twice jumps the camera to it.
+## WASD, the arrow keys, the screen edges and the middle mouse button scroll
+## the map (see MapCamera). In a mission with a base the build menu in the
+## sidebar queues buildings and units; a finished building is placed with a
+## left click on the map.
 
 ## What a left click on the map does.
 enum Mode {
 	## Select.
 	NORMAL,
-	## Give an attack-move order (after A or the Attack button).
+	## Give an attack-move order (after F or the Attack button).
 	ATTACK_MOVE,
 	## Pick the unit for the commander's ability (after Q or its button).
 	ABILITY,
+	## Put the finished building on the map.
+	PLACE,
 }
 
 const SCREEN_SIZE := Vector2(960, 540)
@@ -78,12 +84,25 @@ var _result_shown := false
 @onready var hud: MissionHud = $Hud/MissionHud
 @onready var _map_name: Label = $Hud/Sidebar/MapName
 @onready var _info: Label = $Hud/Sidebar/Info
+@onready var _help: Label = $Hud/Sidebar/Help
+
+## Shows where the building being placed would stand. Made in _ready().
+var placement_view: PlacementView
 
 
 func _ready() -> void:
+	# Keep the mouse inside the window, so pushing it against a screen edge scrolls instead of leaving.
+	Input.mouse_mode = Input.MOUSE_MODE_CONFINED
 	hud.command_pressed.connect(_on_command)
 	hud.again_pressed.connect(restart_mission)
 	hud.title_pressed.connect(back_to_title)
+	hud.build_panel.build_pressed.connect(queue_build)
+	hud.build_panel.cancel_pressed.connect(cancel_build)
+	hud.build_panel.place_pressed.connect(begin_placement)
+	placement_view = PlacementView.new()
+	add_child(placement_view)
+	move_child(placement_view, shroud_view.get_index() + 1)
+	placement_view.stop()
 	if requested_mission != "":
 		var def := load(requested_mission) as MissionDef
 		if def == null:
@@ -102,6 +121,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
@@ -124,7 +144,7 @@ func show_map(p_map: MapData, squad: UnitType = null, squad_size := 0) -> void:
 ## Start a mission: its map, both forces, the control point and the scripted opponent.
 func show_mission(def: MissionDef) -> void:
 	mission = Mission.new(def)
-	hints = MissionHints.new(def.practice)
+	hints = MissionHints.new(def.practice, def.has_base())
 	var focus := Vector2(def.map.get_pixel_size()) / 2.0
 	var commander := mission.player_commander()
 	var refinery := mission.world.get_building(mission.player_refinery_id)
@@ -185,6 +205,7 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	control_view.setup(control, colors)
 	minimap.show_control(control, colors)
 	hud.setup(mission)
+	_help.visible = mission == null or not mission.def.has_base()      # the build menu takes its place
 	_info.text = ""
 
 
@@ -227,6 +248,14 @@ func _process(delta: float) -> void:
 		else:
 			_finish_drag(mouse, Input.is_key_pressed(KEY_SHIFT))
 	_update_info(mouse)
+	if mode == Mode.PLACE:
+		var ready := world.production.ready_building(SimWorld.PLAYER_TEAM)
+		if ready == null or is_over():
+			set_mode(Mode.NORMAL)
+		elif in_map_area(mouse):
+			placement_view.show_at(world, ready, screen_to_map(mouse))
+		else:
+			placement_view.stop()
 	if mission != null:
 		if mission.player_commander() == null:
 			hints.note(&"ability")          # nobody left to use it
@@ -279,9 +308,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key.keycode >= KEY_1 and key.keycode <= KEY_9:
 		press_group_key(key.keycode - KEY_0, key.ctrl_pressed)
-	elif key.keycode == KEY_A:
+	elif key.keycode == KEY_F:
 		begin_attack_move()
-	elif key.keycode == KEY_S:
+	elif key.keycode == KEY_X:
 		order_stop()
 	elif key.keycode == KEY_Q:
 		begin_ability()
@@ -347,6 +376,8 @@ func box_select(map_rect: Rect2, add := false) -> void:
 func set_mode(new_mode: Mode) -> void:
 	mode = new_mode
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW if mode == Mode.NORMAL else Input.CURSOR_CROSS)
+	if mode != Mode.PLACE and placement_view != null:
+		placement_view.stop()
 
 
 ## A right click on the map: attack the enemy there, or walk there if there
@@ -467,7 +498,7 @@ func order_stop() -> void:
 		world.order_stop(selection.ids)
 
 
-## A or the Attack button: the next left click on the map is an attack-move order.
+## F or the Attack button: the next left click on the map is an attack-move order.
 func begin_attack_move() -> void:
 	if is_over():
 		return
@@ -491,7 +522,7 @@ func begin_ability() -> void:
 	set_mode(Mode.ABILITY)
 
 
-## A left click on the map after A or Q.
+## A left click on the map after F or Q.
 func command_click(map_point: Vector2) -> void:
 	match mode:
 		Mode.ATTACK_MOVE:
@@ -507,6 +538,67 @@ func command_click(map_point: Vector2) -> void:
 				say("Pick one of your own units.")
 			elif use_ability_on(target.id):
 				set_mode(Mode.NORMAL)
+		Mode.PLACE:
+			place_at(map_point)
+
+
+# --- building ------------------------------------------------------------------------
+
+## A click in the build menu: add a building or a unit to a queue of the
+## player's. Clicking the building that is ready to be placed starts placing
+## it instead. Returns false, and tells the player why, if it cannot be queued.
+func queue_build(key: StringName, item: Resource) -> bool:
+	if world == null or is_over():
+		return false
+	var production := world.production
+	if key == Production.BUILDINGS and production.ready_building(SimWorld.PLAYER_TEAM) == item:
+		begin_placement()
+		return true
+	var problem := production.problem(SimWorld.PLAYER_TEAM, key, item)
+	if problem != "":
+		say(problem + ".")
+		return false
+	production.queue(SimWorld.PLAYER_TEAM, key, item)
+	if hints != null:
+		hints.note(&"build" if key == Production.BUILDINGS else &"train")
+	return true
+
+
+## Cancel in the build menu: take the last item out of a queue of the
+## player's. What was paid for it comes back.
+func cancel_build(key: StringName) -> void:
+	if world == null or is_over():
+		return
+	world.production.cancel(SimWorld.PLAYER_TEAM, key)
+	if mode == Mode.PLACE and world.production.ready_building(SimWorld.PLAYER_TEAM) == null:
+		set_mode(Mode.NORMAL)
+
+
+## The next left click on the map puts the finished building there.
+func begin_placement() -> void:
+	if world == null or is_over():
+		return
+	if world.production.ready_building(SimWorld.PLAYER_TEAM) == null:
+		say("No building is ready to be placed.")
+		return
+	set_mode(Mode.PLACE)
+
+
+## Put the finished building on the map with its middle at a point. Returns
+## false, and tells the player why, if it cannot stand there.
+func place_at(map_point: Vector2) -> bool:
+	var production := world.production
+	var type := production.ready_building(SimWorld.PLAYER_TEAM)
+	if type == null or is_over():
+		return false
+	var cell := PlacementView.cell_for(type, map_point)
+	if production.place(SimWorld.PLAYER_TEAM, cell) == null:
+		say("It cannot stand there. Buildings need free building ground under every cell.")
+		return false
+	set_mode(Mode.NORMAL)
+	if hints != null:
+		hints.note(&"place")
+	return true
 
 
 ## Have the commander use its ability on a unit. Returns false, and tells the player why, if it cannot.
@@ -552,6 +644,12 @@ func hint_text() -> String:
 			var hero := ability_unit()
 			var ability_name := hero.type.ability.display_name if hero != null else "Ability"
 			return "%s: left-click one of your wounded units. Right-click cancels." % ability_name
+		Mode.PLACE:
+			if _message_left > 0.0:
+				return _message     # why the last click did not place it
+			var ready := world.production.ready_building(SimWorld.PLAYER_TEAM)
+			var ready_name := ready.display_name if ready != null else "building"
+			return "Placing the %s: left-click building ground where every square is green. Right-click cancels." % ready_name
 	if _message_left > 0.0:
 		return _message
 	return hints.text(mission.def) if hints != null and mission != null else ""
@@ -641,6 +739,14 @@ static func describe_building(p_world: SimWorld, building: SimBuilding) -> Strin
 	if type.storage > 0:
 		text += "\nStores up to %d" % type.storage
 		text += "\nIn store: %d" % p_world.stored_for(building.team)
+	if type.power > 0:
+		text += "\nMakes %d power" % type.power
+	elif type.power < 0:
+		text += "\nUses %d power" % -type.power
+	if not type.builds.is_empty():
+		text += "\nConstructs buildings"
+	for unit_type: UnitType in type.produces:
+		text += "\nProduces: %s" % unit_type.display_name
 	return text
 
 

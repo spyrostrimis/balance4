@@ -118,7 +118,8 @@ is the robot, and the trailer stays where the truck stopped and is filled by
 the robot. The robot guards its trailer against enemies, and the trailer of a
 destroyed harvester can be taken by the enemy. A second practice mission, the
 "Raid trial", shows this: the same base, three soldiers and three raiders. Left for later milestones: spending Orichalcum, and placing and
-destroying buildings (M5); an opponent that harvests (M6).
+placing buildings (M5); destroying buildings, and an opponent that harvests
+(M6).
 
 ## M5 Base building and production
 
@@ -133,6 +134,15 @@ Done means:
 - Power is tracked and shown on the power bar.
 - Playable result: start with a small base, harvest, build more buildings and
   produce units.
+
+What was built is described in [base.md](base.md). The playable result is a
+third practice mission, the "Base trial": a headquarters, a refinery, one
+harvester and 500 Orichalcum, on either map. M5 brought four more buildings
+(headquarters, generator, barracks, workshop), build queues that are paid for
+bit by bit, placing with a preview, and power: a side that uses more than it
+makes builds at half speed. Left for M6, because they need an opponent to
+mean anything: buildings with health that can be attacked and destroyed, and
+combat vehicles for the workshop.
 
 ## M6 Enemy AI
 

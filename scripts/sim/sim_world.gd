@@ -71,6 +71,8 @@ var stored := {}
 var stolen := {}
 ## Trailers standing on their own: unhitched by their robot, or orphaned.
 var trailers: Array[SimTrailer] = []
+## The build queues of every side: constructing buildings and producing units.
+var production: Production
 
 var _by_id := {}
 var _next_id := 1
@@ -103,6 +105,7 @@ func _init(p_map: MapData) -> void:
 				_astar.set_point_solid(Vector2i(x, y), true)
 	_build_regions()
 	_find_deposits()
+	production = Production.new(self)
 
 
 # --- units ---------------------------------------------------------------------
@@ -370,6 +373,7 @@ func tick() -> void:
 			if walking and not unit.has_goal and not unit.is_moving() and not unit.is_robot():
 				unit.order = SimUnit.Order.NONE     # arrived, or gave up
 	_take_orphans()
+	production.tick()
 	if _any_dead:
 		_any_dead = false
 		units = units.filter(func(unit: SimUnit) -> bool: return not unit.dead)
@@ -575,12 +579,17 @@ func _add_effect(kind: StringName, actor: SimUnit, subject: SimUnit) -> void:
 func can_build(type: BuildingType, cell: Vector2i) -> bool:
 	for y in type.footprint.y:
 		for x in type.footprint.x:
-			var covered := cell + Vector2i(x, y)
-			if not map.is_buildable(covered):
-				return false
-			if _building[_index(covered)] != 0 or _taken(_index(covered)):
+			if not can_build_on(cell + Vector2i(x, y)):
 				return false
 	return true
+
+
+## Could one cell be covered by a new building? It must be ground that can be
+## built on, with no building, unit or trailer on it.
+func can_build_on(cell: Vector2i) -> bool:
+	if not map.is_buildable(cell):
+		return false
+	return _building[_index(cell)] == 0 and not _taken(_index(cell))
 
 
 ## Put a building on the map, its top-left corner on a cell. Units can no
@@ -660,6 +669,58 @@ func storage_for(team: int) -> int:
 		if building.team == team:
 			total += building.type.storage
 	return total
+
+
+## Take Orichalcum out of a team's store. Returns false, and takes nothing,
+## if there is not that much in it.
+func spend(team: int, amount: int) -> bool:
+	if amount > stored_for(team):
+		return false
+	stored[team] = stored_for(team) - amount
+	return true
+
+
+## Put Orichalcum back into a team's store. It is the team's own, so all of
+## it comes back, even if that leaves the store fuller than its limit for a
+## while (harvesters then wait until there is room again).
+func refund(team: int, amount: int) -> void:
+	stored[team] = stored_for(team) + amount
+
+
+## Power a team's buildings make, and power they use.
+func power_made(team: int) -> int:
+	var total := 0
+	for building in buildings:
+		if building.team == team and building.type.power > 0:
+			total += building.type.power
+	return total
+
+
+func power_used(team: int) -> int:
+	var total := 0
+	for building in buildings:
+		if building.team == team and building.type.power < 0:
+			total -= building.type.power
+	return total
+
+
+## Does a team use more power than it makes? Then it builds at half speed.
+func is_low_power(team: int) -> bool:
+	return power_used(team) > power_made(team)
+
+
+## Put a new unit on the free cell nearest to the front (the bottom edge) of
+## a building. Returns null if there is no free cell near it.
+func add_unit_beside(type: UnitType, team: int, building: SimBuilding) -> SimUnit:
+	var door := building.cell + Vector2i(building.type.footprint.x / 2, building.type.footprint.y)
+	door = door.clamp(Vector2i.ZERO, size - Vector2i.ONE)
+	var cell := nearest_free_cell(door, 0)
+	if cell == NO_CELL or _cells_apart(cell, door) > 4:
+		return null
+	var unit := add_unit(type, team, cell)
+	if unit != null:
+		unit.facing = 0
+	return unit
 
 
 ## The deposit a cell belongs to, or null.

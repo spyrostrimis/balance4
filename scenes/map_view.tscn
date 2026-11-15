@@ -108,15 +108,16 @@ offset_top = 418.0
 offset_right = 203.0
 offset_bottom = 540.0
 theme_override_colors/font_color = Color(0.5, 0.52, 0.47, 1)
+theme_override_constants/line_spacing = -3
 theme_override_font_sizes/font_size = 10
 text = "Left click or drag: select (Shift adds)
 Right click: move, or attack an enemy
 Harvester: right-click rock or refinery
-A, then left click: attack-move
-S: stop.  Q, then left click: ability
+F, then left click: attack-move
+X: stop.  Q, then left click: ability
 Ctrl+1..9 stores a group, 1..9 selects it
-Arrows or screen edge: scroll
-Esc: cancel, or back to title"
+WASD, arrows, edges, middle-drag: scroll
+F11: full screen.  Esc: cancel / title"
 
 [node name="MissionHud" type="Control" parent="Hud"]
 layout_mode = 3

@@ -164,6 +164,20 @@ func test_edge_scrolling_direction() -> void:
 	check_eq(MapCamera.edge_direction(Vector2(5, 5), screen, 2), Vector2.ZERO, "just inside the margin")
 
 
+func test_middle_mouse_drag() -> void:
+	check_eq(MapCamera.pan_top_left(Vector2(100, 100), Vector2(300, 200), Vector2(260, 230)), Vector2(140, 70),
+			"dragging left and down shows more of the right and the top: the map follows the mouse")
+	check_eq(MapCamera.pan_top_left(Vector2(100, 100), Vector2(300, 200), Vector2(300, 200)), Vector2(100, 100),
+			"no movement, no scroll")
+
+
+func test_windowed_size() -> void:
+	var base := Vector2(960, 540)
+	check_eq(WindowKeys.windowed_size(Vector2(1920, 1032), base), Vector2i(960, 540), "a 1080p desktop fits 1x in a window")
+	check_eq(WindowKeys.windowed_size(Vector2(2560, 1400), base), Vector2i(1920, 1080), "a 1440p desktop fits 2x")
+	check_eq(WindowKeys.windowed_size(Vector2(800, 400), base), Vector2i(960, 540), "never smaller than 1x")
+
+
 func test_minimap_image() -> void:
 	var map := _small_map()
 	var image := Minimap.build_image(map)

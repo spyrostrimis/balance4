@@ -10,8 +10,12 @@ const CELL := MapData.CELL_SIZE
 const FEET := Vector2(16, 19)
 ## Centre of a unit's body, relative to its feet. Used for clicking and box selection.
 const BODY := Vector2(0, -6)
-## A click this close to a unit's body (in pixels) selects it.
-const PICK_RADIUS := 9.0
+## A click that misses a unit's outline by no more than this (in pixels) still picks it.
+const PICK_SLACK := 5.0
+## How much of a unit's sprite width counts as the unit, for clicking and box selection.
+const PICK_WIDTH := 0.7
+## How far below its feet a unit can still be clicked, in pixels.
+const PICK_BELOW := 4.0
 const RING := Color(1, 1, 1, 0.95)
 const HEALTH_BACK := Color(0.07, 0.07, 0.06)
 const HEALTH_FULL := Color(0.36, 0.72, 0.3)
@@ -73,47 +77,66 @@ static func feet_position(unit: SimUnit, p_alpha := 0.0) -> Vector2:
 	return (unit.visual_cell(p_alpha) * CELL + FEET).round()
 
 
-## The unit of a team whose body is nearest to a point on the map, within clicking distance. Null if none.
+## The part of the map a unit covers on screen, for clicking and box
+## selection: most of its sprite's width, from the top of its body to just
+## below its feet.
+static func pick_rect(unit: SimUnit, p_alpha := 0.0) -> Rect2:
+	var feet := feet_position(unit, p_alpha)
+	var type := unit.type
+	var height := float(type.sprite_anchor.y - 2)
+	if type.is_harvester() and unit.trailer_id != 0:
+		height = ROBOT_BAR         # the robot is shorter than the truck
+	var half_width := type.sprite_size.x * PICK_WIDTH / 2.0
+	return Rect2(feet.x - half_width, feet.y - height, half_width * 2.0, height + PICK_BELOW)
+
+
+## How far a point is from a rectangle, in pixels. 0 inside it.
+static func distance_to_rect(point: Vector2, rect: Rect2) -> float:
+	return (point - point.clamp(rect.position, rect.end)).length()
+
+
+## The unit among `candidates` that a click on a point picks: the one whose
+## outline is nearest the point, within PICK_SLACK. When the point is on more
+## than one, the one drawn in front (lowest on the screen) wins. Null if none.
+static func _pick(candidates: Array[SimUnit], point: Vector2, p_alpha: float) -> SimUnit:
+	var best: SimUnit = null
+	var best_distance := PICK_SLACK
+	var best_feet := -INF
+	for unit in candidates:
+		var distance := distance_to_rect(point, pick_rect(unit, p_alpha))
+		var feet := feet_position(unit, p_alpha).y
+		if distance < best_distance or (distance == best_distance and feet > best_feet):
+			best = unit
+			best_distance = distance
+			best_feet = feet
+	return best
+
+
+## The unit of a team under a point on the map, or the nearest one within clicking distance. Null if none.
 static func unit_at_point(p_world: SimWorld, point: Vector2, team: int, p_alpha := 0.0) -> SimUnit:
-	var best: SimUnit = null
-	var best_distance := PICK_RADIUS
+	var candidates: Array[SimUnit] = []
 	for unit in p_world.units:
-		if unit.team != team or unit.dead:
-			continue
-		var distance := (feet_position(unit, p_alpha) + BODY).distance_to(point) - pick_slack(unit)
-		if distance <= best_distance:
-			best = unit
-			best_distance = distance
-	return best
+		if unit.team == team and not unit.dead:
+			candidates.append(unit)
+	return _pick(candidates, point, p_alpha)
 
 
-## How much further than PICK_RADIUS a click may be from a unit and still
-## select it: nothing for troops, a few pixels for vehicles, which are larger.
-static func pick_slack(unit: SimUnit) -> float:
-	return maxf(0.0, unit.type.sprite_size.x * 0.3 - PICK_RADIUS)
-
-
-## The unit of any other team that `viewer_team` can see and whose body is
-## nearest to a point on the map, within clicking distance. Null if none.
+## The unit of any other team that `viewer_team` can see under a point on the
+## map, or the nearest one within clicking distance. Null if none.
 static func enemy_at_point(p_world: SimWorld, point: Vector2, p_viewer_team: int, p_alpha := 0.0) -> SimUnit:
-	var best: SimUnit = null
-	var best_distance := PICK_RADIUS
+	var candidates: Array[SimUnit] = []
 	for unit in p_world.units:
-		if unit.team == p_viewer_team or unit.dead or not p_world.is_visible_to(unit, p_viewer_team):
-			continue
-		var distance := (feet_position(unit, p_alpha) + BODY).distance_to(point) - pick_slack(unit)
-		if distance <= best_distance:
-			best = unit
-			best_distance = distance
-	return best
+		if unit.team != p_viewer_team and not unit.dead and p_world.is_visible_to(unit, p_viewer_team):
+			candidates.append(unit)
+	return _pick(candidates, point, p_alpha)
 
 
-## Ids of a team's units whose body is inside a rectangle on the map.
+## Ids of a team's units that a rectangle on the map touches.
 static func units_in_rect(p_world: SimWorld, rect: Rect2, team: int, p_alpha := 0.0) -> Array[int]:
 	var out: Array[int] = []
-	var box := rect.abs().grow(1.0)
+	var box := rect.abs()
 	for unit in p_world.units:
-		if unit.team == team and not unit.dead and box.has_point(feet_position(unit, p_alpha) + BODY):
+		if unit.team == team and not unit.dead and box.intersects(pick_rect(unit, p_alpha), true):
 			out.append(unit.id)
 	return out
 
