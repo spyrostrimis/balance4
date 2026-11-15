@@ -7,7 +7,7 @@ of music and level in this repository is original; nothing is taken from Dune II
 
 > Every faction claims to seek Balance, but each defines it differently.
 
-**Status:** milestone M6 (Enemy AI) is done. These can be played from a
+**Status:** milestone M6 (Enemy AI) is done and M7 (the vertical slice) is under way. These can be played from a
 placeholder title screen:
 
 - **A skirmish against the computer**, as Blue on the forest map or as Red on
@@ -37,6 +37,11 @@ placeholder title screen:
   build menu, place them on building ground, and train soldiers, light tanks
   and more harvesters. Everything is paid for with what the harvesters bring
   in.
+- **The hero trial** (M7, in progress), as Blue: the Prince and the Field
+  Commander hold a base against three Red attacks. Restore (E) heals and
+  repairs the units around the Prince, his Encouragement speeds up those
+  near him, Mend (Q) heals one unit, and buildings can be selected and
+  repaired (R). Lose a hero and the mission is lost.
 
 See [docs/roadmap.md](docs/roadmap.md) for what comes next.
 
@@ -68,6 +73,8 @@ See [docs/roadmap.md](docs/roadmap.md) for what comes next.
 | F, then left click | Attack-move: walk there and fight whatever is met on the way (a click on an enemy unit or building attacks it) |
 | X | Stop |
 | Q, then left click on one of your units | The commander heals that unit ("Mend") |
+| E | The Prince heals and repairs every unit around him ("Restore") |
+| Left click on one of your buildings, then R | Select it, then repair it (R again stops) |
 | Right click or Esc after F or Q | Cancel |
 | Ctrl + 1 to 9 | Store the selection as a numbered group |
 | 1 to 9 | Select that group; press twice quickly to jump the camera to it |
@@ -114,7 +121,7 @@ You need Godot 4.7.2 (standard build, not .NET).
   godot --path . -- --map=harvest-forest
   ```
 
-  And a skirmish against the computer (or `skirmish-desert`):
+  And the hero trial (`hero-forest`), or a skirmish against the computer (`skirmish-forest` or `skirmish-desert`):
 
   ```bash
   godot --path . -- --map=skirmish-forest
@@ -226,6 +233,7 @@ computer opponent and the skirmish in [docs/skirmish.md](docs/skirmish.md).
 - [docs/combat.md](docs/combat.md): fighting, orders and keys, the field commander, the control point, Mission 1, and every provisional number.
 - [docs/base.md](docs/base.md): the buildings and their costs, build queues, placing, production, power, the build menu and the base trial.
 - [docs/skirmish.md](docs/skirmish.md): destroying buildings, the light tank, the computer opponent, the skirmish, and every provisional number.
+- [docs/heroes.md](docs/heroes.md): the Prince, abilities, losing a hero, and repairing buildings.
 - [docs/missions.md](docs/missions.md): how a mission is made: sides, placed forces, objectives, triggers, conditions and hints.
 - [docs/economy.md](docs/economy.md): deposits, the harvester, the refinery and storage, guarding and stealing trailers, the practice missions, and every provisional number.
 - [docs/roadmap.md](docs/roadmap.md): milestones M0 to M10 and what "done" means for each.

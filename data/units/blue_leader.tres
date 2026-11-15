@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="UnitType" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/unit_type.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/units/prince_blue.png" id="2"]
+[ext_resource type="Resource" path="res://data/abilities/restore.tres" id="3"]
+[ext_resource type="Resource" path="res://data/abilities/encouragement.tres" id="4"]
+
+[resource]
+script = ExtResource("1")
+id = &"blue_leader"
+display_name = "The Prince"
+role = "Blue Leader"
+max_health = 150
+speed = 2.5
+sight = 5
+attack_damage = 14
+attack_range = 1
+attack_interval = 1.0
+acquire_range = 4
+is_hero = true
+ability = ExtResource("3")
+passive = ExtResource("4")
+sprites = ExtResource("2")
+sprite_size = Vector2i(24, 24)
+minimap_color = Color(1, 0.95, 0.75, 1)
+sprite_anchor = Vector2i(12, 18)

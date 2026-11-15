@@ -64,6 +64,7 @@ These follow the habits of modern strategy games.
 | F, then left click | Attack-move to the spot (or attack the enemy clicked on) |
 | X | Stop |
 | Q, then left click on one of your units | The commander uses its ability on that unit |
+| E | The Prince's Restore (since M7, see [heroes.md](heroes.md)) |
 | Right click or Esc after F or Q | Cancel |
 | Ctrl + 1 to 9 | Store the selection as a numbered group |
 | 1 to 9 | Select that group; press twice quickly to jump the camera to it |
@@ -112,6 +113,9 @@ that character. So that the mission is the same for both sides, Red's
 commander is a copy of Blue's with Red's colours: the same values and the same
 Mend ability. It has no name and no story. See the open questions in
 [design.md](design.md).
+
+Since M7 the Prince, Blue's leader, is a second hero, and **losing any hero
+loses the mission**, Mission 1 included: see [heroes.md](heroes.md).
 
 ## The control point
 

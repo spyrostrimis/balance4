@@ -82,6 +82,10 @@ var chase_cell := Vector2i(-1, -1)
 ## Ticks until it can hit again, and until its ability is ready again.
 var attack_ticks_left := 0
 var ability_ticks_left := 0
+## Parts of a tick left over when a sped-up unit's step or swing was rounded
+## down, carried into the next one so that a 5% speed-up is a true 5%.
+var step_carry := 0.0
+var swing_carry := 0.0
 ## Simulation ticks at which it last hit something and was last hurt. For drawing.
 var last_attack_tick := -1000
 var last_hurt_tick := -1000

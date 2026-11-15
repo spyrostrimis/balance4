@@ -34,6 +34,8 @@ extends Resource
 @export var is_hero := false
 ## The ability the player can trigger, if any.
 @export var ability: Ability
+## The ability that is always on, if any (e.g. an aura).
+@export var passive: Ability
 
 @export_group("Harvester")
 ## How much Orichalcum its trailer carries. 0 means the unit is not a harvester.

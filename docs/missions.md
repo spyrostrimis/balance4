@@ -70,6 +70,8 @@ one for having failed.
 - Secondary objectives do not decide the outcome.
 - A mission with no primary objective that can be done (a practice mission)
   goes on until the player leaves it.
+- Whatever the objectives say, **losing any of the player's heroes loses the
+  mission** (see [heroes.md](heroes.md)).
 
 ### Triggers
 
@@ -123,6 +125,7 @@ things share a list.
 | Raid trial (`raid_trial_*`) | The player; raiders | None that can be done |
 | Base trial (`base_trial_*`) | The player; nobody | None that can be done |
 | Skirmish (`skirmish_*`) | The player; the computer | Done: the enemy has no buildings and no troops. Failed: the player has none |
+| Hero trial (`hero_trial_blue`) | The player; nobody, but triggers bring three attacks | Hidden until the last attack: beat it off (everything tagged `wave1` to `wave3` gone) |
 
 They play exactly as before the format changed; the tests that check their
 outcome and timing are unchanged.

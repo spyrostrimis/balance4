@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="HintList" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/missions/hint.gd" id="1_kcnyj"]
+[ext_resource type="Script" path="res://scripts/sim/missions/event_condition.gd" id="2_ygcgf"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_condition.gd" id="3_3un83"]
+[ext_resource type="Script" path="res://scripts/sim/missions/time_condition.gd" id="4_qmigd"]
+[ext_resource type="Script" path="res://scripts/sim/missions/any_condition.gd" id="5_g0y2x"]
+[ext_resource type="Script" path="res://scripts/sim/missions/hint_list.gd" id="6_8hvdx"]
+
+[sub_resource type="Resource" id="Resource_bw5mp"]
+script = ExtResource("2_ygcgf")
+event = &"select"
+
+[sub_resource type="Resource" id="Resource_e0g3a"]
+script = ExtResource("1_kcnyj")
+id = &"select"
+text = "Select your force. The Prince (blue cloak, bare head) and the Field Commander (gold helmet) are heroes: if either of them falls, the mission is lost."
+done_when = SubResource("Resource_bw5mp")
+
+[sub_resource type="Resource" id="Resource_2kby4"]
+script = ExtResource("2_ygcgf")
+event = &"ability"
+
+[sub_resource type="Resource" id="Resource_d7ffw"]
+script = ExtResource("1_kcnyj")
+id = &"ability"
+text = "The Prince's Restore (E) heals every unit around him and repairs vehicles. The Field Commander's Mend (Q, then left-click a unit) heals one. Each needs time to recharge."
+done_when = SubResource("Resource_2kby4")
+
+[sub_resource type="Resource" id="Resource_ja6dv"]
+script = ExtResource("2_ygcgf")
+event = &"repair"
+
+[sub_resource type="Resource" id="Resource_fk6em"]
+script = ExtResource("4_qmigd")
+seconds = 120.0
+
+[sub_resource type="Resource" id="Resource_p64vm"]
+script = ExtResource("5_g0y2x")
+conditions = Array[ExtResource("3_3un83")]([SubResource("Resource_ja6dv"), SubResource("Resource_fk6em")])
+
+[sub_resource type="Resource" id="Resource_2gqf4"]
+script = ExtResource("1_kcnyj")
+id = &"repair"
+text = "Buildings are not healed by the Prince. Left-click one of your buildings to select it, then press R or Repair: it is mended bit by bit, for Orichalcum."
+done_when = SubResource("Resource_p64vm")
+
+[sub_resource type="Resource" id="Resource_tu2vx"]
+script = ExtResource("1_kcnyj")
+id = &"hold"
+text = "Your units within 4 cells of the Prince move and attack 5% faster: his Encouragement (select him to see how far it reaches). Keep him near the fight, not in it. Three Red attacks are coming."
+
+[resource]
+script = ExtResource("6_8hvdx")
+hints = Array[ExtResource("1_kcnyj")]([SubResource("Resource_e0g3a"), SubResource("Resource_d7ffw"), SubResource("Resource_2gqf4"), SubResource("Resource_tu2vx")])

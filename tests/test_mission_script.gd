@@ -117,7 +117,7 @@ func test_every_mission_file_is_sound() -> void:
 		check(def.sides[PLAYER].opponent == null, "the player's side in %s is not played by the computer" % file)
 		var mission := Mission.new(def)
 		check(mission.world.team_size(PLAYER) > 0, "%s puts the player's units on the map" % file)
-	check_eq(count, 10, "all ten missions are checked")
+	check_eq(count, 11, "all eleven missions are checked")
 
 
 func test_problems_are_reported() -> void:
@@ -199,7 +199,7 @@ func test_a_failed_primary_objective_loses() -> void:
 	var def := _def()
 	var gone := GoneCondition.new()
 	gone.tag = &"vip"
-	def.forces.append(_put(PLAYER, COMMANDER, 1, Placement.At.START, Vector2i.ZERO, &"vip"))
+	def.forces.append(_put(PLAYER, GUARD, 1, Placement.At.START, Vector2i.ZERO, &"vip"))
 	def.objectives.assign([_objective(&"protect", null, gone), _objective(&"side", null, _time(0.5), false)])
 	var mission := Mission.new(def)
 	_ticks(mission, 1.0)

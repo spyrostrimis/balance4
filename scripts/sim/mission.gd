@@ -4,8 +4,10 @@ extends RefCounted
 ## objectives and the triggers, all set up from a MissionDef.
 ##
 ## Each tick the opponents think, the world advances, the control area is
-## updated, then the objectives are checked (a failed primary objective loses
-## the mission; every primary objective done wins it) and the triggers fire.
+## updated, then the rules are checked: losing any of the player's heroes
+## loses the mission (a rule of every mission; enemy heroes count only if
+## an objective says so), a failed primary objective loses it, and every
+## primary objective done wins it. Then the triggers fire.
 ## A mission without primary objectives that can be done (a practice mission)
 ## goes on until the player leaves it.
 
@@ -37,8 +39,11 @@ var enemy_refinery_id := 0
 ## The team that has won, or NOBODY while the mission is being played.
 var winner := NOBODY
 ## Why: &"hold" (held the control area), &"eliminated" (the other side has
-## nothing left), or whatever an objective's condition or an EndAction says.
+## nothing left), &"hero" (the player lost a hero), or whatever an
+## objective's condition or an EndAction says.
 var win_reason := &""
+## The hero whose death lost the mission, or null.
+var fallen_hero: UnitType
 ## What the mission has said to the player, oldest first: each a Dictionary
 ## with "speaker", "text" and "tick".
 var messages: Array[Dictionary] = []
@@ -51,6 +56,8 @@ var _pending := {}
 var _done := {}
 ## Tag -> the units ([&"unit", id]) and buildings ([&"building", id]) placed under it.
 var _tagged := {}
+## Ids of the player's heroes, with their types.
+var _heroes := {}
 
 
 func _init(p_def: MissionDef) -> void:
@@ -109,8 +116,10 @@ func place(placements: Array[Placement]) -> void:
 		for unit in world.add_group(placement.type as UnitType, placement.team, _spot(placement), placement.count):
 			unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
 			_remember(placement.tag, &"unit", unit.id)
-			if unit.team == PLAYER_TEAM and unit.type.is_hero and player_commander_id == 0:
-				player_commander_id = unit.id
+			if unit.team == PLAYER_TEAM and unit.type.is_hero:
+				_heroes[unit.id] = unit.type
+				if player_commander_id == 0:
+					player_commander_id = unit.id
 
 
 func _spot(placement: Placement) -> Vector2i:
@@ -201,8 +210,8 @@ var raiders: Raiders:
 
 
 ## Tell the mission the player has done something in the game screen:
-## &"select", &"move", &"attack", &"ability", &"harvest", &"build", &"place"
-## or &"train". Hints and EventConditions use this.
+## &"select", &"move", &"attack", &"ability", &"harvest", &"build", &"place",
+## &"train" or &"repair". Hints and EventConditions use this.
 func note(what: StringName) -> void:
 	_done[what] = true
 	# Whoever gives an order has selected; whoever attacks knows how to move.
@@ -256,9 +265,31 @@ func tick() -> void:
 	world.tick()
 	if def.has_control():
 		control.update(world)
+	_check_heroes()
+	if is_over():
+		return
 	_check_objectives()
 	if not is_over():
 		_fire_triggers()
+
+
+## The player's heroes that are still alive.
+func player_heroes() -> Array[SimUnit]:
+	var out: Array[SimUnit] = []
+	for id in _heroes:
+		var hero := world.get_unit(id)
+		if hero != null:
+			out.append(hero)
+	return out
+
+
+## Losing any hero loses the mission.
+func _check_heroes() -> void:
+	for id in _heroes:
+		if world.get_unit(id) == null:
+			fallen_hero = _heroes[id]
+			finish(ENEMY_TEAM, &"hero")
+			return
 
 
 ## Check the open objectives. A primary one that fails loses the mission at

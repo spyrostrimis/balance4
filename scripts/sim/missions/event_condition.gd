@@ -1,7 +1,8 @@
 class_name EventCondition
 extends MissionCondition
 ## True once the player has done something in the game screen: &"select",
-## &"move", &"attack", &"ability", &"harvest", &"build", &"place" or &"train"
+## &"move", &"attack", &"ability", &"harvest", &"build", &"place", &"train"
+## or &"repair"
 ## (see Mission.note()).
 
 @export var event := &""

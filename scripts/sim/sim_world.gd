@@ -44,6 +44,10 @@ const AROUND: Array[Vector2i] = [
 ]
 
 const NO_CELL := Vector2i(-1, -1)
+## Repairing a building gives back this much health a second.
+const REPAIR_HEALTH_PER_SECOND := 20
+## and costs one Orichalcum for every this much health.
+const REPAIR_HEALTH_PER_ORICHALCUM := 4
 
 var map: MapData
 var size := Vector2i.ZERO
@@ -93,6 +97,8 @@ var _region := PackedInt32Array()     # connected walkable area per cell, 0 for 
 var _astar := AStarGrid2D.new()
 var _shrouds := {}
 var _any_dead := false
+## The living units with a haste aura (see Ability.Kind.HASTE_AURA), found at the start of each tick.
+var _auras: Array[SimUnit] = []
 
 
 func _init(p_map: MapData) -> void:
@@ -268,6 +274,13 @@ func ability_problem(unit_id: int, target_id: int) -> String:
 	var ability := unit.type.ability
 	if unit.ability_ticks_left > 0:
 		return "%s is not ready yet" % ability.display_name
+	if ability.kind == Ability.Kind.HEAL_AREA:
+		for other in units_in_reach(unit.cell, unit.team, ability.cast_range):
+			if other.health < other.type.max_health:
+				return ""
+		return "Nobody near %s is hurt" % unit.type.display_name
+	if ability.is_passive():
+		return "%s is always on" % ability.display_name
 	var target := get_unit(target_id)
 	if target == null or target.team != unit.team:
 		return "Pick one of your own units"
@@ -375,6 +388,10 @@ func tick() -> void:
 	tick_count += 1
 	while not effects.is_empty() and tick_count - int(effects[0]["tick"]) > EFFECT_TICKS:
 		effects.pop_front()
+	_auras.clear()
+	for unit in units:
+		if not unit.dead and unit.type.passive != null and unit.type.passive.kind == Ability.Kind.HASTE_AURA:
+			_auras.append(unit)
 	for unit in units:
 		if unit.dead:
 			continue
@@ -403,6 +420,7 @@ func tick() -> void:
 				unit.order = SimUnit.Order.NONE     # arrived, or gave up
 	_take_orphans()
 	production.tick()
+	_repair_buildings()
 	if _any_dead:
 		_any_dead = false
 		units = units.filter(func(unit: SimUnit) -> bool: return not unit.dead)
@@ -574,7 +592,7 @@ func _slot_near(unit: SimUnit, around: Vector2i, reach: int) -> Vector2i:
 
 ## Hit a unit or a building (the id of one).
 func _strike(attacker: SimUnit, target_id: int) -> void:
-	attacker.attack_ticks_left = attacker.type.attack_ticks()
+	attacker.attack_ticks_left = _hasted_ticks(attacker, attacker.type.attack_ticks(), false)
 	attacker.last_attack_tick = tick_count
 	var building := get_building(target_id)
 	if building != null:
@@ -669,6 +687,8 @@ func _kill(unit: SimUnit) -> void:
 
 func _act_ability(unit: SimUnit) -> bool:
 	var ability := unit.type.ability
+	if ability != null and ability.kind == Ability.Kind.HEAL_AREA:
+		return _pulse(unit, ability)
 	var target := get_unit(unit.order_target)
 	if ability == null or target == null or target.team != unit.team:
 		unit.order = SimUnit.Order.NONE             # the unit it was for is gone
@@ -691,6 +711,97 @@ func _act_ability(unit: SimUnit) -> bool:
 	unit.order = SimUnit.Order.NONE
 	unit.order_target = 0
 	return true
+
+
+## An area heal: every unit of the hero's side within reach, the hero
+## included, gets health back. Used at once where the hero stands.
+func _pulse(unit: SimUnit, ability: Ability) -> bool:
+	unit.order = SimUnit.Order.NONE
+	unit.order_target = 0
+	_stop(unit)
+	if unit.ability_ticks_left > 0:
+		return false
+	for other in units_in_reach(unit.cell, unit.team, ability.cast_range):
+		if other.health < other.type.max_health:
+			other.health = mini(other.type.max_health, other.health + ability.amount)
+			_add_effect(&"heal", other, other)
+	unit.ability_ticks_left = ability.cooldown_ticks()
+	effects.append({"kind": &"pulse", "tick": tick_count, "team": unit.team,
+			"from": unit.visual_cell(), "to": unit.visual_cell(), "radius": ability.cast_range})
+	return true
+
+
+## The living units of a team within `reach` cells of a cell.
+func units_in_reach(cell: Vector2i, team: int, reach: int) -> Array[SimUnit]:
+	var out: Array[SimUnit] = []
+	for other in units:
+		if other.team == team and not other.dead and in_range(cell, other.cell, reach):
+			out.append(other)
+	return out
+
+
+## How much faster a unit moves and attacks because of a haste aura near it,
+## e.g. 1.05; 1.0 when none reaches it. Auras do not add up: the strongest counts.
+func haste_of(unit: SimUnit) -> float:
+	var best := 1.0
+	for source in _auras:
+		if source == unit or source.dead or source.team != unit.team:
+			continue
+		var aura := source.type.passive
+		if in_range(source.cell, unit.cell, aura.cast_range):
+			best = maxf(best, 1.0 + aura.amount / 100.0)
+	return best
+
+
+## A step or a swing that takes `ticks`, shortened for a unit in a haste
+## aura. What is lost by rounding is carried into the unit's next step or
+## swing, so that it comes out right on average.
+func _hasted_ticks(unit: SimUnit, ticks: int, step: bool) -> int:
+	var haste := haste_of(unit)
+	if haste <= 1.0:
+		return ticks
+	var exact := ticks / haste + (unit.step_carry if step else unit.swing_carry)
+	var whole := maxi(1, floori(exact))
+	if step:
+		unit.step_carry = exact - whole
+	else:
+		unit.swing_carry = exact - whole
+	return whole
+
+
+# --- repairing buildings ----------------------------------------------------------------
+
+## Start or stop repairing a building. Repairs are paid for bit by bit (see
+## REPAIR_HEALTH_PER_ORICHALCUM); without Orichalcum they wait. A building at
+## full health is not repaired.
+func order_repair(building_id: int, on: bool) -> void:
+	var building := get_building(building_id)
+	if building == null:
+		return
+	building.repairing = on and building.health < building.type.max_health
+
+
+## How much Orichalcum it costs to repair a building fully.
+static func repair_cost(building: SimBuilding) -> int:
+	var missing := building.type.max_health - building.health
+	return ceili(float(maxi(0, missing - building.repair_credit)) / REPAIR_HEALTH_PER_ORICHALCUM)
+
+
+func _repair_buildings() -> void:
+	var per_tick := maxi(1, REPAIR_HEALTH_PER_SECOND / TICKS_PER_SECOND)
+	for building in buildings:
+		if not building.repairing:
+			continue
+		for i in per_tick:
+			if building.health >= building.type.max_health:
+				building.repairing = false
+				break
+			if building.repair_credit <= 0:
+				if not spend(building.team, 1):
+					break                   # no Orichalcum: it waits
+				building.repair_credit += REPAIR_HEALTH_PER_ORICHALCUM
+			building.health += 1
+			building.repair_credit -= 1
 
 
 func _add_effect(kind: StringName, actor: SimUnit, subject: SimUnit) -> void:
@@ -1681,7 +1792,8 @@ func _begin_step(unit: SimUnit, next: Vector2i) -> void:
 	unit.cell = next
 	unit.facing = facing_for(step)
 	var diagonal := step.x != 0 and step.y != 0
-	unit.move_ticks_total = unit.type.robot_ticks_per_cell(diagonal) if unit.trailer_id != 0 else unit.type.ticks_per_cell(diagonal)
+	var ticks := unit.type.robot_ticks_per_cell(diagonal) if unit.trailer_id != 0 else unit.type.ticks_per_cell(diagonal)
+	unit.move_ticks_total = _hasted_ticks(unit, ticks, true)
 	unit.move_ticks_left = unit.move_ticks_total
 	if not unit.path.is_empty() and unit.path[0] == next:
 		unit.path.remove_at(0)

@@ -12,3 +12,4 @@ amount = 40
 cast_range = 3
 cooldown = 12.0
 can_target_self = false
+key = "Q"

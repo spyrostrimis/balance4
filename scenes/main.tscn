@@ -133,6 +133,16 @@ custom_minimum_size = Vector2(230, 0)
 layout_mode = 2
 text = "Skirmish: Red (desert)"
 
+[node name="Heroes" type="HBoxContainer" parent="Center/Box"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="HeroForest" type="Button" parent="Center/Box/Heroes"]
+custom_minimum_size = Vector2(230, 0)
+layout_mode = 2
+text = "Hero trial: Blue (forest)"
+
 [node name="Hint" type="Label" parent="Center/Box"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.5, 0.52, 0.47, 1)
@@ -141,5 +151,6 @@ text = "Mission 1: The First Claim (provisional name). Take the Orichalcum rock 
 Harvest trial: a refinery and two harvesters, no enemy. Send them to the rock.
 Raid trial: the same, with three soldiers, and raiders who come for the harvesters.
 Base trial: a headquarters, a refinery and a harvester. Harvest, build and produce units.
-Skirmish: the same base against a computer opponent with a base of its own. Destroy it. Esc quits."
+Skirmish: the same base against a computer opponent with a base of its own. Destroy it.
+Hero trial: the Prince and the Field Commander hold a base against three attacks. Esc quits."
 horizontal_alignment = 1

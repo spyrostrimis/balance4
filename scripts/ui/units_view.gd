@@ -24,6 +24,8 @@ const MOVE_MARK := Color(0.75, 1.0, 0.7)
 const ATTACK_MARK := Color(1.0, 0.45, 0.35)
 const HIT_SPARK := Color(1.0, 0.94, 0.7)
 const HEAL_GLOW := Color(0.6, 1.0, 0.75)
+## The dots that show how far a selected hero's aura reaches.
+const AURA_DOT := Color(1.0, 0.85, 0.45, 0.55)
 const HERO_MARK := Color(0.95, 0.78, 0.3)
 const HURT_TINT := Color(1.0, 0.5, 0.45)
 const ORE := Color(0.98, 0.77, 0.32)
@@ -48,6 +50,8 @@ const HURT_TICKS := 2
 ## How long the marks of a hit, a heal and a death stay, in ticks.
 const HIT_TICKS := 4
 const HEAL_TICKS := 14
+## How long the ring of an area heal spreads (effects last SimWorld.EFFECT_TICKS at most).
+const PULSE_TICKS := 18.0
 const DEATH_TICKS := 18
 ## One pixel step for each facing, 0 south to 7 south-east.
 const FACING_STEP: Array[Vector2] = [
@@ -244,6 +248,8 @@ func _draw() -> void:
 		var type := unit.type
 		if chosen:
 			_draw_ring(feet, Vector2(type.sprite_size.x, type.sprite_size.x) * Vector2(0.25, 0.125), RING)
+			if type.passive != null and type.passive.kind == Ability.Kind.HASTE_AURA:
+				_draw_reach(feet, type.passive.cast_range)
 		var frame := sprite_frame(unit, world.tick_count)
 		var source := Rect2(Vector2(frame * type.sprite_size), Vector2(type.sprite_size))
 		var at := feet - Vector2(type.sprite_anchor)
@@ -289,6 +295,7 @@ func _draw() -> void:
 		match effect["kind"]:
 			&"hit": _draw_hit(effect)
 			&"heal": _draw_heal(effect)
+			&"pulse": _draw_pulse(effect)
 			&"steal": _draw_steal(effect)
 
 
@@ -329,6 +336,26 @@ func _draw_heal(effect: Dictionary) -> void:
 		var plus := to + Vector2(-6 + i * 6, 2 - age * 1.2 - (i % 2) * 3)
 		draw_line(plus + Vector2(-2, 0), plus + Vector2(3, 0), Color(HEAL_GLOW, fade), 1.0)
 		draw_line(plus + Vector2(0, -2), plus + Vector2(0, 3), Color(HEAL_GLOW, fade), 1.0)
+
+
+## The ring of an area heal spreading out from the hero to the edge of its reach.
+func _draw_pulse(effect: Dictionary) -> void:
+	var age := _age(effect)
+	if age >= PULSE_TICKS:
+		return
+	var feet := ((effect["from"] as Vector2) * CELL + FEET).round()
+	var reach := (float(effect.get("radius", 3)) + 0.5) * CELL
+	var grow := age / PULSE_TICKS
+	_draw_ring(feet, Vector2(reach, reach * 0.55) * (0.15 + 0.85 * grow), Color(HEAL_GLOW, 1.0 - grow))
+	_draw_ring(feet, Vector2(reach, reach * 0.55) * (0.1 + 0.6 * grow), Color(HEAL_GLOW, 0.5 * (1.0 - grow)))
+
+
+## A faint dotted ring showing how far a selected hero's aura reaches.
+func _draw_reach(feet: Vector2, cells: int) -> void:
+	var reach := (cells + 0.5) * CELL
+	for i in 32:
+		var angle := TAU * i / 32.0
+		draw_rect(Rect2((feet + Vector2(cos(angle) * reach, sin(angle) * reach * 0.55)).round(), Vector2.ONE), AURA_DOT)
 
 
 func _draw_death(effect: Dictionary) -> void:

@@ -47,6 +47,7 @@ VEHICLE = (44, (22, 25), 6)
 TRAILER = (44, (22, 25), 2)
 TANK = (36, (18, 20), 3)
 UNITS = {'infantry_blue': TROOP, 'infantry_red': TROOP, 'commander_blue': TROOP, 'commander_red': TROOP,
+         'prince_blue': TROOP,
          'harvester_blue': VEHICLE, 'harvester_red': VEHICLE,
          'trailer_blue': TRAILER, 'trailer_red': TRAILER, 'tank_blue': TANK, 'tank_red': TANK}
 

@@ -6,9 +6,9 @@ extends Control
 ## harvest-forest or harvest-desert for the harvest trial, raid-forest or
 ## raid-desert for the raid trial, base-forest or base-desert for the base
 ## trial, skirmish-forest or skirmish-desert for a skirmish against the
-## computer.
+## computer, hero-forest for the hero trial.
 
-const MILESTONE := "M6 Enemy AI"
+const MILESTONE := "M7 Vertical slice (in progress)"
 const MAP_SCENE := "res://scenes/map_view.tscn"
 ## Name -> the mission started by it. Mission 1 is played as Blue on the
 ## forest map and as Red on the desert map. The harvest trial is a practice
@@ -28,6 +28,7 @@ const MISSIONS := {
 	"base-desert": "res://data/missions/base_trial_red.tres",
 	"skirmish-forest": "res://data/missions/skirmish_blue.tres",
 	"skirmish-desert": "res://data/missions/skirmish_red.tres",
+	"hero-forest": "res://data/missions/hero_trial_blue.tres",
 }
 
 @onready var _status: Label = $Center/Box/Status
@@ -42,6 +43,7 @@ const MISSIONS := {
 @onready var _base_desert: Button = $Center/Box/Bases/BaseDesert
 @onready var _skirmish_forest: Button = $Center/Box/Skirmishes/SkirmishForest
 @onready var _skirmish_desert: Button = $Center/Box/Skirmishes/SkirmishDesert
+@onready var _hero_forest: Button = $Center/Box/Heroes/HeroForest
 
 
 func _ready() -> void:
@@ -57,6 +59,7 @@ func _ready() -> void:
 	_base_desert.pressed.connect(open_map.bind("base-desert"))
 	_skirmish_forest.pressed.connect(open_map.bind("skirmish-forest"))
 	_skirmish_desert.pressed.connect(open_map.bind("skirmish-desert"))
+	_hero_forest.pressed.connect(open_map.bind("hero-forest"))
 	_quit.pressed.connect(get_tree().quit)
 	_forest.grab_focus()
 	var wanted := map_from_args(OS.get_cmdline_user_args())

@@ -28,7 +28,10 @@ var _top_right: Label
 var _hint: Label
 var _attack: Button
 var _stop: Button
-var _ability: Button
+## The ability buttons, one per key of the player's heroes' abilities: key -> Button.
+var _ability_buttons := {}
+## Repair, in place of Attack and Stop while a building is selected.
+var _repair: Button
 var _objective: Label
 var _status: Label
 var _bar: ColorRect
@@ -61,7 +64,8 @@ func _ready() -> void:
 
 	_attack = _button(Rect2(SIDE_X, 290, 62, 22), "Attack (F)", &"attack")
 	_stop = _button(Rect2(SIDE_X + 65, 290, 62, 22), "Stop (X)", &"stop")
-	_ability = _button(Rect2(SIDE_X + 130, 290, 62, 22), "", &"ability")
+	_repair = _button(Rect2(SIDE_X, 290, 127, 22), "Repair (R)", &"repair")
+	_repair.visible = false
 
 	var objective_title := _label(Rect2(SIDE_X, 318, SIDE_WIDTH, 16), 12, GOLD)
 	objective_title.text = "Objective"
@@ -136,7 +140,64 @@ func setup(mission: Mission) -> void:
 	build_panel.open(Production.BUILDINGS)
 	for control in _objective_box:
 		control.visible = not def.has_base()
+	_make_ability_buttons(ability_keys(def))
+	set_selected_building(null)
 	refresh(mission, "")
+
+
+## The keys of the active abilities of the heroes the player starts with, in
+## the order the heroes are placed, e.g. ["E", "Q"].
+static func ability_keys(def: MissionDef) -> Array[String]:
+	var keys: Array[String] = []
+	for type in def.placed_types(Mission.PLAYER_TEAM):
+		var unit_type := type as UnitType
+		if unit_type != null and unit_type.is_hero and unit_type.ability != null and not keys.has(unit_type.ability.key):
+			keys.append(unit_type.ability.key)
+	return keys
+
+
+## The living hero whose active ability has this key, or null.
+static func hero_with_key(heroes: Array[SimUnit], key: String) -> SimUnit:
+	for hero in heroes:
+		if hero.type.ability != null and hero.type.ability.key == key:
+			return hero
+	return null
+
+
+## One button per ability key after Attack and Stop, sharing the row (one
+## empty button when there is none).
+func _make_ability_buttons(keys: Array[String]) -> void:
+	for key: String in _ability_buttons:
+		(_ability_buttons[key] as Button).queue_free()
+	_ability_buttons.clear()
+	if keys.is_empty():
+		keys = ["Q"]
+	var count := 2 + keys.size()
+	var width := floorf((SIDE_WIDTH - 3.0 * (count - 1)) / count)
+	_attack.size.x = width
+	_stop.position.x = SIDE_X + width + 3.0
+	_stop.size.x = width
+	_repair.size.x = width * 2.0 + 3.0
+	for i in keys.size():
+		var button := _button(Rect2(), "", StringName("ability_" + keys[i]))
+		button.position = Vector2(SIDE_X + (width + 3.0) * (2 + i), 290)
+		button.size = Vector2(width, 22)
+		button.clip_text = true
+		button.add_theme_font_size_override("font_size", 10 if count <= 3 else 9)
+		_ability_buttons[keys[i]] = button
+
+
+## Show Repair (for a selected building of the player's) in place of Attack
+## and Stop, or put them back with null.
+func set_selected_building(building: SimBuilding) -> void:
+	var show_repair := building != null
+	_repair.visible = show_repair
+	_attack.visible = not show_repair
+	_stop.visible = not show_repair
+	if show_repair:
+		var damaged := building.health < building.type.max_health
+		_repair.text = "Stop repair (R)" if building.repairing else "Repair (R)"
+		_repair.disabled = not damaged and not building.repairing
 
 
 ## Bring every text and bar up to date. `hint` is the line for the hint box.
@@ -145,8 +206,12 @@ func refresh(mission: Mission, hint: String) -> void:
 	var players := mission.world.team_size(Mission.PLAYER_TEAM)
 	var enemies := mission.world.team_size(Mission.ENEMY_TEAM)
 	_hint.text = hint
-	_ability.text = ability_label(mission.player_commander())
-	_ability.disabled = not ability_ready(mission.player_commander())
+	var heroes := mission.player_heroes()
+	for key: String in _ability_buttons:
+		var hero := hero_with_key(heroes, key)
+		var button: Button = _ability_buttons[key]
+		button.text = ability_label(hero, _ability_buttons.size() > 1)
+		button.disabled = not ability_ready(hero)
 	var store := store_text(mission.world, Mission.PLAYER_TEAM)
 	if def.practice:
 		var world := mission.world
@@ -275,6 +340,7 @@ static func result_text(mission: Mission) -> String:
 		[true, &"hold"]: how = "You held the Orichalcum rock."
 		[true, _]: how = "Every enemy building and soldier is destroyed." if def.skirmish else "Every enemy is destroyed."
 		[false, &"hold"]: how = "%s held the Orichalcum rock." % def.enemy_side
+		[false, &"hero"]: how = "%s has fallen." % (mission.fallen_hero.display_name if mission.fallen_hero != null else "Your hero")
 		[false, _]: how = "Your base and your troops are destroyed." if def.skirmish else "Your force is destroyed."
 	if def.skirmish:
 		var world := mission.world
@@ -290,14 +356,16 @@ static func result_text(mission: Mission) -> String:
 	]
 
 
-## Text of the ability button: its name and key, or the seconds until it is ready again.
-static func ability_label(commander: SimUnit) -> String:
-	if commander == null or commander.type.ability == null:
+## Text of an ability button: the ability's name and key, or the seconds
+## until it is ready again. `short` puts the key first, for narrow buttons.
+static func ability_label(hero: SimUnit, short := false) -> String:
+	if hero == null or hero.type.ability == null:
 		return "-"
-	var ability := commander.type.ability
-	if commander.ability_ticks_left > 0:
-		return "%s %ds" % [ability.display_name, ceili(commander.ability_ticks_left * SimWorld.TICK_SECONDS)]
-	return "%s (Q)" % ability.display_name
+	var ability := hero.type.ability
+	if hero.ability_ticks_left > 0:
+		var wait := ceili(hero.ability_ticks_left * SimWorld.TICK_SECONDS)
+		return "%s %ds" % [ability.key if short else ability.display_name, wait]
+	return "%s %s" % [ability.key, ability.display_name] if short else "%s (%s)" % [ability.display_name, ability.key]
 
 
 static func ability_ready(commander: SimUnit) -> bool:

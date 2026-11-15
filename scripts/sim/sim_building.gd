@@ -11,6 +11,10 @@ var cell := Vector2i.ZERO
 var health := 0
 ## The simulation tick at which it was last hit. For drawing.
 var last_hurt_tick := -1000
+## Is it being repaired (see SimWorld.order_repair())?
+var repairing := false
+## Health already paid for and not yet given back.
+var repair_credit := 0
 
 
 ## The cells it covers, as a rectangle.

@@ -26,6 +26,8 @@ extends RefCounted
 ##    Soldiers of a wave that have nothing left to fight go on to the next
 ##    target. When it has seen nothing of the enemy where the enemy started,
 ##    it is told where what is left of the enemy is (a simplification).
+## 6. Repair: a building below REPAIR_BELOW of its health is repaired, as
+##    the player can, while the store holds more than UNIT_RESERVE.
 ##
 ## It never uses a hero's ability. Its numbers are provisional.
 
@@ -57,6 +59,8 @@ const ESCORT_RANGE := 6
 const BUILD_RADIUS := 14
 ## The cell its soldiers wait on is this far from the headquarters, towards the middle of the map.
 const RALLY_CELLS := 6
+## A building below this share of its health is repaired.
+const REPAIR_BELOW := 0.6
 
 var world: SimWorld
 var team := 1
@@ -116,6 +120,19 @@ func tick() -> void:
 	_keep_harvesting()
 	_train()
 	_attack(_defend())
+	_repair()
+
+
+## Repair damaged buildings while it can spare the Orichalcum; stop when it cannot.
+func _repair() -> void:
+	var spare := world.stored_for(team) > UNIT_RESERVE
+	for building in world.buildings:
+		if building.team != team:
+			continue
+		if not spare:
+			building.repairing = false
+		elif not building.repairing and building.health < building.type.max_health * REPAIR_BELOW:
+			world.order_repair(building.id, true)
 
 
 # --- the base ----------------------------------------------------------------------------

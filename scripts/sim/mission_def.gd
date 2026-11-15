@@ -64,11 +64,14 @@ var player_color: Color:
 var enemy_color: Color:
 	get: return side_color(Mission.ENEMY_TEAM)
 ## The line the HUD shows as the objective: the first primary objective that
-## is not hidden at the start.
+## is not hidden at the start, or else the first objective that is not.
 var objective: String:
 	get:
 		for item in objectives:
 			if item.primary and not item.hidden:
+				return item.text
+		for item in objectives:
+			if not item.hidden:
 				return item.text
 		return ""
 

@@ -100,6 +100,7 @@ offset_right = 203.0
 offset_bottom = 290.0
 theme_override_colors/font_color = Color(0.78, 0.76, 0.68, 1)
 theme_override_font_sizes/font_size = 12
+max_lines_visible = 6
 
 [node name="Help" type="Label" parent="Hud/Sidebar"]
 layout_mode = 0

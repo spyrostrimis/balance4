@@ -81,12 +81,16 @@ func _placed(def: MissionDef, team: int, heroes: bool) -> int:
 	return count
 
 
-## Play a mission the way its hints teach: attack-move everyone to the rock,
-## keep idle units going at the enemy, and have the commander heal the most
-## badly wounded soldier whenever the ability is ready.
+## Play a mission the way its hints teach: attack-move the troops to the
+## rock, keep idle ones going at the enemy, and have the commander, who
+## follows a few cells behind them (losing a hero loses the mission), heal
+## the most badly wounded soldier whenever the ability is ready.
 func _play(mission: Mission, max_seconds := 400) -> void:
 	var world := mission.world
-	var rally := ScriptedOpponent.rally_cell(world, mission.control, mission.def.map.starts[0])
+	var start: Vector2i = mission.def.map.starts[0]
+	var rally := ScriptedOpponent.rally_cell(world, mission.control, start)
+	var back := Vector2(start - rally).normalized() * 3.0
+	var behind := world.nearest_free_cell(rally + Vector2i(back.round()), world.region_at(rally))
 	for tick in max_seconds * SimWorld.TICKS_PER_SECOND:
 		if mission.is_over():
 			return
@@ -96,6 +100,10 @@ func _play(mission: Mission, max_seconds := 400) -> void:
 			var worst: SimUnit = null
 			for unit in world.units:
 				if unit.team != PLAYER:
+					continue
+				if unit == commander:
+					if unit.order == SimUnit.Order.NONE and unit.target_id == 0 and unit.cell != behind:
+						world.order_move([unit.id], behind)
 					continue
 				if unit.order == SimUnit.Order.NONE and unit.target_id == 0 and not mission.control.contains(unit.cell):
 					idle.append(unit.id)
@@ -463,7 +471,7 @@ func test_scene_starts_the_mission() -> void:
 	check(MapView.describe_selection(view.world, view.selection).contains("Field Commander"), "the commander is listed in the selection")
 	view.selection.set_ids([view.mission.player_commander_id])
 	var text := MapView.describe_selection(view.world, view.selection)
-	check(text.contains("Attack 16") and text.contains("Mend: ready"), "a single unit shows its attack and its ability")
+	check(text.contains("Attack 16") and text.contains("Mend (Q): ready"), "a single unit shows its attack and its ability")
 	view.free()
 
 
@@ -613,7 +621,8 @@ func test_dead_units_leave_the_selection() -> void:
 	executioner.max_health = 100000
 	view.selection.set_ids([soldier.id, view.mission.player_commander_id])
 	view.press_group_key(2, true)
-	view.world.add_unit(executioner, ENEMY, view.world.nearest_free_cell(soldier.cell + Vector2i(1, 0), 0))
+	var killer := view.world.add_unit(executioner, ENEMY, view.world.nearest_free_cell(soldier.cell + Vector2i(1, 0), 0))
+	view.world.order_attack([killer.id], soldier.id)      # the soldier, not the commander: that would end the mission
 	for i in 200:
 		if soldier.dead:
 			break

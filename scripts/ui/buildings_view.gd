@@ -20,12 +20,18 @@ const TARGET_MARK := Color(1.0, 0.45, 0.35)
 ## How long an explosion lasts, in seconds, and a target marker.
 const BLAST_SECONDS := 1.2
 const MARK_SECONDS := 0.6
+## The frame around a selected building, and the marks of a repair.
+const SELECT_FRAME := Color(0.95, 0.9, 0.6)
+const REPAIR_GLOW := Color(0.55, 0.95, 0.5)
+const REPAIR_SPARK := Color(1.0, 0.9, 0.55)
 ## A building below this share of its health smokes.
 const SMOKE_BELOW := 0.5
 
 var world: SimWorld
 ## Team whose shroud decides which buildings are visible.
 var viewer_team := SimWorld.PLAYER_TEAM
+## The player's selection: a selected building gets a frame.
+var selection: Selection
 
 ## Destroyed buildings: [footprint rect in cells, seconds since]. They leave scorch marks.
 var _ruins: Array = []
@@ -35,8 +41,9 @@ var _mark := [0, 0.0]
 var _clock := 0.0
 
 
-func setup(p_world: SimWorld) -> void:
+func setup(p_world: SimWorld, p_selection: Selection = null) -> void:
 	world = p_world
+	selection = p_selection
 	_ruins.clear()
 	_seen_wrecks = world.wreck_log.size()
 	_mark = [0, 0.0]
@@ -106,8 +113,13 @@ func _draw() -> void:
 		var share := float(building.health) / building.type.max_health
 		if share < SMOKE_BELOW:
 			_draw_fire(building, share)
-		if shows_health(building):
+		var chosen := selection != null and selection.building_id == building.id
+		if shows_health(building) or chosen:
 			_draw_health(building, share)
+		if chosen:
+			_draw_frame(building)
+		if building.repairing:
+			_draw_repair(building)
 		if _mark[1] > 0.0 and _mark[0] == building.id:
 			var fade: float = _mark[1] / MARK_SECONDS
 			draw_rect(Rect2(Vector2(building.cell * CELL), Vector2(building.type.footprint * CELL)).grow(2.0 + 4.0 * (1.0 - fade)),
@@ -115,6 +127,33 @@ func _draw() -> void:
 	for ruin: Array in _ruins:
 		if ruin[1] < BLAST_SECONDS and shroud.is_explored((ruin[0] as Rect2i).position):
 			_draw_blast(ruin[0], ruin[1] / BLAST_SECONDS)
+
+
+## Corner brackets around a selected building.
+func _draw_frame(building: SimBuilding) -> void:
+	var area := Rect2(Vector2(building.cell * CELL), Vector2(building.type.footprint * CELL)).grow(1.0)
+	var arm := 6.0
+	for corner: Vector2 in [area.position, Vector2(area.end.x, area.position.y), area.end, Vector2(area.position.x, area.end.y)]:
+		var sx := 1.0 if corner.x == area.position.x else -1.0
+		var sy := 1.0 if corner.y == area.position.y else -1.0
+		draw_line(corner, corner + Vector2(arm * sx, 0), SELECT_FRAME, 1.0)
+		draw_line(corner, corner + Vector2(0, arm * sy), SELECT_FRAME, 1.0)
+
+
+## Sparks and a rising plus sign over a building being repaired.
+func _draw_repair(building: SimBuilding) -> void:
+	var top := Vector2(building.cell * CELL) + Vector2(building.type.footprint.x * CELL / 2.0, 6.0)
+	var rise := fmod(_clock * 0.8, 1.0)
+	var plus := top + Vector2(0, -rise * 10.0)
+	var colour := Color(REPAIR_GLOW, 1.0 - rise)
+	draw_line(plus + Vector2(-3, 0), plus + Vector2(4, 0), colour, 1.0)
+	draw_line(plus + Vector2(0, -3), plus + Vector2(0, 4), colour, 1.0)
+	for i in 3:
+		var h := TerrainView.cell_hash(building.cell + Vector2i(i, 5 * i))
+		var spot := Vector2(building.cell * CELL) + Vector2(6 + h % maxi(1, building.type.footprint.x * CELL - 12), 8 + (h / 7) % 16)
+		if fmod(_clock * 3.0 + i * 0.37, 1.0) < 0.3:
+			draw_rect(Rect2(spot, Vector2.ONE), REPAIR_SPARK)
+			draw_rect(Rect2(spot + Vector2(1, -1), Vector2.ONE), REPAIR_SPARK)
 
 
 func _draw_health(building: SimBuilding, share: float) -> void:

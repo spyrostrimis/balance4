@@ -1,0 +1,262 @@
+[gd_resource type="Resource" script_class="MissionDef" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/missions/placement.gd" id="1_v5b05"]
+[ext_resource type="Resource" path="res://data/buildings/blue_headquarters.tres" id="2_uf2ob"]
+[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="3_kl51x"]
+[ext_resource type="Resource" path="res://data/buildings/blue_generator.tres" id="4_yl2pk"]
+[ext_resource type="Resource" path="res://data/buildings/blue_barracks.tres" id="5_46noi"]
+[ext_resource type="Resource" path="res://data/units/blue_leader.tres" id="6_evw1a"]
+[ext_resource type="Resource" path="res://data/units/blue_commander.tres" id="7_2gtfd"]
+[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="8_1olsa"]
+[ext_resource type="Resource" path="res://data/units/blue_tank.tres" id="9_bqg0c"]
+[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="10_j5irc"]
+[ext_resource type="Resource" path="res://data/hints/hero_trial.tres" id="11_2m4ah"]
+[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="12_p8i51"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective.gd" id="13_e7vnc"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_condition.gd" id="14_ireig"]
+[ext_resource type="Script" path="res://scripts/sim/missions/gone_condition.gd" id="15_t0vsw"]
+[ext_resource type="Script" path="res://scripts/sim/missions/all_condition.gd" id="16_m6e4k"]
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="17_uugix"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_side.gd" id="18_bvu1k"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_trigger.gd" id="19_yd0iu"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_action.gd" id="20_etwo5"]
+[ext_resource type="Script" path="res://scripts/sim/missions/message_action.gd" id="21_nkako"]
+[ext_resource type="Script" path="res://scripts/sim/missions/time_condition.gd" id="22_5x0jg"]
+[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="23_jyj3u"]
+[ext_resource type="Script" path="res://scripts/sim/missions/reinforce_action.gd" id="24_t7hia"]
+[ext_resource type="Script" path="res://scripts/sim/missions/send_action.gd" id="25_jeees"]
+[ext_resource type="Resource" path="res://data/units/red_tank.tres" id="26_ocp11"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective_action.gd" id="27_ohjvc"]
+
+[sub_resource type="Resource" id="Resource_7uyaq"]
+script = ExtResource("1_v5b05")
+type = ExtResource("2_uf2ob")
+
+[sub_resource type="Resource" id="Resource_krxkg"]
+script = ExtResource("1_v5b05")
+type = ExtResource("3_kl51x")
+
+[sub_resource type="Resource" id="Resource_ki2s2"]
+script = ExtResource("1_v5b05")
+type = ExtResource("4_yl2pk")
+
+[sub_resource type="Resource" id="Resource_6liyh"]
+script = ExtResource("1_v5b05")
+type = ExtResource("5_46noi")
+
+[sub_resource type="Resource" id="Resource_cm0jg"]
+script = ExtResource("1_v5b05")
+type = ExtResource("6_evw1a")
+tag = &"heroes"
+
+[sub_resource type="Resource" id="Resource_dgvxr"]
+script = ExtResource("1_v5b05")
+type = ExtResource("7_2gtfd")
+tag = &"heroes"
+
+[sub_resource type="Resource" id="Resource_hkaq7"]
+script = ExtResource("1_v5b05")
+type = ExtResource("8_1olsa")
+count = 4
+
+[sub_resource type="Resource" id="Resource_b0epo"]
+script = ExtResource("1_v5b05")
+type = ExtResource("9_bqg0c")
+
+[sub_resource type="Resource" id="Resource_6xmaq"]
+script = ExtResource("1_v5b05")
+type = ExtResource("10_j5irc")
+at = 2
+
+[sub_resource type="Resource" id="Resource_2q6ux"]
+script = ExtResource("13_e7vnc")
+id = &"keep_heroes"
+text = "Keep the Prince and the Field Commander alive, and beat off Red's attacks."
+primary = false
+
+[sub_resource type="Resource" id="Resource_tqlbw"]
+script = ExtResource("15_t0vsw")
+tag = &"wave1"
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_ps4kq"]
+script = ExtResource("15_t0vsw")
+tag = &"wave2"
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_8vxbu"]
+script = ExtResource("15_t0vsw")
+tag = &"wave3"
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_n8tdh"]
+script = ExtResource("16_m6e4k")
+conditions = Array[ExtResource("14_ireig")]([SubResource("Resource_tqlbw"), SubResource("Resource_ps4kq"), SubResource("Resource_8vxbu")])
+
+[sub_resource type="Resource" id="Resource_xxccb"]
+script = ExtResource("13_e7vnc")
+id = &"beat_off"
+text = "Beat off Red's last attack."
+hidden = true
+done_when = SubResource("Resource_n8tdh")
+
+[sub_resource type="Resource" id="Resource_cocut"]
+script = ExtResource("18_bvu1k")
+name = "Blue"
+color = Color(0.45, 0.72, 1, 1)
+orichalcum = 800
+knows_deposits = true
+
+[sub_resource type="Resource" id="Resource_llig2"]
+script = ExtResource("18_bvu1k")
+name = "Red"
+color = Color(1, 0.45, 0.35, 1)
+start = 1
+
+[sub_resource type="Resource" id="Resource_rnfxh"]
+script = ExtResource("21_nkako")
+speaker = "Scout"
+text = "Red troops are coming from the far corner."
+
+[sub_resource type="Resource" id="Resource_pu7mn"]
+script = ExtResource("22_5x0jg")
+seconds = 30.0
+
+[sub_resource type="Resource" id="Resource_xc554"]
+script = ExtResource("19_yd0iu")
+when = SubResource("Resource_pu7mn")
+actions = Array[ExtResource("20_etwo5")]([SubResource("Resource_rnfxh")])
+
+[sub_resource type="Resource" id="Resource_1fssk"]
+script = ExtResource("1_v5b05")
+team = 1
+type = ExtResource("23_jyj3u")
+count = 4
+tag = &"wave1"
+
+[sub_resource type="Resource" id="Resource_40fet"]
+script = ExtResource("24_t7hia")
+placements = Array[ExtResource("1_v5b05")]([SubResource("Resource_1fssk")])
+
+[sub_resource type="Resource" id="Resource_b7o35"]
+script = ExtResource("25_jeees")
+tag = &"wave1"
+cell = Vector2i(10, 38)
+
+[sub_resource type="Resource" id="Resource_og4em"]
+script = ExtResource("22_5x0jg")
+seconds = 40.0
+
+[sub_resource type="Resource" id="Resource_2vd1w"]
+script = ExtResource("19_yd0iu")
+when = SubResource("Resource_og4em")
+actions = Array[ExtResource("20_etwo5")]([SubResource("Resource_40fet"), SubResource("Resource_b7o35")])
+
+[sub_resource type="Resource" id="Resource_3vact"]
+script = ExtResource("21_nkako")
+speaker = "Scout"
+text = "A larger Red force is on its way, with a tank."
+
+[sub_resource type="Resource" id="Resource_do6jo"]
+script = ExtResource("22_5x0jg")
+seconds = 120.0
+
+[sub_resource type="Resource" id="Resource_nwu2d"]
+script = ExtResource("19_yd0iu")
+when = SubResource("Resource_do6jo")
+actions = Array[ExtResource("20_etwo5")]([SubResource("Resource_3vact")])
+
+[sub_resource type="Resource" id="Resource_aq2og"]
+script = ExtResource("1_v5b05")
+team = 1
+type = ExtResource("23_jyj3u")
+count = 5
+tag = &"wave2"
+
+[sub_resource type="Resource" id="Resource_hxjbl"]
+script = ExtResource("1_v5b05")
+team = 1
+type = ExtResource("26_ocp11")
+tag = &"wave2"
+
+[sub_resource type="Resource" id="Resource_lyrhw"]
+script = ExtResource("24_t7hia")
+placements = Array[ExtResource("1_v5b05")]([SubResource("Resource_aq2og"), SubResource("Resource_hxjbl")])
+
+[sub_resource type="Resource" id="Resource_w4iii"]
+script = ExtResource("25_jeees")
+tag = &"wave2"
+cell = Vector2i(10, 38)
+
+[sub_resource type="Resource" id="Resource_hu7j7"]
+script = ExtResource("22_5x0jg")
+seconds = 130.0
+
+[sub_resource type="Resource" id="Resource_vl5qk"]
+script = ExtResource("19_yd0iu")
+when = SubResource("Resource_hu7j7")
+actions = Array[ExtResource("20_etwo5")]([SubResource("Resource_lyrhw"), SubResource("Resource_w4iii")])
+
+[sub_resource type="Resource" id="Resource_ar6l6"]
+script = ExtResource("21_nkako")
+speaker = "Scout"
+text = "Red's last attack is coming. Everything they have left."
+
+[sub_resource type="Resource" id="Resource_4wwtp"]
+script = ExtResource("22_5x0jg")
+seconds = 220.0
+
+[sub_resource type="Resource" id="Resource_tlxoi"]
+script = ExtResource("19_yd0iu")
+when = SubResource("Resource_4wwtp")
+actions = Array[ExtResource("20_etwo5")]([SubResource("Resource_ar6l6")])
+
+[sub_resource type="Resource" id="Resource_eo543"]
+script = ExtResource("1_v5b05")
+team = 1
+type = ExtResource("23_jyj3u")
+count = 6
+tag = &"wave3"
+
+[sub_resource type="Resource" id="Resource_db4xw"]
+script = ExtResource("1_v5b05")
+team = 1
+type = ExtResource("26_ocp11")
+count = 2
+tag = &"wave3"
+
+[sub_resource type="Resource" id="Resource_1euj6"]
+script = ExtResource("24_t7hia")
+placements = Array[ExtResource("1_v5b05")]([SubResource("Resource_eo543"), SubResource("Resource_db4xw")])
+
+[sub_resource type="Resource" id="Resource_3woed"]
+script = ExtResource("25_jeees")
+tag = &"wave3"
+cell = Vector2i(10, 38)
+
+[sub_resource type="Resource" id="Resource_4jckp"]
+script = ExtResource("27_ohjvc")
+objective = &"beat_off"
+
+[sub_resource type="Resource" id="Resource_skpvq"]
+script = ExtResource("22_5x0jg")
+seconds = 230.0
+
+[sub_resource type="Resource" id="Resource_4cupn"]
+script = ExtResource("19_yd0iu")
+when = SubResource("Resource_skpvq")
+actions = Array[ExtResource("20_etwo5")]([SubResource("Resource_1euj6"), SubResource("Resource_3woed"), SubResource("Resource_4jckp")])
+
+[resource]
+script = ExtResource("17_uugix")
+id = &"hero_trial_blue"
+number = 0
+display_name = "Hero trial"
+kind = 1
+map = ExtResource("12_p8i51")
+sides = Array[ExtResource("18_bvu1k")]([SubResource("Resource_cocut"), SubResource("Resource_llig2")])
+forces = Array[ExtResource("1_v5b05")]([SubResource("Resource_7uyaq"), SubResource("Resource_krxkg"), SubResource("Resource_ki2s2"), SubResource("Resource_6liyh"), SubResource("Resource_cm0jg"), SubResource("Resource_dgvxr"), SubResource("Resource_hkaq7"), SubResource("Resource_b0epo"), SubResource("Resource_6xmaq")])
+ore_richness = 3
+objectives = Array[ExtResource("13_e7vnc")]([SubResource("Resource_2q6ux"), SubResource("Resource_xxccb")])
+triggers = Array[ExtResource("19_yd0iu")]([SubResource("Resource_xc554"), SubResource("Resource_2vd1w"), SubResource("Resource_nwu2d"), SubResource("Resource_vl5qk"), SubResource("Resource_tlxoi"), SubResource("Resource_4cupn")])
+hints = ExtResource("11_2m4ah")

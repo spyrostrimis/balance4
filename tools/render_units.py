@@ -362,6 +362,43 @@ def commander(team, pose):
     ell(0.08, 0.08, 0.08, x=0.35, y=-0.09, z=1.5 + z0, m=glow)
 
 
+# --- the prince (Blue's leader) -------------------------------------------------------------
+def prince(team, pose):
+    """Blue's leader, the prince: a young man in a long blue cloak with gold trim, bare-headed
+    but for a gold circlet, a sword at the ready and a glowing pendant. No helmet and no plume,
+    so that he reads apart from the field commander. Placeholder art until the M7 art pass."""
+    lead = {0: 0, 1: -1, 2: 1}[pose]
+    z0 = 0.03 if pose else 0.0
+    for s in (-1, 1):
+        fy = -STRIDE * s * lead
+        box(0.16, 0.25, 0.14, x=s * 0.115, y=-0.03 + fy, z=0, m=LEATHER, bevel=0.04)
+        cyl(0.09, 0.34, x=s * 0.115, y=fy * 0.6, z=0.1, m=B_CLOTH2)
+    cone(0.3, 0.2, 0.36, z=0.5 + z0, m=B_CLOTH)                        # long coat
+    ell(0.23, 0.18, 0.24, z=0.79 + z0, m=B_CLOTH2)                     # doublet
+    ell(0.15, 0.06, 0.16, y=-0.14, z=0.8 + z0, m=BONE)                 # pale shirt front
+    torus(0.21, 0.045, z=0.62 + z0, m=GOLD)                            # belt
+    ell(0.15, 0.15, 0.155, y=-0.015, z=1.1 + z0, m=SKIN)               # head
+    for s in (-1, 1):
+        ell(0.028, 0.02, 0.034, x=s * 0.06, y=-0.155, z=1.1 + z0, m=EYE)
+    ell(0.028, 0.035, 0.035, y=-0.165, z=1.07 + z0, m=SKIN)
+    ell(0.165, 0.16, 0.1, y=0.03, z=1.2 + z0, m=LEATHER)               # dark hair
+    torus(0.15, 0.025, z=1.22 + z0, m=GOLD)                            # circlet
+    for a in range(5):
+        ang = (a - 2) * 0.45
+        cone(0.025, 0.0, 0.07, x=sin(ang) * 0.15, y=-cos(ang) * 0.15, z=1.23 + z0, m=GOLD)   # its points
+    ell(0.04, 0.03, 0.04, y=-0.16, z=0.97 + z0, m=B_GLOW)              # pendant
+    for s in (-1, 1):
+        swing = 0.07 * s * lead
+        ell(0.12, 0.12, 0.11, x=s * 0.28, z=0.94 + z0, m=B_CLOTH)      # shoulders
+        cyl(0.068, 0.32, x=s * 0.31, y=-0.04 + swing, z=0.6 + z0, m=B_CLOTH2)
+        ell(0.068, 0.068, 0.068, x=s * 0.31, y=-0.06 + swing, z=0.58 + z0, m=SKIN)
+    ell(0.3, 0.07, 0.5, y=0.21, z=0.6 + z0, m=B_CLOTH, rot=(-0.16, 0, 0))     # royal cloak
+    ell(0.31, 0.03, 0.06, y=0.24, z=0.16 + z0, m=GOLD, rot=(-0.16, 0, 0))     # its gold hem
+    cyl(0.03, 0.12, x=0.35, y=-0.09, z=0.52 + z0, m=GOLD)              # sword grip
+    box(0.16, 0.04, 0.03, x=0.35, y=-0.09, z=0.64 + z0, m=GOLD, bevel=0.01)   # cross-guard
+    box(0.045, 0.02, 0.62, x=0.35, y=-0.09, z=0.67 + z0, m=STEEL, bevel=0.01)  # blade
+
+
 # --- vehicles (the front faces -Y; sizes in cells) ------------------------------------------
 HULL = mat('hull', '#7c8086', 0.3, 0.6)
 HULL_D = mat('hull_d', '#50545a', 0.3, 0.65)
@@ -618,7 +655,8 @@ def workshop(team):
 # Infantry are a third of a cell tall and are seen from a little lower than vehicles so they stay
 # readable. Commanders are a little larger so they stand out in a squad.
 MODELS = [('infantry_blue', infantry, 'blue', 0.33), ('infantry_red', infantry, 'red', 0.33),
-          ('commander_blue', commander, 'blue', 0.38), ('commander_red', commander, 'red', 0.38)]
+          ('commander_blue', commander, 'blue', 0.38), ('commander_red', commander, 'red', 0.38),
+          ('prince_blue', prince, 'blue', 0.39)]
 for unit, model, team, scale in MODELS:
     if ONLY and unit not in ONLY:
         continue

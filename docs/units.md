@@ -29,6 +29,7 @@ for now and will be tuned much later.
 | Legionary | Red infantry | 60 | 2.5 cells/s | 4 cells | 12, range 1, once a second |
 | Field Commander | Blue hero | 120 | 2.5 cells/s | 5 cells | 16, range 1, once a second |
 | Field Commander | Red hero (placeholder) | 120 | 2.5 cells/s | 5 cells | 16, range 1, once a second |
+| The Prince | Blue leader, hero (since M7) | 150 | 2.5 cells/s | 5 cells | 14, range 1, once a second |
 | Light Tank | Blue and Red vehicle (since M6) | 240 | 3 cells/s | 5 cells | 30, range 3, every 2 seconds |
 
 The light tank is built at the workshop; see [skirmish.md](skirmish.md).

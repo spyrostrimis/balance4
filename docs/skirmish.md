@@ -42,7 +42,9 @@ Every building now has health (`max_health` in its `BuildingType`).
   quarter). A destroyed building goes up in an explosion and leaves a scorch
   mark for the rest of the mission. The sidebar shows a building's health.
 
-Buildings cannot be repaired or sold yet.
+Buildings could not be repaired in M6. Since M7 they can, for Orichalcum,
+by the player and by the computer: see [heroes.md](heroes.md). They cannot
+be sold.
 
 ## The light tank
 
@@ -107,7 +109,8 @@ It looks at the world once a second and works through these, in order:
    none. Each wave is 2 larger than the last, up to 12. Soldiers of a wave
    that have nothing left to fight move on to the next target.
 
-It never uses a hero's ability (the skirmish has no heroes).
+It never uses a hero's ability (the skirmish has no heroes). Since M7 it
+repairs damaged buildings (see [heroes.md](heroes.md)).
 
 ### Simplifications
 
@@ -168,7 +171,8 @@ minutes on either map; that is checked by the headless tests.
 
 ## Left out of M6
 
-- Repairing and selling buildings, and rebuilding a headquarters.
+- Repairing and selling buildings, and rebuilding a headquarters. (Repairing
+  came in M7.)
 - Difficulty levels, and a choice of map, side or starting money.
 - Heroes in the skirmish, and the computer using hero abilities.
 - Fog of war over ground that has been explored but is no longer watched:

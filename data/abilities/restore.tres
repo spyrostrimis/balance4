@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="Ability" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/ability.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"restore"
+display_name = "Restore"
+description = "Heals your troops and repairs your vehicles around him. Not buildings."
+kind = 1
+amount = 35
+cast_range = 3
+cooldown = 30.0
+can_target_self = true
+key = "E"

@@ -75,6 +75,8 @@ var _seen_removed := 0
 var _result_shown := false
 ## Is the mission paused (Esc or P)? See set_paused().
 var paused := false
+## The key of the ability waiting for its target (Mode.ABILITY).
+var _ability_key := "Q"
 
 @onready var terrain: TerrainView = $Terrain
 @onready var deposit_view: DepositView = $Deposits
@@ -221,7 +223,7 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	drag_box.hide_rect()
 	terrain.show_map(map)
 	deposit_view.setup(world)
-	buildings_view.setup(world)
+	buildings_view.setup(world, selection)
 	units_view.setup(world, selection)
 	shroud_view.setup(world.shroud_for(SimWorld.PLAYER_TEAM))
 	var view_size := Vector2(SCREEN_SIZE.x - SIDEBAR_WIDTH, SCREEN_SIZE.y)
@@ -288,6 +290,8 @@ func _process(delta: float) -> void:
 		else:
 			placement_view.stop()
 	if mission != null:
+		var chosen := world.get_building(selection.building_id) if selection.building_id != 0 else null
+		hud.set_selected_building(chosen if chosen != null and chosen.team == SimWorld.PLAYER_TEAM else null)
 		hud.refresh(mission, hint_text())
 		if mission.is_over() and not _result_shown:
 			_show_result()
@@ -351,7 +355,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif key.keycode == KEY_X:
 		order_stop()
 	elif key.keycode == KEY_Q:
-		begin_ability()
+		begin_ability("Q")
+	elif key.keycode == KEY_E:
+		begin_ability("E")
+	elif key.keycode == KEY_R:
+		toggle_repair()
 
 
 func _on_command(command: StringName) -> void:
@@ -360,11 +368,15 @@ func _on_command(command: StringName) -> void:
 	match command:
 		&"attack": begin_attack_move()
 		&"stop": order_stop()
-		&"ability": begin_ability()
+		&"ability": begin_ability("Q")
+		&"repair": toggle_repair()
+		_:
+			if String(command).begins_with("ability_"):
+				begin_ability(String(command).trim_prefix("ability_"))
 
 
 func _on_selection_changed() -> void:
-	if hints != null and not selection.is_empty():
+	if hints != null and not selection.ids.is_empty():
 		hints.note(&"select")
 
 
@@ -387,11 +399,15 @@ func _finish_drag(screen_point: Vector2, add: bool) -> void:
 		box_select(Rect2(_drag_start_map, screen_to_map(screen_point) - _drag_start_map), add)
 
 
-## A click on the map: select the unit there. With `add`, add it to or take it out of the selection.
+## A click on the map: select the unit there, or else the player's building
+## there. With `add`, add the unit to or take it out of the selection.
 func click_select(map_point: Vector2, add := false) -> void:
 	var unit := UnitsView.unit_at_point(world, map_point, SimWorld.PLAYER_TEAM, units_view.alpha)
 	if unit == null:
-		if not add:
+		var building := BuildingsView.building_at_point(world, map_point, SimWorld.PLAYER_TEAM)
+		if building != null and building.team == SimWorld.PLAYER_TEAM and not add:
+			selection.set_building(building.id)
+		elif not add:
 			selection.clear()
 	elif add:
 		selection.toggle(unit.id)
@@ -422,7 +438,7 @@ func set_mode(new_mode: Mode) -> void:
 ## walk there if there is none. Selected harvesters start work if the click is
 ## on a deposit, and go to unload if it is on their side's refinery.
 func order_at(map_point: Vector2) -> void:
-	if selection.is_empty() or is_halted():
+	if selection.ids.is_empty() or is_halted():
 		return
 	var enemy := UnitsView.enemy_at_point(world, map_point, SimWorld.PLAYER_TEAM, units_view.alpha)
 	if enemy != null:
@@ -500,7 +516,7 @@ func order_unload_at(map_point: Vector2) -> bool:
 
 ## Send the selected units to a point on the map. They ignore enemies on the way.
 func order_move_to(map_point: Vector2) -> void:
-	if selection.is_empty() or is_halted():
+	if selection.ids.is_empty() or is_halted():
 		return
 	var cell := MapData.cell_at_pixel(map_point)
 	if not map.in_bounds(cell):
@@ -513,7 +529,7 @@ func order_move_to(map_point: Vector2) -> void:
 
 ## Send the selected units to a point on the map, fighting what they meet on the way.
 func order_attack_move_to(map_point: Vector2) -> void:
-	if selection.is_empty() or is_halted():
+	if selection.ids.is_empty() or is_halted():
 		return
 	var cell := MapData.cell_at_pixel(map_point)
 	if not map.in_bounds(cell):
@@ -526,7 +542,7 @@ func order_attack_move_to(map_point: Vector2) -> void:
 
 ## Send the selected units after one enemy unit.
 func order_attack_unit(unit_id: int) -> void:
-	if selection.is_empty() or is_halted() or world.get_unit(unit_id) == null:
+	if selection.ids.is_empty() or is_halted() or world.get_unit(unit_id) == null:
 		return
 	world.order_attack(selection.ids, unit_id)
 	units_view.add_target_marker(unit_id)
@@ -538,7 +554,7 @@ func order_attack_unit(unit_id: int) -> void:
 ## attack buildings: they stay where they are.
 func order_attack_building(building_id: int) -> void:
 	var building := world.get_building(building_id)
-	if selection.is_empty() or is_halted() or building == null or building.team == SimWorld.PLAYER_TEAM:
+	if selection.ids.is_empty() or is_halted() or building == null or building.team == SimWorld.PLAYER_TEAM:
 		return
 	world.order_attack(selection.ids, building_id)
 	buildings_view.mark(building_id)
@@ -562,23 +578,29 @@ func order_stop() -> void:
 func begin_attack_move() -> void:
 	if is_halted():
 		return
-	if selection.is_empty():
+	if selection.ids.is_empty():
 		say("Select some units first.")
 		return
 	set_mode(Mode.ATTACK_MOVE)
 
 
-## Q or the ability button: the next left click picks the unit the commander's ability is used on.
-func begin_ability() -> void:
+## An ability key (Q, E) or its button. An ability used on one unit waits for
+## the left click that picks the unit; one used around the hero is used at once.
+func begin_ability(key := "Q") -> void:
 	if is_halted():
 		return
-	var hero := ability_unit()
+	var hero := ability_unit(key)
 	if hero == null:
-		say("You have no commander to do that.")
+		say("You have no hero who can do that.")
 		return
+	var ability := hero.type.ability
 	if hero.ability_ticks_left > 0:
-		say("%s is not ready yet." % hero.type.ability.display_name)
+		say("%s is not ready yet." % ability.display_name)
 		return
+	if not ability.needs_target():
+		use_ability_on(hero.id, key)
+		return
+	_ability_key = key
 	set_mode(Mode.ABILITY)
 
 
@@ -664,9 +686,11 @@ func place_at(map_point: Vector2) -> bool:
 	return true
 
 
-## Have the commander use its ability on a unit. Returns false, and tells the player why, if it cannot.
-func use_ability_on(unit_id: int) -> bool:
-	var hero := ability_unit()
+## Have the hero whose ability has this key use it on a unit (for an ability
+## used around the hero, on the hero itself). Returns false, and tells the
+## player why, if it cannot.
+func use_ability_on(unit_id: int, key := "") -> bool:
+	var hero := ability_unit(key if key != "" else _ability_key)
 	if hero == null or is_halted():
 		return false
 	var problem := world.ability_problem(hero.id, unit_id)
@@ -674,22 +698,45 @@ func use_ability_on(unit_id: int) -> bool:
 		say(problem + ".")
 		return false
 	world.order_ability(hero.id, unit_id)
-	units_view.add_target_marker(unit_id, true)
+	if hero.type.ability.needs_target():
+		units_view.add_target_marker(unit_id, true)
 	if hints != null:
 		hints.note(&"ability")
 	return true
 
 
-## The unit whose ability Q triggers: the player's commander in a mission,
-## otherwise the first selected hero. Null if there is none.
-func ability_unit() -> SimUnit:
+## The hero whose active ability has this key: in a mission, the player's
+## living hero with it; otherwise the first selected one. Null if there is none.
+func ability_unit(key := "Q") -> SimUnit:
+	var candidates: Array[SimUnit] = []
 	if mission != null:
-		return mission.player_commander()
-	for id in selection.ids:
-		var unit := world.get_unit(id)
-		if unit != null and unit.type.ability != null:
+		candidates = mission.player_heroes()
+	else:
+		for id in selection.ids:
+			var unit := world.get_unit(id)
+			if unit != null:
+				candidates.append(unit)
+	for unit in candidates:
+		if unit.type.ability != null and unit.type.ability.key == key:
 			return unit
 	return null
+
+
+## R or the Repair button: start or stop repairing the selected building.
+func toggle_repair() -> void:
+	if is_halted() or selection.building_id == 0:
+		return
+	var building := world.get_building(selection.building_id)
+	if building == null or building.team != SimWorld.PLAYER_TEAM:
+		return
+	if not building.repairing and building.health >= building.type.max_health:
+		say("The %s is not damaged." % building.type.display_name)
+		return
+	if not building.repairing and world.stored_for(SimWorld.PLAYER_TEAM) <= 0:
+		say("Repairs cost Orichalcum, and the store is empty.")
+	world.order_repair(building.id, not building.repairing)
+	if hints != null and building.repairing:
+		hints.note(&"repair")
 
 
 ## Show a short message in the hint box.
@@ -771,7 +818,11 @@ static func describe_unit(unit: SimUnit, p_world: SimWorld = null) -> String:
 		text += "\nAttack %d   Range %d" % [type.attack_damage, type.attack_range]
 	if type.ability != null:
 		var wait := ceili(unit.ability_ticks_left * SimWorld.TICK_SECONDS)
-		text += "\n%s: %s" % [type.ability.display_name, "ready" if wait == 0 else "%d s" % wait]
+		text += "\n%s (%s): %s" % [type.ability.display_name, type.ability.key, "ready" if wait == 0 else "%d s" % wait]
+	if type.passive != null:
+		text += "\n%s (always on)" % type.passive.display_name
+	if p_world != null and p_world.haste_of(unit) > 1.0:
+		text += "\nEncouraged: %d%% faster" % roundi((p_world.haste_of(unit) - 1.0) * 100.0)
 	if type.is_harvester():
 		text += "\nCargo %d / %d" % [unit.cargo, type.cargo_capacity]
 		if unit.trailer_id != 0:
@@ -828,6 +879,20 @@ static func describe_building(p_world: SimWorld, building: SimBuilding) -> Strin
 	return text
 
 
+## What the sidebar says about a selected building of the player's: what
+## describe_building() says, and what repairing it costs.
+static func describe_own_building(p_world: SimWorld, building: SimBuilding) -> String:
+	var lines := describe_building(p_world, building).split("\n")
+	var repair := ""
+	if building.repairing:
+		repair = "Repairing: %d Orichalcum to go" % SimWorld.repair_cost(building)
+	elif building.health < building.type.max_health:
+		repair = "Repair (R): %d Orichalcum" % SimWorld.repair_cost(building)
+	if repair != "":
+		lines.insert(3, repair)         # under the health, where the sidebar has room for it
+	return "\n".join(lines)
+
+
 ## What the sidebar says about a cell of the world: the building on it, or
 ## its terrain, with the Orichalcum in it if it is part of a deposit.
 static func describe_spot(p_world: SimWorld, cell: Vector2i) -> String:
@@ -846,7 +911,10 @@ static func describe_spot(p_world: SimWorld, cell: Vector2i) -> String:
 
 ## What the sidebar says about the current selection. "" if nothing is selected.
 static func describe_selection(p_world: SimWorld, p_selection: Selection) -> String:
-	if p_selection.is_empty():
+	if p_selection.building_id != 0:
+		var building := p_world.get_building(p_selection.building_id)
+		return describe_own_building(p_world, building) if building != null else ""
+	if p_selection.ids.is_empty():
 		return ""
 	if p_selection.ids.size() == 1:
 		var unit := p_world.get_unit(p_selection.ids[0])
