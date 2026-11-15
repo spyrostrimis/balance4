@@ -32,3 +32,4 @@ trailer_sprites = ExtResource("3")
 sprite_size = Vector2i(44, 44)
 minimap_color = Color(1, 0.62, 0.5, 1)
 sprite_anchor = Vector2i(22, 25)
+is_vehicle = true

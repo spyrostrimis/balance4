@@ -20,8 +20,7 @@ be played:
   trains soldiers and light tanks, defends, and attacks in waves, under the
   same rules as you. Destroy every enemy building and soldier to win.
 
-- **Mission 2, "Holding the Claim"** (M7, in progress; placeholder art, no
-  sound yet), as Blue on a new map, River Fords: the Prince sets up a base
+- **Mission 2, "Holding the Claim"** (M7, in progress; no sound yet), as Blue on a new map, River Fords: the Prince sets up a base
   by the rock, beats off Red's assault and crosses the river to destroy
   Red's camp. Base building, both heroes, and a story told as you play.
 - **Mission 1, "The First Claim"** (provisional name), to a win or a loss: as
@@ -57,6 +56,7 @@ See [docs/roadmap.md](docs/roadmap.md) for what comes next.
 ![The new HUD (M7.5): heroes top left, the objectives list open, a scout reporting in the message box](docs/screenshots/m7_hud.png)
 ![The title screen over Mission 2's map](docs/screenshots/m7_title.png)
 ![The briefing before Mission 2](docs/screenshots/m7_briefing.png)
+![Mission 2: Red's tanks and soldiers come at Blue's new base](docs/screenshots/m7_battle.png)
 
 ![A skirmish as Red: light tanks and a soldier attack Blue's burning headquarters](docs/screenshots/m6_attack.png)
 ![A skirmish as Blue: a light tank shells Red's headquarters from a distance](docs/screenshots/m6_burning.png)
@@ -233,7 +233,9 @@ python tools/make_buildings.py
 Blender must be given the output folder as a full path if it is not started
 from the repo root. To render and pack only some units, name them after the
 folder, for example `... -- tools/_raw commander_blue commander_red` and
-`python tools/make_units.py tools/_raw commander_blue commander_red`.
+`python tools/make_units.py tools/_raw commander_blue commander_red`. The
+heroes' portraits are rendered the same way with `... -- tools/_raw
+portraits`; then run `python tools/make_hud.py`.
 
 After regenerating, open the project in Godot (or run the `--import` command
 above) so Godot picks up the changed images. How the terrain is defined and drawn

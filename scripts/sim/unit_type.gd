@@ -70,6 +70,8 @@ extends Resource
 @export var minimap_color := Color(0.45, 0.72, 1.0)
 ## The point of a sprite that stands on the ground (its feet).
 @export var sprite_anchor := Vector2i(12, 18)
+## A machine (a harvester, a tank): it explodes when destroyed.
+@export var is_vehicle := false
 ## Heroes: the face the HUD shows (from tools/make_hud.py), 44x54 pixels.
 @export var portrait: Texture2D
 

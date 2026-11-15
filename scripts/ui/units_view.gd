@@ -53,6 +53,15 @@ const HEAL_TICKS := 14
 ## How long the ring of an area heal spreads (effects last SimWorld.EFFECT_TICKS at most).
 const PULSE_TICKS := 18.0
 const DEATH_TICKS := 18
+## A shot from afar (a tank's): the muzzle flash, the shell's flight and the blast, in ticks.
+const FLASH_TICKS := 2.0
+const SHELL_TICKS := 3.0
+const BLAST_TICKS := 10.0
+## How far in front of a vehicle's middle its gun's muzzle is, in pixels.
+const MUZZLE := 15.0
+const FLASH := Color(1.0, 0.93, 0.62)
+const FIRE := Color(1.0, 0.58, 0.18)
+const SMOKE := Color(0.32, 0.29, 0.26)
 ## One pixel step for each facing, 0 south to 7 south-east.
 const FACING_STEP: Array[Vector2] = [
 	Vector2(0, 1), Vector2(-1, 1), Vector2(-1, 0), Vector2(-1, -1),
@@ -309,6 +318,9 @@ func _body_at(cell: Vector2) -> Vector2:
 
 
 func _draw_hit(effect: Dictionary) -> void:
+	if effect.get("ranged", false):
+		_draw_shot(effect)
+		return
 	var age := _age(effect)
 	if age >= HIT_TICKS:
 		return
@@ -338,6 +350,47 @@ func _draw_heal(effect: Dictionary) -> void:
 		draw_line(plus + Vector2(0, -2), plus + Vector2(0, 3), Color(HEAL_GLOW, fade), 1.0)
 
 
+## A shot from afar: a flash at the muzzle, the shell flying with a short
+## trail, then a blast of fire and smoke where it lands.
+func _draw_shot(effect: Dictionary) -> void:
+	var age := _age(effect)
+	if age >= SHELL_TICKS + BLAST_TICKS:
+		return
+	var from := ((effect["from"] as Vector2) * CELL + FEET + Vector2(0, -5)).round()
+	var to := _body_at(effect["to"])
+	var aim := (to - from).normalized() if to != from else Vector2.DOWN
+	var muzzle := (from + aim * MUZZLE).round()
+	if age < FLASH_TICKS:
+		var f := 1.0 - age / FLASH_TICKS
+		draw_circle(muzzle + aim * 2.0, 2.0 + 2.5 * f, Color(FIRE, 0.8 * f))
+		draw_circle(muzzle + aim * 1.0, 1.0 + 1.5 * f, Color(FLASH, f))
+		for side in [-1.0, 1.0]:
+			draw_line(muzzle, muzzle + (aim + aim.orthogonal() * side * 0.7).normalized() * 5.0 * f, Color(FLASH, f), 1.0)
+	if age < SHELL_TICKS:
+		var at := muzzle.lerp(to, age / SHELL_TICKS)
+		draw_line(at - aim * 6.0, at, Color(FIRE, 0.55), 1.0)
+		draw_rect(Rect2((at - Vector2(1, 1)).round(), Vector2(2, 2)), FLASH)
+		return
+	_draw_blast(to, (age - SHELL_TICKS) / BLAST_TICKS, 1.5, int(effect["tick"]))
+
+
+## Fire and smoke at a point, `t` from 0 (just hit) to 1 (gone), `size` 1 for
+## a shell and more for something blowing up.
+func _draw_blast(at: Vector2, t: float, size: float, seed_value: int) -> void:
+	var fade := 1.0 - t
+	if t < 0.5:
+		draw_circle(at, (2.0 + 5.0 * t) * size, Color(FIRE, 0.85 * (1.0 - t * 2.0)))
+		draw_circle(at, (2.5 - 3.0 * t) * size, Color(FLASH, 1.0 - t * 2.0))
+	for i in 3 + int(size):
+		var h := (seed_value * 31 + i * 17) % 13 - 6
+		var puff := at + Vector2(h * 0.6, -2.0 - 7.0 * t * size - i * 2.0) * Vector2(size, 1.0)
+		draw_circle(puff, (1.5 + 2.5 * t) * (0.7 + 0.3 * size), Color(SMOKE, 0.55 * fade))
+	for i in 4:
+		var angle := TAU * (i / 4.0) + seed_value * 0.7
+		var spark := at + Vector2(cos(angle), sin(angle) * 0.6) * (3.0 + 8.0 * t) * size
+		draw_rect(Rect2(spark.round(), Vector2.ONE), Color(FLASH, fade))
+
+
 ## The ring of an area heal spreading out from the hero to the edge of its reach.
 func _draw_pulse(effect: Dictionary) -> void:
 	var age := _age(effect)
@@ -346,8 +399,18 @@ func _draw_pulse(effect: Dictionary) -> void:
 	var feet := ((effect["from"] as Vector2) * CELL + FEET).round()
 	var reach := (float(effect.get("radius", 3)) + 0.5) * CELL
 	var grow := age / PULSE_TICKS
-	_draw_ring(feet, Vector2(reach, reach * 0.55) * (0.15 + 0.85 * grow), Color(HEAL_GLOW, 1.0 - grow))
+	var ring := Vector2(reach, reach * 0.55) * (0.15 + 0.85 * grow)
+	var points := PackedVector2Array()
+	for i in 24:
+		var angle := TAU * i / 24.0
+		points.append(feet + Vector2(cos(angle), sin(angle)) * ring)
+	draw_colored_polygon(points, Color(HEAL_GLOW, 0.12 * (1.0 - grow)))
+	_draw_ring(feet, ring, Color(HEAL_GLOW, 1.0 - grow))
 	_draw_ring(feet, Vector2(reach, reach * 0.55) * (0.1 + 0.6 * grow), Color(HEAL_GLOW, 0.5 * (1.0 - grow)))
+	for i in 10:
+		var angle := TAU * i / 10.0 + int(effect["tick"]) * 0.3
+		var mote := feet + Vector2(cos(angle), sin(angle) * 0.55) * ring * (0.4 + 0.15 * (i % 3)) + Vector2(0, -age * 0.8)
+		draw_rect(Rect2(mote.round(), Vector2.ONE), Color(1.0, 0.95, 0.6, 1.0 - grow))
 
 
 ## A faint dotted ring showing how far a selected hero's aura reaches.
@@ -367,6 +430,14 @@ func _draw_death(effect: Dictionary) -> void:
 		return
 	var feet := ((effect["to"] as Vector2) * CELL + FEET).round()
 	var fade := 1.0 - age / DEATH_TICKS
+	if effect.get("vehicle", false):
+		var scorch := PackedVector2Array()
+		for i in 12:
+			var angle := TAU * i / 12.0
+			scorch.append(feet + Vector2(cos(angle) * 11.0, sin(angle) * 5.5))
+		draw_colored_polygon(scorch, Color(0.08, 0.06, 0.05, 0.6 * fade))
+		_draw_blast(feet + Vector2(0, -4), age / DEATH_TICKS, 2.2, int(effect["tick"]))
+		return
 	var points := PackedVector2Array()
 	for i in 12:
 		var angle := TAU * i / 12.0

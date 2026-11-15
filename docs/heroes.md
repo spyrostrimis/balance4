@@ -36,9 +36,13 @@ not decided; the game calls him "The Prince".
 
 - A sped-up step or swing is rounded to whole ticks, and what is lost is
   carried into the next, so that 5% is 5% on average. Auras do not add up.
-- His sprite is placeholder art (a blue cloak and a circlet, no helmet, so
-  he reads apart from the field commander) until the M7 art pass. It is
-  rendered by `tools/render_units.py` (`prince`).
+- His sprite (a blue cloak and a circlet, no helmet, so he reads apart
+  from the field commander) is rendered by `tools/render_units.py`
+  (`prince`). His portrait, the field commander's and the scout's are bust
+  shots from the same script (`prince_portrait` and so on; run it with
+  `portraits`), which `tools/make_hud.py` turns into the HUD's 44x54
+  pictures. The field commander is drawn as the backstory has her: the
+  woman of the Royal Guard who escaped with the prince.
 
 ## Losing a hero
 

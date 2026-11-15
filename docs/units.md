@@ -19,6 +19,9 @@ Each kind of unit is one small file in `data/units/` (a `UnitType` resource):
 | `is_hero`, `ability` | Set for heroes such as the field commander |
 | `minimap_color` | Colour of its dot on the minimap |
 | `sprites`, `sprite_size`, `sprite_anchor` | Its sprite sheet and where its feet are in each sprite |
+| `is_vehicle` | A machine (harvester, tank): it explodes when destroyed |
+| `portrait` | Heroes: the face shown in the HUD (see [heroes.md](heroes.md)) |
+| `passive` | Heroes: an ability that is always on, such as Encouragement |
 
 The unit types so far. All names and numbers are provisional; they are kept
 for now and will be tuned much later.

@@ -202,7 +202,7 @@ Each step ends in something playable and a push, as for every milestone.
 | M7.3 | Abilities (area, passive), the prince, the hero death rule, building selection and repair. **Done**: see [heroes.md](heroes.md) | M7.1 |
 | M7.4 | The map and Mission 2, with placeholder art and no sound. **Done**: see [mission2.md](mission2.md) | M7.2, M7.3 |
 | M7.5 | HUD mockups, approval, then the new HUD, portraits, messages, briefing, title and settings. **Done**: mockup v12 D approved and built (portraits, message box, objectives list); briefing and debriefing; title screen with Play, Practice, Settings and Quit; settings saved in `user://settings.cfg`, with Master, Music and Effects audio buses | approval of the mockups |
-| M7.6 | Final art pass and effects | M7.4 |
+| M7.6 | Final art pass and effects. **Done**: Blender portraits for the Prince, the Field Commander and the scout; the tank's muzzle flash, shell and blast, exploding vehicles, a richer pulse; units, buildings and terrain checked against v4 | M7.4 |
 | M7.7 | Placeholder sound and music, audio buses, volume settings | M7.4 |
 | M7.8 | Windows export and the first-time player test; fix what it finds | everything |
 

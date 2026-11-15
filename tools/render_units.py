@@ -10,6 +10,9 @@
 # in assets/sprites/units/, and tools/make_buildings.py into the building pictures in
 # assets/sprites/buildings/. The output folder is scratch space and is not kept in git.
 #
+# It also writes portrait_<character>.png, bust shots for the HUD (tools/make_hud.py treats them).
+# Name "portraits" (or portrait_<character>) after the folder to render only those.
+#
 # Facing 0 looks south (towards the camera), 2 west, 4 north, 6 east.
 # Troops: pose 0 stands; poses 1 and 2 are the two halves of a walking step.
 # Harvesters: pose 0 is the empty truck, 1 the loaded truck, 2 halfway between truck and
@@ -650,6 +653,120 @@ def workshop(team):
     box(0.2, 0.2, 0.12, x=-0.95, y=-0.5, z=0.14, m=WOODS, bevel=0.01)
     box(0.22, 0.22, 0.12, x=-0.72, y=-0.72, z=0, m=HULL, bevel=0.01)
     wheel(-0.95, -0.2, 0.0)                                                          # a spare wheel
+
+
+# --- portraits (heroes and the characters who talk in missions) -----------------------------
+# Head-and-shoulders models with more of a face than the sprites need, seen from the front and
+# a little to one side. tools/make_hud.py turns the renders into the HUD's 44x54 portraits.
+LIPS = mat('lips', '#a8543c', 0, 0.6)
+WHITE = mat('eyewhite', '#efe6d8', 0, 0.4)
+HAIR_DARK = mat('hair_dark', '#3a2414', 0, 0.75)
+HAIR_AUBURN = mat('hair_auburn', '#6e3a1c', 0, 0.7)
+HOOD = mat('hood', '#55532c', 0, 0.9)
+HOOD_D = mat('hood_d', '#3c3a20', 0, 0.9)
+
+
+def face(z, skin=None, brow=None, jaw=1.0):
+    """A head centred at height z, facing -Y: skull, jaw, ears, nose, eyes, brows and mouth."""
+    skin = skin or SKIN
+    brow = brow or LEATHER
+    ell(0.15, 0.155, 0.175, y=0.0, z=z, m=skin)                        # skull
+    ell(0.12 * jaw, 0.12, 0.1, y=-0.025, z=z - 0.075, m=skin)          # jaw and cheeks
+    ell(0.06, 0.06, 0.06, y=0.0, z=z - 0.2, m=skin)                    # chin to neck
+    cyl(0.075, 0.2, z=z - 0.33, m=skin)                                # neck
+    for s in (-1, 1):
+        ell(0.024, 0.04, 0.052, x=s * 0.15, y=0.0, z=z - 0.01, m=skin)              # ears
+        ell(0.022, 0.01, 0.012, x=s * 0.056, y=-0.14, z=z + 0.01, m=WHITE)          # eye whites
+        ell(0.011, 0.008, 0.011, x=s * 0.056, y=-0.147, z=z + 0.01, m=EYE)          # irises
+        box(0.06, 0.02, 0.012, x=s * 0.058, y=-0.142, z=z + 0.04, m=brow, bevel=0.004,
+            rot=(0, s * -0.1, 0))                                                     # brows
+    ell(0.018, 0.035, 0.04, y=-0.148, z=z - 0.025, m=skin)             # nose
+    ell(0.036, 0.012, 0.008, y=-0.13, z=z - 0.09, m=LIPS)              # mouth
+
+
+def prince_portrait():
+    """The prince at 27: dark hair to the collar, a gold circlet with a blue stone, a high blue
+    collar with gold trim over a royal cloak, a glowing pendant."""
+    face(1.1)
+    ell(0.165, 0.17, 0.12, y=0.02, z=1.2, m=HAIR_DARK)                  # hair on top
+    ell(0.17, 0.12, 0.17, y=0.06, z=1.1, m=HAIR_DARK)                   # and at the back
+    for s in (-1, 1):
+        ell(0.05, 0.08, 0.12, x=s * 0.14, y=0.0, z=1.06, m=HAIR_DARK)   # locks over the ears
+    ell(0.12, 0.05, 0.04, y=-0.11, z=1.215, m=HAIR_DARK, rot=(0.3, 0, 0.2))   # a fringe swept aside
+    torus(0.158, 0.014, y=0.0, z=1.17, m=GOLD, rot=(0.12, 0, 0))        # circlet
+    ell(0.022, 0.012, 0.026, y=-0.16, z=1.165, m=B_GLOW)                # its stone
+    cone(0.4, 0.12, 0.4, z=0.74, m=B_CLOTH)                             # the cloak's sloping shoulders
+    for s in (-1, 1):
+        ell(0.16, 0.14, 0.07, x=s * 0.19, y=0.0, z=0.86, m=B_CLOTH)
+    cone(0.13, 0.11, 0.1, z=0.92, m=B_CLOTH2)                           # high collar
+    torus(0.12, 0.014, z=0.97, m=GOLD)
+    ell(0.15, 0.05, 0.1, y=-0.17, z=0.8, m=BONE)                        # shirt front
+    for s in (-1, 1):
+        seg((s * 0.13, -0.19, 0.9), (s * 0.2, -0.24, 0.66), 0.014, GOLD)            # gold trim
+        ell(0.035, 0.02, 0.035, x=s * 0.17, y=-0.2, z=0.84, m=GOLD)                  # clasps
+    seg((-0.17, -0.2, 0.84), (0.17, -0.2, 0.84), 0.006, GOLD, verts=6)              # clasp chain
+    ell(0.03, 0.02, 0.035, y=-0.19, z=0.75, m=B_GLOW)                   # pendant
+
+
+def commander_portrait():
+    """Blue's field commander: the woman of the Royal Guard who escaped with the prince, now
+    about 37. Gold helmet with cheek guards and a tall blue plume, auburn braid, gold pauldrons
+    over steel, a pale cape."""
+    face(1.1, jaw=0.95)
+    ell(0.17, 0.1, 0.12, y=0.08, z=1.0, m=HAIR_AUBURN)                  # hair at the nape
+    seg((0.0, 0.14, 1.0), (0.03, 0.17, 0.75), 0.035, HAIR_AUBURN)       # braid
+    ell(0.19, 0.19, 0.15, y=0.02, z=1.2, m=GOLD)                        # helmet
+    ell(0.195, 0.06, 0.03, y=-0.08, z=1.2, m=STEEL, rot=(0.25, 0, 0))   # brow band
+    ell(0.05, 0.26, 0.2, y=0.08, z=1.43, m=B_CREST)                     # plume
+    ell(0.02, 0.03, 0.06, y=-0.17, z=1.15, m=GOLD)                      # nasal
+    for s in (-1, 1):
+        ell(0.03, 0.06, 0.11, x=s * 0.16, y=-0.04, z=1.06, m=GOLD)      # cheek guards
+    cone(0.34, 0.12, 0.36, z=0.74, m=STEEL)                             # cuirass
+    ell(0.09, 0.04, 0.09, y=-0.18, z=0.76, m=GOLD)                      # breastplate
+    cone(0.11, 0.09, 0.08, z=0.9, m=B_CLOTH)                            # collar
+    for s in (-1, 1):
+        ell(0.13, 0.12, 0.08, x=s * 0.24, y=0.0, z=0.84, m=GOLD, rot=(0, s * 0.35, 0))   # pauldrons
+    ell(0.34, 0.08, 0.3, y=0.16, z=0.75, m=BONE)                        # pale cape
+
+
+def scout_portrait():
+    """A Blue scout: a weathered face under a green-brown hood, leather and a blue scarf."""
+    face(1.08, brow=HAIR_DARK)
+    ell(0.2, 0.2, 0.21, y=0.05, z=1.12, m=HOOD)                         # hood
+    torus(0.165, 0.035, y=-0.07, z=1.09, m=HOOD_D, rot=(pi / 2, 0, 0))  # its rim round the face
+    cone(0.38, 0.12, 0.4, z=0.72, m=HOOD)                               # cloak
+    ell(0.15, 0.08, 0.06, y=-0.08, z=0.9, m=B_CLOTH2)                   # scarf
+    ell(0.12, 0.06, 0.12, y=-0.15, z=0.78, m=LEATHER)                   # jerkin
+    seg((-0.2, -0.18, 0.92), (0.16, -0.2, 0.68), 0.015, LEATHER)        # strap
+
+
+def render_portrait(name):
+    """Bust shot of the current model, 8 times the size of the HUD's portraits."""
+    aim(math.radians(84), (0, 0, 1.02))
+    pivot.scale = (1, 1, 1)
+    pivot.rotation_euler = (0, 0, 0.32)
+    scene.render.resolution_x, scene.render.resolution_y = 44 * 8, 54 * 8
+    scene.render.resolution_percentage = 100
+    camd.ortho_scale = 0.9
+    catcher.hide_render = True
+    ground.hide_render = True
+    for o in objs:
+        o.visible_camera = True
+    scene.render.filepath = os.path.join(OUT, f'portrait_{name}.png')
+    bpy.ops.render.render(write_still=True)
+    pivot.rotation_euler = (0, 0, 0)
+    ground.hide_render = False
+    clear()
+
+
+PORTRAITS = [('prince_blue', prince_portrait), ('commander_blue', commander_portrait), ('scout_blue', scout_portrait)]
+for who, model in PORTRAITS:
+    if ONLY and f'portrait_{who}' not in ONLY and 'portraits' not in ONLY:
+        continue
+    model()
+    render_portrait(who)
+if ONLY and all(n.startswith('portrait') for n in ONLY):
+    ONLY = {'(portraits only)'}           # nothing below matches: skip the units and buildings
 
 
 # Infantry are a third of a cell tall and are seen from a little lower than vehicles so they stay

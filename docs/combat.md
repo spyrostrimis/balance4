@@ -87,7 +87,11 @@ cross and the message box says what the next click will do.
   units.
 - **A hit** shows as a short streak and a spark on the target; the attacker
   leans into the blow and the victim flashes red for a moment.
-- **A death** leaves a dark mark that fades.
+- **A shot from afar** (a light tank's) shows a flash at the gun's muzzle,
+  the shell flying with a short trail, and a blast of fire and smoke where
+  it lands.
+- **A death** leaves a dark mark that fades; a vehicle blows up in fire and
+  smoke and leaves a scorch mark.
 - **A heal** shows as a green line from the commander, a ring and rising plus
   signs on the healed unit.
 - A commander has a small gold chevron above it.

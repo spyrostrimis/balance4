@@ -21,3 +21,4 @@ minimap_color = Color(0.55, 0.78, 1, 1)
 sprites = ExtResource("2")
 sprite_size = Vector2i(36, 36)
 sprite_anchor = Vector2i(18, 20)
+is_vehicle = true

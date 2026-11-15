@@ -15,7 +15,10 @@ Writes to assets/ui/:
                            PIECE pixels square with PAD transparent pixels around the rim, so a
                            stylebox uses texture margins of MARGIN and expand margins of PAD.
   icons/<name>.png         16x16 icons.
-  portraits/<name>.png     PORTRAIT-sized portraits. Placeholders until the art pass (M7.6).
+  portraits/<name>.png     PORTRAIT-sized portraits, from the Blender bust shots that
+                           tools/render_units.py writes into tools/_raw (run it with
+                           "portraits" first). Without a render an existing portrait is
+                           kept; a missing one gets a painted placeholder.
 """
 import math
 import os
@@ -365,6 +368,37 @@ def bust(kind, w, h):
 
 
 PORTRAITS = {'prince_blue': 'prince', 'commander_blue': 'commander', 'scout_blue': 'scout'}
+RAW = os.path.join(ROOT, 'tools', '_raw')
+SKIES = {'scout': ('#7e9468', '#e4d2a0')}
+SKY = ('#6f97c0', '#e8d4a4')
+
+
+def portrait(name, kind, rng):
+    """The HUD portrait of a character: the Blender bust shot (tools/render_units.py writes
+    tools/_raw/portrait_<name>.png) shrunk to size over a warm sky, with a limited palette and
+    a little grit like the sprites. Without the render, the painted placeholder (bust())."""
+    raw_path = os.path.join(RAW, 'portrait_%s.png' % name)
+    if not os.path.exists(raw_path):
+        return bust(kind, *PORTRAIT)
+    w, h = PORTRAIT
+    raw = np.asarray(Image.open(raw_path).convert('RGBA')).astype(np.float32) / 255
+    k = raw.shape[1] // w
+    raw = raw[:h * k, :w * k].reshape(h, k, w, k, 4).mean((1, 3))
+    alpha = raw[..., 3:]
+    colour = raw[..., :3] / np.maximum(alpha, 1e-4)
+    top, bottom = (hexc(c) for c in SKIES.get(kind, SKY))
+    t = np.linspace(0, 1, h)[:, None, None]
+    sky = top * (1 - t) + bottom * t + (fbm(h, w, 6, rng, 2)[..., None] - 0.5) * 0.06
+    yy, xx = np.mgrid[0:h, 0:w]
+    vignette = 1 - 0.25 * (((xx - w / 2) / w) ** 2 + ((yy - h * 0.4) / h) ** 2)[..., None] * 2
+    out = (colour * alpha + sky * (1 - alpha)) * vignette
+    g = out.mean(-1, keepdims=True)
+    out = np.clip(g + (out - g) * 0.9, 0, 1)
+    im = Image.fromarray((out * 255).astype(np.uint8)).filter(ImageFilter.UnsharpMask(1.2, 90, 2))
+    im = im.quantize(colors=40, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE).convert('RGB')
+    out = np.asarray(im).astype(np.float32) / 255
+    out = np.clip(out * (1 + (rng.random((h, w)) - 0.5)[..., None] * 0.05), 0, 1)
+    return Image.fromarray((np.concatenate([out, np.ones((h, w, 1))], -1) * 255).astype(np.uint8), 'RGBA')
 
 
 def main():
@@ -377,7 +411,11 @@ def main():
     for name in ICONS:
         make_icon(name).save(os.path.join(OUT, 'icons', name + '.png'))
     for name, kind in PORTRAITS.items():
-        bust(kind, *PORTRAIT).save(os.path.join(OUT, 'portraits', name + '.png'))
+        path = os.path.join(OUT, 'portraits', name + '.png')
+        if not os.path.exists(os.path.join(RAW, 'portrait_%s.png' % name)) and os.path.exists(path):
+            print('kept', path, '(no Blender render in tools/_raw to make it from)')
+            continue
+        portrait(name, kind, np.random.default_rng(len(name))).save(path)
     print('HUD art written to', OUT)
 
 

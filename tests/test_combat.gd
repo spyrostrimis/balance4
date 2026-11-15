@@ -312,3 +312,27 @@ func test_ability_targets() -> void:
 	check(world.ability_problem(commander.id, 9999) != "", "nor can a unit that does not exist be healed")
 	check(not world.order_ability(commander.id, enemy.id), "such orders are refused")
 	check_eq(commander.order, SimUnit.Order.NONE, "and change nothing")
+
+
+func test_effects_say_how_to_draw_shots_and_deaths() -> void:
+	var world := _open(10, 5)
+	var tank := _type(40, 0)
+	tank.is_vehicle = true
+	world.add_unit(_type(100, 30, 3), BLUE, Vector2i(1, 2))
+	var target := world.add_unit(tank, RED, Vector2i(4, 2))
+	_ticks(world, 1)
+	var shots := world.effects.filter(func(e: Dictionary) -> bool: return e["kind"] == &"hit")
+	check(not shots.is_empty() and shots[0]["ranged"], "a hit from three cells away is a shot, drawn with a shell")
+	_ticks(world, 40)
+	check(world.get_unit(target.id) == null, "the vehicle is destroyed")
+	var deaths := world.effects.filter(func(e: Dictionary) -> bool: return e["kind"] == &"death")
+	check(not deaths.is_empty() and deaths[0]["vehicle"], "and blows up")
+	world = _open(6, 4)
+	world.add_unit(_type(100, 5), BLUE, Vector2i(1, 1))
+	world.add_unit(_type(100, 0), RED, Vector2i(2, 1))
+	_ticks(world, 1)
+	var blows := world.effects.filter(func(e: Dictionary) -> bool: return e["kind"] == &"hit")
+	check(not blows.is_empty() and not blows[0]["ranged"], "a blow from the next cell is not a shot")
+	for path in ["res://data/units/blue_tank.tres", "res://data/units/blue_harvester.tres", GUARD]:
+		var type := load(path) as UnitType
+		check_eq(type.is_vehicle, path != GUARD, "%s is a vehicle" % type.display_name)

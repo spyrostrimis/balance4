@@ -57,8 +57,9 @@ var units: Array[SimUnit] = []
 ## trailer and buildings destroyed. Each entry is a dictionary with "kind"
 ## (&"hit", &"heal", &"death", &"steal" or &"wreck"), "tick", "team" (of the
 ## unit that acted or died, or of the building destroyed), and "from" and
-## "to" (positions in cells); a wreck also has "size" (the building's
-## footprint). The UI draws them; nothing in the rules reads them.
+## "to" (positions in cells); a hit also has "ranged" (a shot from afar, such
+## as a tank's), a death "vehicle" (it explodes), a wreck "size" (the
+## building's footprint). The UI draws them; nothing in the rules reads them.
 var effects: Array[Dictionary] = []
 ## How many units have been killed so far. The UI watches it to forget dead units.
 var removed_count := 0
@@ -599,7 +600,7 @@ func _strike(attacker: SimUnit, target_id: int) -> void:
 		_strike_building(attacker, building)
 		return
 	var target := get_unit(target_id)
-	_add_effect(&"hit", attacker, target)
+	_add_effect(&"hit", attacker, target, {"ranged": attacker.type.attack_range > 1})
 	target.health = maxi(0, target.health - damage_to(target, attacker.type.attack_damage))
 	target.last_hurt_tick = tick_count
 	if target.health == 0:
@@ -629,7 +630,7 @@ func _call_for_help(team: int, cell: Vector2i, attacker: SimUnit, victim: SimUni
 
 func _strike_building(attacker: SimUnit, building: SimBuilding) -> void:
 	var aim := building.nearest_cell(attacker.cell)
-	_add_effect_at(&"hit", attacker.team, attacker.visual_cell(), Vector2(aim))
+	_add_effect_at(&"hit", attacker.team, attacker.visual_cell(), Vector2(aim), {"ranged": attacker.type.attack_range > 1})
 	building.health = maxi(0, building.health - attacker.type.attack_damage)
 	building.last_hurt_tick = tick_count
 	if building.health == 0:
@@ -682,7 +683,7 @@ func _kill(unit: SimUnit) -> void:
 	_any_dead = true
 	removed_count += 1
 	losses[unit.team] = int(losses.get(unit.team, 0)) + 1
-	_add_effect(&"death", unit, unit)
+	_add_effect(&"death", unit, unit, {"vehicle": unit.type.is_vehicle})
 
 
 func _act_ability(unit: SimUnit) -> bool:
@@ -804,12 +805,14 @@ func _repair_buildings() -> void:
 			building.repair_credit -= 1
 
 
-func _add_effect(kind: StringName, actor: SimUnit, subject: SimUnit) -> void:
-	_add_effect_at(kind, actor.team, actor.visual_cell(), subject.visual_cell())
+func _add_effect(kind: StringName, actor: SimUnit, subject: SimUnit, extra := {}) -> void:
+	_add_effect_at(kind, actor.team, actor.visual_cell(), subject.visual_cell(), extra)
 
 
-func _add_effect_at(kind: StringName, team: int, from: Vector2, to: Vector2) -> void:
-	effects.append({"kind": kind, "tick": tick_count, "team": team, "from": from, "to": to})
+func _add_effect_at(kind: StringName, team: int, from: Vector2, to: Vector2, extra := {}) -> void:
+	var effect := {"kind": kind, "tick": tick_count, "team": team, "from": from, "to": to}
+	effect.merge(extra)
+	effects.append(effect)
 
 
 # --- buildings -------------------------------------------------------------------

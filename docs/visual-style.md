@@ -99,8 +99,19 @@ heroes stacked one above the other a little lower down.
   and power (or, without a base, the objective box and the controls); a card
   about what is selected or under the mouse; the command buttons with icons.
 
-The art is made by `tools/make_hud.py` into `assets/ui/`; the portraits there
-are placeholders until the art pass (M7.6).
+The art is made by `tools/make_hud.py` into `assets/ui/`. The portraits are
+bust shots of the same kind of Blender models as the units (as the approved
+v4 card portrait was), rendered by `tools/render_units.py`, shrunk over a
+warm sky with a limited palette and a little grit.
+
+## Effects
+
+Effects are drawn in code, small and pixel-sharp, in warm light colours: a
+spark for a blow, a muzzle flash, a flying shell and a blast of fire and
+smoke for a tank's shot, a scorch mark and an explosion for a vehicle, a
+green ring with rising motes for the prince's pulse, a green line and rising
+plus signs for a heal, sparks and a rising plus over a building being
+repaired, flames and smoke over a badly damaged one.
 
 The screens around a mission use the same skin: the title screen (a wooden
 board of buttons over a slow pan across Mission 2's map), the briefing (a
