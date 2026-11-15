@@ -1,23 +1,50 @@
-[gd_resource type="Resource" script_class="MissionDef" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="MissionDef" format=3]
 
-[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="1"]
-[ext_resource type="Resource" path="res://data/maps/desert_01.tres" id="2"]
-[ext_resource type="Resource" path="res://data/buildings/red_refinery.tres" id="3"]
-[ext_resource type="Resource" path="res://data/units/red_harvester.tres" id="4"]
+[ext_resource type="Script" path="res://scripts/sim/missions/placement.gd" id="1_4822h"]
+[ext_resource type="Resource" path="res://data/buildings/red_refinery.tres" id="2_6dc5l"]
+[ext_resource type="Resource" path="res://data/units/red_harvester.tres" id="3_4aoe1"]
+[ext_resource type="Resource" path="res://data/hints/harvest.tres" id="4_wh8kk"]
+[ext_resource type="Resource" path="res://data/maps/desert_01.tres" id="5_fd0bh"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective.gd" id="6_bug7k"]
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="7_svd3l"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_side.gd" id="8_2xhvs"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_trigger.gd" id="9_qrsvy"]
+
+[sub_resource type="Resource" id="Resource_fn573"]
+script = ExtResource("1_4822h")
+type = ExtResource("2_6dc5l")
+
+[sub_resource type="Resource" id="Resource_w533i"]
+script = ExtResource("1_4822h")
+type = ExtResource("3_4aoe1")
+count = 2
+at = 2
+
+[sub_resource type="Resource" id="Resource_kdhqa"]
+script = ExtResource("6_bug7k")
+id = &"practice"
+text = "Send your harvesters to the Orichalcum rock."
+
+[sub_resource type="Resource" id="Resource_7b4er"]
+script = ExtResource("8_2xhvs")
+name = "Red"
+color = Color(1, 0.45, 0.35, 1)
+knows_deposits = true
+
+[sub_resource type="Resource" id="Resource_gtpbq"]
+script = ExtResource("8_2xhvs")
+name = "Blue"
+color = Color(0.45, 0.72, 1, 1)
+start = 1
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("7_svd3l")
 id = &"harvest_trial_red"
 number = 0
 display_name = "Harvest trial"
-map = ExtResource("2")
-player_side = "Red"
-enemy_side = "Blue"
-player_color = Color(1, 0.45, 0.35, 1)
-enemy_color = Color(0.45, 0.72, 1, 1)
-troop_count = 0
-player_refinery = ExtResource("3")
-player_harvester = ExtResource("4")
-harvester_count = 2
-practice = true
-objective = "Send your harvesters to the Orichalcum rock."
+kind = 1
+map = ExtResource("5_fd0bh")
+sides = Array[ExtResource("8_2xhvs")]([SubResource("Resource_7b4er"), SubResource("Resource_gtpbq")])
+forces = Array[ExtResource("1_4822h")]([SubResource("Resource_fn573"), SubResource("Resource_w533i")])
+objectives = Array[ExtResource("6_bug7k")]([SubResource("Resource_kdhqa")])
+hints = ExtResource("4_wh8kk")

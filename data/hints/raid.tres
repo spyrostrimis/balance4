@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="HintList" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/missions/hint.gd" id="1_hriw2"]
+[ext_resource type="Script" path="res://scripts/sim/missions/event_condition.gd" id="2_fqrog"]
+[ext_resource type="Script" path="res://scripts/sim/missions/hint_list.gd" id="3_6bxd4"]
+
+[sub_resource type="Resource" id="Resource_7wgqw"]
+script = ExtResource("2_fqrog")
+event = &"select"
+
+[sub_resource type="Resource" id="Resource_a0hdr"]
+script = ExtResource("1_hriw2")
+id = &"select"
+text = "Your harvesters are the trucks beside the refinery. Left-click one, or drag a box around both."
+done_when = SubResource("Resource_7wgqw")
+
+[sub_resource type="Resource" id="Resource_tnoqp"]
+script = ExtResource("2_fqrog")
+event = &"harvest"
+
+[sub_resource type="Resource" id="Resource_7rj5d"]
+script = ExtResource("1_hriw2")
+id = &"harvest"
+text = "Right-click the Orichalcum rock in the middle of the map (the gold patch on the minimap). The harvesters drive there and start work."
+done_when = SubResource("Resource_tnoqp")
+
+[sub_resource type="Resource" id="Resource_p3so2"]
+script = ExtResource("1_hriw2")
+id = &"watch"
+text = "Raiders are coming for your harvesters. A harvester that is attacked unfolds and guards its trailer. Send your troops to help it: if it dies, the raiders take the trailer's Orichalcum."
+
+[resource]
+script = ExtResource("3_6bxd4")
+hints = Array[ExtResource("1_hriw2")]([SubResource("Resource_a0hdr"), SubResource("Resource_7rj5d"), SubResource("Resource_p3so2")])

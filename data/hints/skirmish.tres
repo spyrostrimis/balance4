@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="HintList" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/missions/hint.gd" id="1_afyj1"]
+[ext_resource type="Script" path="res://scripts/sim/missions/event_condition.gd" id="2_7dxot"]
+[ext_resource type="Script" path="res://scripts/sim/missions/hint_list.gd" id="3_srryg"]
+
+[sub_resource type="Resource" id="Resource_wqxu3"]
+script = ExtResource("2_7dxot")
+event = &"select"
+
+[sub_resource type="Resource" id="Resource_1cq0o"]
+script = ExtResource("1_afyj1")
+id = &"select"
+text = "Your harvester is the truck beside the refinery. Left-click it."
+done_when = SubResource("Resource_wqxu3")
+
+[sub_resource type="Resource" id="Resource_88d7p"]
+script = ExtResource("2_7dxot")
+event = &"harvest"
+
+[sub_resource type="Resource" id="Resource_u8adm"]
+script = ExtResource("1_afyj1")
+id = &"harvest"
+text = "Right-click the Orichalcum rock in the middle of the map (the gold patch on the minimap). Everything you build is paid for with Orichalcum."
+done_when = SubResource("Resource_88d7p")
+
+[sub_resource type="Resource" id="Resource_d003f"]
+script = ExtResource("2_7dxot")
+event = &"build"
+
+[sub_resource type="Resource" id="Resource_fviek"]
+script = ExtResource("1_afyj1")
+id = &"build"
+text = "The build menu is at the right. Click Generator: your headquarters starts on it, and it is paid for bit by bit while it is built."
+done_when = SubResource("Resource_d003f")
+
+[sub_resource type="Resource" id="Resource_l02y3"]
+script = ExtResource("2_7dxot")
+event = &"place"
+
+[sub_resource type="Resource" id="Resource_y7urg"]
+script = ExtResource("1_afyj1")
+id = &"place"
+text = "When it is ready, click 'Place the Generator' and then a spot on the stony building ground by your headquarters. Green squares mean it fits."
+done_when = SubResource("Resource_l02y3")
+
+[sub_resource type="Resource" id="Resource_2lip6"]
+script = ExtResource("2_7dxot")
+event = &"train"
+
+[sub_resource type="Resource" id="Resource_ucush"]
+script = ExtResource("1_afyj1")
+id = &"train"
+text = "Build a Barracks to train soldiers, and a Workshop for light tanks and more harvesters. {enemy} builds its own base in the far corner."
+done_when = SubResource("Resource_2lip6")
+
+[sub_resource type="Resource" id="Resource_jc8hf"]
+script = ExtResource("1_afyj1")
+id = &"attack"
+text = "Destroy every {enemy} building and soldier to win: right-click an enemy building to attack it, or attack-move (F) into {enemy}'s base. Keep some troops at home."
+
+[resource]
+script = ExtResource("3_srryg")
+hints = Array[ExtResource("1_afyj1")]([SubResource("Resource_1cq0o"), SubResource("Resource_u8adm"), SubResource("Resource_fviek"), SubResource("Resource_y7urg"), SubResource("Resource_ucush"), SubResource("Resource_jc8hf")])

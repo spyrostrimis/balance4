@@ -449,7 +449,7 @@ func test_scene_shows_the_raid() -> void:
 	check(view.mission.def.has_raid(), "the scene runs the raid trial")
 	check_eq(view.hud._forces.text, "Harvesters: 2    Raiders: 3", "the sidebar counts harvesters and raiders")
 	view.hints.note(&"harvest")
-	check(view.hints.text(view.mission.def).contains("Raiders are coming"), "the last hint warns of the raid")
+	check(view.hints.text().contains("Raiders are coming"), "the last hint warns of the raid")
 	var ids := _harvesters(world)
 	var harvester := world.get_unit(ids[0])
 	world.order_harvest(ids, world.deposits[0].cells[0])

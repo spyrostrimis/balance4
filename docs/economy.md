@@ -179,7 +179,8 @@ Mission 1 is unchanged: it has no base and no harvesters.
 | Opponent | None | Three soldiers, who set off after 45 seconds |
 
 Blue plays on the forest map, Red on the desert map. A practice mission
-(`practice` in `MissionDef`) has no control ring and no way to win or lose;
+(its `kind` in `MissionDef`, see [missions.md](missions.md)) has no control
+ring and no way to win or lose;
 it is left from the pause menu (Esc). The rock is on the player's map from the start.
 
 - **Harvest trial.** The hints teach two things: select a harvester, and

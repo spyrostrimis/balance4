@@ -3,12 +3,31 @@ extends SceneTree
 ##
 ## Run from the repo root (after the project has been imported once):
 ##   godot --headless --path . --script res://tests/run_tests.gd
-## Exit code 0 means every test passed, 1 means at least one failed.
+## Exit code 0 means every test passed, 1 means at least one failed. A test
+## that runs into a script error (which stops it halfway) has failed too.
 
 const TEST_DIR := "res://tests"
 
 
 var _started := false
+var _errors := ErrorCounter.new()
+
+
+## Counts the script errors Godot reports, so that a test that stops halfway
+## on one is not taken for a pass.
+class ErrorCounter extends Logger:
+	var count := 0
+	var _lock := Mutex.new()
+
+	func _log_error(_function: String, _file: String, _line: int, _code: String, _rationale: String,
+			_editor_notify: bool, error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		if error_type == ERROR_TYPE_SCRIPT:
+			_lock.lock()
+			count += 1
+			_lock.unlock()
+
+	func _log_message(_message: String, _error: bool) -> void:
+		pass
 
 
 func _process(_delta: float) -> bool:
@@ -21,6 +40,7 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	OS.add_logger(_errors)
 	var files: Array[String] = []
 	for file in DirAccess.get_files_at(TEST_DIR):
 		if file.begins_with("test_") and file.ends_with(".gd") and file != "test_case.gd":
@@ -41,7 +61,10 @@ func _run() -> void:
 				continue
 			var test: TestCase = script.new()
 			test.tree = self
+			var errors_before := _errors.count
 			test.call(method_name)
+			if _errors.count != errors_before:
+				test.failures.append("a script error stopped the test (see the error above)")
 			if test.failures.is_empty():
 				passed += 1
 			else:

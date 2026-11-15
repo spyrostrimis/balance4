@@ -1,39 +1,109 @@
-[gd_resource type="Resource" script_class="MissionDef" load_steps=11 format=3]
+[gd_resource type="Resource" script_class="MissionDef" format=3]
 
-[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="1"]
-[ext_resource type="Resource" path="res://data/maps/desert_01.tres" id="2"]
-[ext_resource type="Resource" path="res://data/buildings/red_headquarters.tres" id="3"]
-[ext_resource type="Resource" path="res://data/buildings/red_refinery.tres" id="4"]
-[ext_resource type="Resource" path="res://data/units/red_harvester.tres" id="5"]
-[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="6"]
-[ext_resource type="Resource" path="res://data/buildings/blue_headquarters.tres" id="7"]
-[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="8"]
-[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="9"]
-[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="10"]
+[ext_resource type="Script" path="res://scripts/sim/missions/placement.gd" id="1_5tw0f"]
+[ext_resource type="Resource" path="res://data/buildings/red_headquarters.tres" id="2_fhwe5"]
+[ext_resource type="Resource" path="res://data/buildings/red_refinery.tres" id="3_42mbw"]
+[ext_resource type="Resource" path="res://data/buildings/blue_headquarters.tres" id="4_sgvoo"]
+[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="5_be13v"]
+[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="6_5mabi"]
+[ext_resource type="Resource" path="res://data/units/red_harvester.tres" id="7_p31rt"]
+[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="8_by5u8"]
+[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="9_iyln0"]
+[ext_resource type="Resource" path="res://data/hints/skirmish.tres" id="10_kkkn6"]
+[ext_resource type="Resource" path="res://data/maps/desert_01.tres" id="11_s3n3h"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective.gd" id="12_rh5sp"]
+[ext_resource type="Script" path="res://scripts/sim/missions/defeat_condition.gd" id="13_isq30"]
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="14_f7mey"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_side.gd" id="15_mb3js"]
+[ext_resource type="Script" path="res://scripts/sim/missions/computer_opponent_def.gd" id="16_871dn"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_trigger.gd" id="17_hod55"]
+
+[sub_resource type="Resource" id="Resource_ovkcc"]
+script = ExtResource("1_5tw0f")
+type = ExtResource("2_fhwe5")
+
+[sub_resource type="Resource" id="Resource_8uab7"]
+script = ExtResource("1_5tw0f")
+type = ExtResource("3_42mbw")
+
+[sub_resource type="Resource" id="Resource_qwci1"]
+script = ExtResource("1_5tw0f")
+team = 1
+type = ExtResource("4_sgvoo")
+
+[sub_resource type="Resource" id="Resource_u27yx"]
+script = ExtResource("1_5tw0f")
+team = 1
+type = ExtResource("5_be13v")
+
+[sub_resource type="Resource" id="Resource_ogjaq"]
+script = ExtResource("1_5tw0f")
+type = ExtResource("6_5mabi")
+count = 3
+
+[sub_resource type="Resource" id="Resource_bkol8"]
+script = ExtResource("1_5tw0f")
+type = ExtResource("7_p31rt")
+at = 2
+
+[sub_resource type="Resource" id="Resource_ms0jf"]
+script = ExtResource("1_5tw0f")
+team = 1
+type = ExtResource("8_by5u8")
+at = 2
+
+[sub_resource type="Resource" id="Resource_tfnwx"]
+script = ExtResource("1_5tw0f")
+team = 1
+type = ExtResource("9_iyln0")
+count = 3
+
+[sub_resource type="Resource" id="Resource_wf8vi"]
+script = ExtResource("13_isq30")
+buildings_count = true
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_k4crw"]
+script = ExtResource("13_isq30")
+team = 0
+buildings_count = true
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_su3uq"]
+script = ExtResource("12_rh5sp")
+id = &"destroy"
+text = "Destroy every enemy building and soldier. Lose all of yours and you are beaten."
+done_when = SubResource("Resource_wf8vi")
+failed_when = SubResource("Resource_k4crw")
+
+[sub_resource type="Resource" id="Resource_7acsc"]
+script = ExtResource("15_mb3js")
+name = "Red"
+color = Color(1, 0.45, 0.35, 1)
+orichalcum = 600
+knows_deposits = true
+
+[sub_resource type="Resource" id="Resource_is5vv"]
+script = ExtResource("16_871dn")
+
+[sub_resource type="Resource" id="Resource_5asse"]
+script = ExtResource("15_mb3js")
+name = "Blue"
+color = Color(0.45, 0.72, 1, 1)
+start = 1
+orichalcum = 600
+knows_deposits = true
+opponent = SubResource("Resource_is5vv")
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("14_f7mey")
 id = &"skirmish_red"
 number = 0
 display_name = "Skirmish"
-map = ExtResource("2")
-player_side = "Red"
-enemy_side = "Blue"
-player_color = Color(1, 0.45, 0.35, 1)
-enemy_color = Color(0.45, 0.72, 1, 1)
-troop_count = 3
-player_troop = ExtResource("6")
-enemy_troop = ExtResource("10")
-player_headquarters = ExtResource("3")
-start_orichalcum = 600
+kind = 2
+map = ExtResource("11_s3n3h")
+sides = Array[ExtResource("15_mb3js")]([SubResource("Resource_7acsc"), SubResource("Resource_5asse")])
+forces = Array[ExtResource("1_5tw0f")]([SubResource("Resource_ovkcc"), SubResource("Resource_8uab7"), SubResource("Resource_qwci1"), SubResource("Resource_u27yx"), SubResource("Resource_ogjaq"), SubResource("Resource_bkol8"), SubResource("Resource_ms0jf"), SubResource("Resource_tfnwx")])
 ore_richness = 8
-player_refinery = ExtResource("4")
-player_harvester = ExtResource("5")
-harvester_count = 1
-enemy_headquarters = ExtResource("7")
-enemy_refinery = ExtResource("8")
-enemy_harvester = ExtResource("9")
-enemy_harvester_count = 1
-enemy_start_orichalcum = 600
-skirmish = true
-objective = "Destroy every enemy building and soldier. Lose all of yours and you are beaten."
+objectives = Array[ExtResource("12_rh5sp")]([SubResource("Resource_su3uq")])
+hints = ExtResource("10_kkkn6")

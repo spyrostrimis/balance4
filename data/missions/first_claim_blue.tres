@@ -1,29 +1,98 @@
-[gd_resource type="Resource" script_class="MissionDef" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="MissionDef" format=3]
 
-[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="1"]
-[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="2"]
-[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="3"]
-[ext_resource type="Resource" path="res://data/units/blue_commander.tres" id="4"]
-[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="5"]
-[ext_resource type="Resource" path="res://data/units/red_commander.tres" id="6"]
+[ext_resource type="Script" path="res://scripts/sim/missions/placement.gd" id="1_s2vou"]
+[ext_resource type="Resource" path="res://data/units/blue_commander.tres" id="2_tj2q8"]
+[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="3_bfqkr"]
+[ext_resource type="Resource" path="res://data/units/red_commander.tres" id="4_fep7g"]
+[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="5_cc2jl"]
+[ext_resource type="Resource" path="res://data/hints/first_claim.tres" id="6_q7oq6"]
+[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="7_itog6"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective.gd" id="8_unupa"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_condition.gd" id="9_4smk0"]
+[ext_resource type="Script" path="res://scripts/sim/missions/defeat_condition.gd" id="10_qik4p"]
+[ext_resource type="Script" path="res://scripts/sim/missions/hold_condition.gd" id="11_s358s"]
+[ext_resource type="Script" path="res://scripts/sim/missions/any_condition.gd" id="12_t8xrh"]
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="13_7arfn"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_side.gd" id="14_308l2"]
+[ext_resource type="Script" path="res://scripts/sim/missions/rush_opponent_def.gd" id="15_jlruv"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_trigger.gd" id="16_lkfss"]
+
+[sub_resource type="Resource" id="Resource_5cmv7"]
+script = ExtResource("1_s2vou")
+type = ExtResource("2_tj2q8")
+tag = &"commander"
+
+[sub_resource type="Resource" id="Resource_yoy35"]
+script = ExtResource("1_s2vou")
+type = ExtResource("3_bfqkr")
+count = 4
+
+[sub_resource type="Resource" id="Resource_j0tou"]
+script = ExtResource("1_s2vou")
+team = 1
+type = ExtResource("4_fep7g")
+
+[sub_resource type="Resource" id="Resource_2qub5"]
+script = ExtResource("1_s2vou")
+team = 1
+type = ExtResource("5_cc2jl")
+count = 4
+
+[sub_resource type="Resource" id="Resource_k5eji"]
+script = ExtResource("10_qik4p")
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_p5q7x"]
+script = ExtResource("11_s358s")
+reason = &"hold"
+
+[sub_resource type="Resource" id="Resource_1vc7g"]
+script = ExtResource("12_t8xrh")
+conditions = Array[ExtResource("9_4smk0")]([SubResource("Resource_k5eji"), SubResource("Resource_p5q7x")])
+
+[sub_resource type="Resource" id="Resource_kfrj4"]
+script = ExtResource("10_qik4p")
+team = 0
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_2f6b7"]
+script = ExtResource("11_s358s")
+team = 1
+reason = &"hold"
+
+[sub_resource type="Resource" id="Resource_h7qoi"]
+script = ExtResource("12_t8xrh")
+conditions = Array[ExtResource("9_4smk0")]([SubResource("Resource_kfrj4"), SubResource("Resource_2f6b7")])
+
+[sub_resource type="Resource" id="Resource_4gp16"]
+script = ExtResource("8_unupa")
+id = &"claim"
+text = "Hold the Orichalcum rock, or destroy every enemy."
+done_when = SubResource("Resource_1vc7g")
+failed_when = SubResource("Resource_h7qoi")
+
+[sub_resource type="Resource" id="Resource_e3mj0"]
+script = ExtResource("14_308l2")
+name = "Blue"
+color = Color(0.45, 0.72, 1, 1)
+
+[sub_resource type="Resource" id="Resource_ge5w8"]
+script = ExtResource("15_jlruv")
+
+[sub_resource type="Resource" id="Resource_6r5d4"]
+script = ExtResource("14_308l2")
+name = "Red"
+color = Color(1, 0.45, 0.35, 1)
+start = 1
+opponent = SubResource("Resource_ge5w8")
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("13_7arfn")
 id = &"first_claim_blue"
-number = 1
 display_name = "The First Claim"
-map = ExtResource("2")
-player_side = "Blue"
-enemy_side = "Red"
-player_color = Color(0.45, 0.72, 1, 1)
-enemy_color = Color(1, 0.45, 0.35, 1)
-troop_count = 4
-player_troop = ExtResource("3")
-player_commander = ExtResource("4")
-enemy_troop = ExtResource("5")
-enemy_commander = ExtResource("6")
-control_radius = 5.0
+map = ExtResource("7_itog6")
+sides = Array[ExtResource("14_308l2")]([SubResource("Resource_e3mj0"), SubResource("Resource_6r5d4")])
+forces = Array[ExtResource("1_s2vou")]([SubResource("Resource_5cmv7"), SubResource("Resource_yoy35"), SubResource("Resource_j0tou"), SubResource("Resource_2qub5")])
 hold_seconds = 45.0
-enemy_delay_seconds = 20.0
-enemy_wave_seconds = 8.0
-objective = "Hold the Orichalcum rock, or destroy every enemy."
+objectives = Array[ExtResource("8_unupa")]([SubResource("Resource_4gp16")])
+hints = ExtResource("6_q7oq6")

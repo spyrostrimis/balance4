@@ -1,27 +1,56 @@
-[gd_resource type="Resource" script_class="MissionDef" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="MissionDef" format=3]
 
-[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="1"]
-[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="2"]
-[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="3"]
-[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="4"]
-[ext_resource type="Resource" path="res://data/buildings/blue_headquarters.tres" id="5"]
+[ext_resource type="Script" path="res://scripts/sim/missions/placement.gd" id="1_ch7d3"]
+[ext_resource type="Resource" path="res://data/buildings/blue_headquarters.tres" id="2_li8i4"]
+[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="3_ff7ig"]
+[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="4_pwntk"]
+[ext_resource type="Resource" path="res://data/hints/base.tres" id="5_sboix"]
+[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="6_nvow0"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective.gd" id="7_5ajw6"]
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="8_yolxr"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_side.gd" id="9_653ne"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_trigger.gd" id="10_gmsr4"]
+
+[sub_resource type="Resource" id="Resource_r830p"]
+script = ExtResource("1_ch7d3")
+type = ExtResource("2_li8i4")
+
+[sub_resource type="Resource" id="Resource_q2twu"]
+script = ExtResource("1_ch7d3")
+type = ExtResource("3_ff7ig")
+
+[sub_resource type="Resource" id="Resource_tuj00"]
+script = ExtResource("1_ch7d3")
+type = ExtResource("4_pwntk")
+at = 2
+
+[sub_resource type="Resource" id="Resource_6jpk6"]
+script = ExtResource("7_5ajw6")
+id = &"practice"
+text = "Harvest, build up your base and produce units."
+
+[sub_resource type="Resource" id="Resource_lbktq"]
+script = ExtResource("9_653ne")
+name = "Blue"
+color = Color(0.45, 0.72, 1, 1)
+orichalcum = 500
+knows_deposits = true
+
+[sub_resource type="Resource" id="Resource_wiedt"]
+script = ExtResource("9_653ne")
+name = "Red"
+color = Color(1, 0.45, 0.35, 1)
+start = 1
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("8_yolxr")
 id = &"base_trial_blue"
 number = 0
 display_name = "Base trial"
-map = ExtResource("2")
-player_side = "Blue"
-enemy_side = "Red"
-player_color = Color(0.45, 0.72, 1, 1)
-enemy_color = Color(1, 0.45, 0.35, 1)
-troop_count = 0
-player_headquarters = ExtResource("5")
-start_orichalcum = 500
+kind = 1
+map = ExtResource("6_nvow0")
+sides = Array[ExtResource("9_653ne")]([SubResource("Resource_lbktq"), SubResource("Resource_wiedt")])
+forces = Array[ExtResource("1_ch7d3")]([SubResource("Resource_r830p"), SubResource("Resource_q2twu"), SubResource("Resource_tuj00")])
 ore_richness = 3
-player_refinery = ExtResource("3")
-player_harvester = ExtResource("4")
-harvester_count = 1
-practice = true
-objective = "Harvest, build up your base and produce units."
+objectives = Array[ExtResource("7_5ajw6")]([SubResource("Resource_6jpk6")])
+hints = ExtResource("5_sboix")

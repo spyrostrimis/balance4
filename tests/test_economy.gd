@@ -452,7 +452,7 @@ func test_trial_start() -> void:
 		var mission := Mission.new(def)
 		var world := mission.world
 		var refinery := world.get_building(mission.player_refinery_id)
-		check(refinery != null and refinery.type == def.player_refinery, "the player has a refinery")
+		check(refinery != null and refinery.type.is_refinery and refinery.type in def.placed_types(PLAYER), "the player has a refinery")
 		if refinery == null:
 			continue
 		for cell in refinery.cells():
@@ -547,16 +547,16 @@ func test_title_screen_offers_the_trial() -> void:
 
 func test_trial_hints() -> void:
 	var def := load(TRIALS[0]) as MissionDef
-	var hints := MissionHints.new(true)
+	var hints := MissionHints.new(Mission.new(def))
 	check_eq(hints.current(), &"select", "first: select a harvester")
-	check(hints.text(def).contains("harvesters"), "the first hint says where they are")
+	check(hints.text().contains("harvesters"), "the first hint says where they are")
 	hints.note(&"select")
 	check_eq(hints.current(), &"harvest", "then: send it to the rock")
-	check(hints.text(def).contains("Right-click the Orichalcum rock"), "the second hint says how")
+	check(hints.text().contains("Right-click the Orichalcum rock"), "the second hint says how")
 	hints.note(&"harvest")
 	check_eq(hints.current(), &"watch", "last: what happens on its own")
-	check(hints.text(def).contains("800"), "the last hint gives the storage limit from the data")
-	var hasty := MissionHints.new(true)
+	check(hints.text().contains("800"), "the last hint gives the storage limit from the data")
+	var hasty := MissionHints.new(Mission.new(def))
 	hasty.note(&"harvest")
 	check_eq(hasty.current(), &"watch", "a player who sends the harvesters at once skips the first hint")
 
@@ -572,7 +572,7 @@ func test_scene_runs_the_trial() -> void:
 		check(view.hud.visible, "with the mission HUD")
 		check(not view.control_view.visible, "and no control ring")
 		check(view.camera.get_view_rect().has_point(refinery.center() * 32.0), "the camera shows the refinery")
-		check_eq(view.hint_text(), view.hints.text(view.mission.def), "the first hint is shown")
+		check_eq(view.hint_text(), view.hints.text(), "the first hint is shown")
 		check(view.hud._top_right.text.begins_with("Orichalcum 0 / 800"), "the top bar shows the store: '%s'" % view.hud._top_right.text)
 		check_eq(view.hud._forces.text, "Harvesters: 2", "and the sidebar counts the harvesters")
 		check(view.hud._status.text.begins_with("Left in the rock"), "and the sidebar what is left in the rock")

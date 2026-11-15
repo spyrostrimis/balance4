@@ -1,38 +1,56 @@
 class_name Mission
 extends RefCounted
-## A mission being played: the world, the control point, the scripted opponent
-## and the rule that decides who has won. A practice mission (see MissionDef)
-## has no control point to hold and no winner: it is just the world, ticking,
-## with raiders in it if the mission has enemy troops. In a skirmish both
-## sides have a base, the enemy is the computer opponent, and the side that
-## loses all its buildings and troops has lost.
+## A mission being played: the world, the opponents, the control area, the
+## objectives and the triggers, all set up from a MissionDef.
+##
+## Each tick the opponents think, the world advances, the control area is
+## updated, then the objectives are checked (a failed primary objective loses
+## the mission; every primary objective done wins it) and the triggers fire.
+## A mission without primary objectives that can be done (a practice mission)
+## goes on until the player leaves it.
 
 const PLAYER_TEAM := SimWorld.PLAYER_TEAM
 const ENEMY_TEAM := 1
 const NOBODY := -1
 
+## What has become of an objective.
+const HIDDEN := &"hidden"
+const OPEN := &"open"
+const DONE := &"done"
+const FAILED := &"failed"
+
 var def: MissionDef
 var world: SimWorld
+## The control area. Every mission has one, but it means something only if
+## the mission's objectives use it (see MissionDef.has_control()).
 var control: ControlPoint
-var opponent: ScriptedOpponent
-## The enemy of a skirmish, otherwise null.
-var computer: ComputerOpponent
-## The enemy of a practice mission with a raid, otherwise null.
-var raiders: Raiders
-## Id of the player's commander. It stays the same after the commander dies.
+## Whatever plays each side that is not the player's: team -> its opponent
+## object (ScriptedOpponent, Raiders, ComputerOpponent).
+var opponents := {}
+## Id of the player's commander (first hero). It stays the same after the commander dies.
 var player_commander_id := 0
-## Id of the player's refinery, or 0 if the mission gives none.
+## Ids of the first headquarters and refinery placed for each side, or 0.
 var player_refinery_id := 0
-## Id of the player's headquarters, or 0 if the mission gives none.
 var player_headquarters_id := 0
-## Ids of the enemy's headquarters and refinery, or 0.
 var enemy_headquarters_id := 0
 var enemy_refinery_id := 0
 ## The team that has won, or NOBODY while the mission is being played.
 var winner := NOBODY
-## How it was won: &"hold" (held the control area) or &"eliminated" (the other
-## side has no units left; in a skirmish, no buildings and no troops).
+## Why: &"hold" (held the control area), &"eliminated" (the other side has
+## nothing left), or whatever an objective's condition or an EndAction says.
 var win_reason := &""
+## What the mission has said to the player, oldest first: each a Dictionary
+## with "speaker", "text" and "tick".
+var messages: Array[Dictionary] = []
+
+## Objective id -> HIDDEN, OPEN, DONE or FAILED.
+var _objectives := {}
+## Trigger index -> the tick at which it fires (its condition has been met), or -1 once fired.
+var _pending := {}
+## Things the player has done in the game screen (see note()).
+var _done := {}
+## Tag -> the units ([&"unit", id]) and buildings ([&"building", id]) placed under it.
+var _tagged := {}
 
 
 func _init(p_def: MissionDef) -> void:
@@ -43,90 +61,112 @@ func _init(p_def: MissionDef) -> void:
 		for deposit in world.deposits:
 			deposit.multiply(def.ore_richness)
 	var center := map.control_point if map.has_control_point() else Vector2(map.get_size()) / 2.0
-	control = ControlPoint.new(center, def.control_radius, def.hold_seconds)
-	var starts := map.starts
-	var player_start := starts[0] if starts.size() > 0 else Vector2i.ZERO
-	var enemy_start := starts[1] if starts.size() > 1 else map.get_size() - Vector2i.ONE
-	# The buildings go down first, so that nobody is put where they will stand.
-	var player_base := _set_up_base(PLAYER_TEAM, player_start, def.player_headquarters, def.player_refinery, def.start_orichalcum)
-	player_headquarters_id = player_base[0]
-	player_refinery_id = player_base[1]
-	if def.skirmish:
-		var enemy_base := _set_up_base(ENEMY_TEAM, enemy_start, def.enemy_headquarters, def.enemy_refinery, def.enemy_start_orichalcum)
-		enemy_headquarters_id = enemy_base[0]
-		enemy_refinery_id = enemy_base[1]
-	var commander := _spawn(PLAYER_TEAM, player_start, def.player_commander, def.player_troop, def.troop_count)
-	player_commander_id = commander.id if commander != null else 0
-	if def.practice or def.skirmish:
-		# Nothing is hidden in a practice mission that the player is sent to: the rock is on the map from the start.
-		# In a skirmish both sides know where it is.
-		for deposit in world.deposits:
-			for cell in deposit.cells:
-				world.shroud_for(PLAYER_TEAM).reveal_circle(cell, 2)
-				if def.skirmish:
-					world.shroud_for(ENEMY_TEAM).reveal_circle(cell, 2)
-	_add_harvesters(PLAYER_TEAM, player_start, player_refinery_id, def.player_harvester, def.harvester_count)
-	if def.skirmish:
-		_add_harvesters(ENEMY_TEAM, enemy_start, enemy_refinery_id, def.enemy_harvester, def.enemy_harvester_count)
-	_spawn(ENEMY_TEAM, enemy_start, def.enemy_commander, def.enemy_troop, def.enemy_troops())
-	if def.has_raid():
-		raiders = Raiders.new(world, ENEMY_TEAM, def.enemy_delay_seconds)
-	if def.skirmish:
-		computer = ComputerOpponent.new(world, ENEMY_TEAM, PLAYER_TEAM, player_start)
-		return
-	opponent = ScriptedOpponent.new(world, control, ENEMY_TEAM, enemy_start, def.enemy_delay_seconds)
-	# The second wave is the commander and the second half of the troops.
-	var troops := 0
-	for unit in world.units:
-		if unit.team != ENEMY_TEAM:
+	control = ControlPoint.new(center, def.control_radius, maxf(def.hold_seconds, 1.0))
+	place(def.forces)
+	for team in def.sides.size():
+		var side := def.sides[team]
+		world.stored[team] = mini(side.orichalcum, world.storage_for(team))
+		if side.knows_deposits:
+			for deposit in world.deposits:
+				for cell in deposit.cells:
+					world.shroud_for(team).reveal_circle(cell, 2)
+	for team in def.sides.size():
+		var side := def.sides[team]
+		if side.opponent != null:
+			var opponent := side.opponent.create(self, team)
+			if opponent != null:
+				opponents[team] = opponent
+	for item in def.objectives:
+		_objectives[item.id] = HIDDEN if item.hidden else OPEN
+
+
+## The cell a side starts at.
+func start_of(team: int) -> Vector2i:
+	var starts := def.map.starts
+	var index := def.sides[team].start if team < def.sides.size() else team
+	if index < starts.size():
+		return starts[index]
+	return Vector2i.ZERO if team == PLAYER_TEAM else def.map.get_size() - Vector2i.ONE
+
+
+## Put units and buildings on the map: the buildings first, on the building
+## ground nearest to where they are placed, then the units, each group on the
+## free cells nearest to its spot, facing the control area.
+func place(placements: Array[Placement]) -> void:
+	for placement in placements:
+		if placement.is_building():
+			var type := placement.type as BuildingType
+			var site := world.nearest_build_site(type, _spot(placement))
+			if site == SimWorld.NO_CELL:
+				push_warning("Mission '%s': no room for %s" % [def.id, type.id])
+				continue
+			var building := world.add_building(type, placement.team, site)
+			_remember(placement.tag, &"building", building.id)
+			_note_building(building)
+	for placement in placements:
+		if placement.is_building() or placement.type == null:
 			continue
-		if not unit.type.is_hero:
-			troops += 1
-		if def.enemy_wave_seconds > 0.0 and (unit.type.is_hero or troops > (def.enemy_troops() + 1) / 2):
-			opponent.hold_back(unit.id, def.enemy_wave_seconds)
+		for unit in world.add_group(placement.type as UnitType, placement.team, _spot(placement), placement.count):
+			unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
+			_remember(placement.tag, &"unit", unit.id)
+			if unit.team == PLAYER_TEAM and unit.type.is_hero and player_commander_id == 0:
+				player_commander_id = unit.id
 
 
-## Put a side's headquarters and refinery on the building ground nearest to
-## its start, and fill its store. Returns their ids (0 for one it has not got).
-func _set_up_base(team: int, start: Vector2i, headquarters: BuildingType, refinery: BuildingType, orichalcum: int) -> Array[int]:
-	var ids: Array[int] = [0, 0]
-	for i in 2:
-		var type := headquarters if i == 0 else refinery
-		if type == null:
-			continue
-		var site := world.nearest_build_site(type, start)
-		if site != SimWorld.NO_CELL:
-			ids[i] = world.add_building(type, team, site).id
-	world.stored[team] = mini(orichalcum, world.storage_for(team))
-	return ids
+func _spot(placement: Placement) -> Vector2i:
+	match placement.at:
+		Placement.At.CELL:
+			return placement.cell
+		Placement.At.REFINERY:
+			var refinery := world.get_building(player_refinery_id if placement.team == PLAYER_TEAM else enemy_refinery_id)
+			if refinery != null:
+				return refinery.cell + Vector2i(refinery.type.footprint.x / 2, refinery.type.footprint.y)
+	return start_of(placement.team)
 
 
-## Put a side's harvesters beside its refinery, facing the control point.
-func _add_harvesters(team: int, start: Vector2i, refinery_id: int, type: UnitType, count: int) -> void:
-	if type == null or count <= 0:
+func _note_building(building: SimBuilding) -> void:
+	var player := building.team == PLAYER_TEAM
+	if building.type.is_refinery:
+		if player and player_refinery_id == 0:
+			player_refinery_id = building.id
+		elif not player and enemy_refinery_id == 0:
+			enemy_refinery_id = building.id
+	if not building.type.builds.is_empty():
+		if player and player_headquarters_id == 0:
+			player_headquarters_id = building.id
+		elif not player and enemy_headquarters_id == 0:
+			enemy_headquarters_id = building.id
+
+
+func _remember(tag: StringName, kind: StringName, id: int) -> void:
+	if tag == &"":
 		return
-	var refinery := world.get_building(refinery_id)
-	var beside := start
-	if refinery != null:
-		beside = refinery.cell + Vector2i(refinery.type.footprint.x / 2, refinery.type.footprint.y)
-	for unit in world.add_group(type, team, beside, count):
-		unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
+	if not _tagged.has(tag):
+		_tagged[tag] = []
+	_tagged[tag].append([kind, id])
 
 
-## Put one side on the map: the commander on the start cell, the troops around
-## it, everyone facing the control point. Returns the commander.
-func _spawn(team: int, start: Vector2i, commander_type: UnitType, troop_type: UnitType, troops: int) -> SimUnit:
-	var group: Array[SimUnit] = []
-	if commander_type != null:
-		group.append_array(world.add_group(commander_type, team, start, 1))
-	if troop_type != null:
-		group.append_array(world.add_group(troop_type, team, start, troops))
-	for unit in group:
-		unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
-	return group[0] if commander_type != null and not group.is_empty() else null
+## How many of the units and buildings placed under a tag are still there.
+func tagged_left(tag: StringName) -> int:
+	var left := 0
+	for entry in _tagged.get(tag, []):
+		if (world.get_unit(entry[1]) if entry[0] == &"unit" else world.get_building(entry[1])) != null:
+			left += 1
+	return left
 
 
-## Has a side lost a skirmish: no buildings and no troops left?
+## The living units placed under a tag.
+func tagged_units(tag: StringName) -> Array[SimUnit]:
+	var out: Array[SimUnit] = []
+	for entry in _tagged.get(tag, []):
+		if entry[0] == &"unit":
+			var unit := world.get_unit(entry[1])
+			if unit != null:
+				out.append(unit)
+	return out
+
+
+## Has a side lost a base game: no buildings and no troops left?
 func is_beaten(team: int) -> bool:
 	return world.building_count(team) == 0 and world.fighter_count(team) == 0
 
@@ -144,40 +184,127 @@ func player_commander() -> SimUnit:
 	return world.get_unit(player_commander_id)
 
 
+## The opponent playing a team, or null.
+func opponent_of(team: int) -> RefCounted:
+	return opponents.get(team)
+
+
+## The opponent of Mission 1, or null.
+var opponent: ScriptedOpponent:
+	get: return opponent_of(ENEMY_TEAM) as ScriptedOpponent
+## The computer opponent of a skirmish, or null.
+var computer: ComputerOpponent:
+	get: return opponent_of(ENEMY_TEAM) as ComputerOpponent
+## The raiders of a practice mission, or null.
+var raiders: Raiders:
+	get: return opponent_of(ENEMY_TEAM) as Raiders
+
+
+## Tell the mission the player has done something in the game screen:
+## &"select", &"move", &"attack", &"ability", &"harvest", &"build", &"place"
+## or &"train". Hints and EventConditions use this.
+func note(what: StringName) -> void:
+	_done[what] = true
+	# Whoever gives an order has selected; whoever attacks knows how to move.
+	if what == &"attack":
+		_done[&"move"] = true
+	if what == &"attack" or what == &"move" or what == &"harvest":
+		_done[&"select"] = true
+
+
+func has_done(what: StringName) -> bool:
+	return _done.has(what)
+
+
+func add_message(speaker: String, text: String) -> void:
+	messages.append({"speaker": speaker, "text": text, "tick": world.tick_count})
+
+
+## HIDDEN, OPEN, DONE or FAILED; &"" for an objective the mission has not got.
+func objective_state(objective_id: StringName) -> StringName:
+	return _objectives.get(objective_id, &"")
+
+
+## The objectives the player can see, in order.
+func shown_objectives() -> Array[Objective]:
+	var out: Array[Objective] = []
+	for item in def.objectives:
+		if _objectives.get(item.id) != HIDDEN:
+			out.append(item)
+	return out
+
+
+func show_objective(objective_id: StringName) -> void:
+	if _objectives.get(objective_id) == HIDDEN:
+		_objectives[objective_id] = OPEN
+
+
+## End the mission: `team` has won.
+func finish(team: int, reason: StringName) -> void:
+	if is_over():
+		return
+	winner = team
+	win_reason = reason
+
+
 ## Advance the mission by one simulation tick. Does nothing once it is over.
 func tick() -> void:
 	if is_over():
 		return
-	if def.practice:
-		if raiders != null:
-			raiders.tick()
-		world.tick()
-		return
-	if def.skirmish:
-		computer.tick()
-		world.tick()
-		var player_out := is_beaten(PLAYER_TEAM)
-		if player_out:
-			_finish(ENEMY_TEAM, &"eliminated")
-		elif is_beaten(ENEMY_TEAM):
-			_finish(PLAYER_TEAM, &"eliminated")
-		return
-	opponent.tick()
+	for team in opponents:
+		opponents[team].tick()
 	world.tick()
-	control.update(world)
-	var players := world.team_size(PLAYER_TEAM)
-	var enemies := world.team_size(ENEMY_TEAM)
-	if enemies == 0 and players > 0:
-		_finish(PLAYER_TEAM, &"eliminated")
-	elif players == 0:
-		_finish(ENEMY_TEAM, &"eliminated")
-	elif control.is_won():
-		_finish(control.owner, &"hold")
+	if def.has_control():
+		control.update(world)
+	_check_objectives()
+	if not is_over():
+		_fire_triggers()
 
 
-func _finish(team: int, reason: StringName) -> void:
-	winner = team
-	win_reason = reason
+## Check the open objectives. A primary one that fails loses the mission at
+## once; when the last primary one is done the mission is won, for the reason
+## of that one.
+func _check_objectives() -> void:
+	var primaries := 0
+	var primaries_done := 0
+	var last_reason := &""
+	for item in def.objectives:
+		if _objectives[item.id] == OPEN:
+			if item.failed_when != null and item.failed_when.check(self):
+				_objectives[item.id] = FAILED
+				if item.primary:
+					finish(ENEMY_TEAM, item.failed_when.why(self))
+					return
+			elif item.done_when != null and item.done_when.check(self):
+				_objectives[item.id] = DONE
+				if item.primary:
+					last_reason = item.done_when.why(self)
+		if item.primary:
+			primaries += 1
+			if _objectives[item.id] == DONE:
+				primaries_done += 1
+	if primaries > 0 and primaries_done == primaries:
+		finish(PLAYER_TEAM, last_reason)
+
+
+func _fire_triggers() -> void:
+	for i in def.triggers.size():
+		var at: int = _pending.get(i, 0)
+		if at < 0:
+			continue                    # fired
+		var trigger := def.triggers[i]
+		if not _pending.has(i):
+			if trigger.when != null and not trigger.when.check(self):
+				continue
+			at = world.tick_count + roundi(trigger.delay_seconds * SimWorld.TICKS_PER_SECOND)
+			_pending[i] = at
+		if world.tick_count >= at:
+			_pending[i] = -1
+			for action in trigger.actions:
+				if action != null:
+					action.run(self)
+			if is_over():
+				return
 
 
 ## Seconds played so far.

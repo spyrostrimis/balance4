@@ -41,6 +41,8 @@ const DOUBLE_TAP_SECONDS := 0.4
 const MAX_TICKS_PER_FRAME := 5
 ## How long a message such as "Mend is not ready yet" stays in the hint box.
 const MESSAGE_SECONDS := 2.5
+## How long a mission's message (see Mission.messages) stays in the hint box, in game seconds.
+const MISSION_MESSAGE_SECONDS := 8.0
 
 ## The mission to play when this scene starts (a MissionDef file), or "" to
 ## just show `requested_map`. Set it before changing to this scene.
@@ -147,7 +149,7 @@ func show_map(p_map: MapData, squad: UnitType = null, squad_size := 0) -> void:
 ## Start a mission: its map, both forces, the control point and the scripted opponent.
 func show_mission(def: MissionDef) -> void:
 	mission = Mission.new(def)
-	hints = MissionHints.new(def.practice, def.has_base(), def.skirmish)
+	hints = MissionHints.new(mission)
 	var focus := Vector2(def.map.get_pixel_size()) / 2.0
 	var commander := mission.player_commander()
 	var refinery := mission.world.get_building(mission.player_refinery_id)
@@ -228,7 +230,7 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	minimap.setup(map, camera, world)
 	var colors := {}
 	var control: ControlPoint = null        # nothing to hold in a practice mission or a skirmish
-	if mission != null and not mission.def.practice and not mission.def.skirmish:
+	if mission != null and mission.def.has_control():
 		colors = {Mission.PLAYER_TEAM: mission.def.player_color, Mission.ENEMY_TEAM: mission.def.enemy_color}
 		control = mission.control
 	control_view.setup(control, colors)
@@ -286,8 +288,6 @@ func _process(delta: float) -> void:
 		else:
 			placement_view.stop()
 	if mission != null:
-		if mission.player_commander() == null:
-			hints.note(&"ability")          # nobody left to use it
 		hud.refresh(mission, hint_text())
 		if mission.is_over() and not _result_shown:
 			_show_result()
@@ -715,7 +715,22 @@ func hint_text() -> String:
 			return "Placing the %s: left-click building ground where every square is green. Right-click cancels." % ready_name
 	if _message_left > 0.0:
 		return _message
-	return hints.text(mission.def) if hints != null and mission != null else ""
+	var said := mission_message_text()
+	if said != "":
+		return said
+	return hints.text() if hints != null and mission != null else ""
+
+
+## The mission's latest message while it is fresh (MISSION_MESSAGE_SECONDS),
+## e.g. "Field Commander: They are coming.", or "". Shown in the hint box
+## until the HUD gets a message box of its own.
+func mission_message_text() -> String:
+	if mission == null or mission.messages.is_empty():
+		return ""
+	var last: Dictionary = mission.messages.back()
+	if mission.world.tick_count - int(last["tick"]) > roundi(MISSION_MESSAGE_SECONDS * SimWorld.TICKS_PER_SECOND):
+		return ""
+	return "%s: %s" % [last["speaker"], last["text"]] if last["speaker"] != "" else String(last["text"])
 
 
 ## A number key: with Ctrl store the selection as that group, without select the

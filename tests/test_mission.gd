@@ -48,19 +48,37 @@ func _updates(control: ControlPoint, world: SimWorld, count: int) -> void:
 ## close together on either side of the rock, with one troop each and no
 ## commander. `player_damage` and `enemy_damage` decide who wins a fight.
 func _short_mission(player_damage: int, enemy_damage: int) -> MissionDef:
-	var def := (load(MISSIONS[0]) as MissionDef).duplicate() as MissionDef
+	var def := (load(MISSIONS[0]) as MissionDef).duplicate(true) as MissionDef
 	var map := (load(FOREST_MAP) as MapData).duplicate() as MapData
 	map.starts = [Vector2i(26, 26), Vector2i(38, 22)] as Array[Vector2i]
 	def.map = map
-	def.troop_count = 1
-	def.player_commander = null
-	def.enemy_commander = null
-	def.player_troop = (load(GUARD) as UnitType).duplicate()
-	def.player_troop.attack_damage = player_damage
-	def.enemy_troop = (load(LEGIONARY) as UnitType).duplicate()
-	def.enemy_troop.attack_damage = enemy_damage
-	def.enemy_delay_seconds = 0.0
+	var guard := (load(GUARD) as UnitType).duplicate() as UnitType
+	guard.attack_damage = player_damage
+	var legionary := (load(LEGIONARY) as UnitType).duplicate() as UnitType
+	legionary.attack_damage = enemy_damage
+	var forces: Array[Placement] = []
+	for team in 2:
+		var troop := Placement.new()
+		troop.team = team
+		troop.type = guard if team == PLAYER else legionary
+		forces.append(troop)
+	def.forces = forces
+	_rush(def).delay_seconds = 0.0
 	return def
+
+
+## The scripted opponent's settings in a Mission 1 definition.
+func _rush(def: MissionDef) -> RushOpponentDef:
+	return def.sides[ENEMY].opponent as RushOpponentDef
+
+
+## How many units of a side a mission places at the start: heroes and troops.
+func _placed(def: MissionDef, team: int, heroes: bool) -> int:
+	var count := 0
+	for placement in def.forces:
+		if placement.team == team and placement.type is UnitType and (placement.type as UnitType).is_hero == heroes:
+			count += placement.count
+	return count
 
 
 ## Play a mission the way its hints teach: attack-move everyone to the rock,
@@ -160,11 +178,12 @@ func test_mission_definitions() -> void:
 			continue
 		sides.append(def.player_side)
 		check(def.display_name != "" and def.objective != "", "%s has a name and an objective" % path)
-		check_eq(def.troop_count, 4, "four troops a side in %s" % path)
-		check(def.player_commander.is_hero and def.enemy_commander.is_hero, "both sides have a commander in %s" % path)
-		check(not def.player_troop.is_hero and not def.enemy_troop.is_hero, "troops are not heroes in %s" % path)
-		check(def.hold_seconds > 0.0 and def.control_radius > 0.0, "%s has a hold time and a radius" % path)
-		check(def.enemy_delay_seconds > 0.0 and def.enemy_wave_seconds > 0.0, "the opponent in %s waits, then comes in two waves" % path)
+		check(def.problems().is_empty(), "%s has no problems: %s" % [path, def.problems()])
+		check_eq([_placed(def, PLAYER, false), _placed(def, ENEMY, false)], [4, 4], "four troops a side in %s" % path)
+		check_eq([_placed(def, PLAYER, true), _placed(def, ENEMY, true)], [1, 1], "and one commander a side")
+		check(def.has_control(), "%s has a hold time and a radius" % path)
+		var rush := _rush(def)
+		check(rush != null and rush.delay_seconds > 0.0 and rush.wave_seconds > 0.0, "the opponent in %s waits, then comes in two waves" % path)
 		check(def.player_side != def.enemy_side, "the sides differ in %s" % path)
 		check(def.player_color != def.enemy_color, "and so do their colours")
 	check_eq(sides, ["Blue", "Red"], "the player is Blue in the first and Red in the second")
@@ -213,7 +232,7 @@ func test_doing_nothing_loses_to_the_hold_rule() -> void:
 		check(mission.is_over(), "%s ends when the player does nothing" % path)
 		check_eq(mission.winner, ENEMY, "the opponent wins %s" % path)
 		check_eq(mission.win_reason, &"hold", "by holding the rock")
-		check(mission.seconds() > def.enemy_delay_seconds + def.hold_seconds, "after its delay and the full hold time")
+		check(mission.seconds() > _rush(def).delay_seconds + def.hold_seconds, "after its delay and the full hold time")
 		check_eq(mission.world.team_size(PLAYER), 5, "without a fight")
 		var before := mission.world.tick_count
 		mission.tick()
@@ -273,7 +292,7 @@ func test_losing_every_unit_loses() -> void:
 func test_opponent_waits_then_marches_and_fights() -> void:
 	var def := load(MISSIONS[0]) as MissionDef
 	var mission := Mission.new(def)
-	var delay := roundi(def.enemy_delay_seconds * 20)
+	var delay := roundi(_rush(def).delay_seconds * 20)
 	for tick in delay - 1:
 		mission.tick()
 	for unit in mission.world.units:
@@ -287,7 +306,7 @@ func test_opponent_waits_then_marches_and_fights() -> void:
 			first_wave += 1
 			check(not unit.type.is_hero, "the commander is not in the first wave")
 	check_eq(first_wave, 2, "then half of the troops set off with attack-move orders")
-	for tick in roundi(def.enemy_wave_seconds * 20):
+	for tick in roundi(_rush(def).wave_seconds * 20):
 		mission.tick()
 	for unit in mission.world.units:
 		if unit.team == ENEMY:
@@ -320,26 +339,26 @@ func test_opponent_waits_then_marches_and_fights() -> void:
 
 func test_hints_follow_what_the_player_has_done() -> void:
 	var def := load(MISSIONS[0]) as MissionDef
-	var hints := MissionHints.new()
+	var hints := MissionHints.new(Mission.new(def))
 	check_eq(hints.current(), &"select", "first: select")
-	check(hints.text(def).contains("select"), "the first hint is about selecting")
+	check(hints.text().contains("select"), "the first hint is about selecting")
 	hints.note(&"select")
 	check_eq(hints.current(), &"move", "then: move")
-	check(hints.text(def).contains("Right-click"), "the second hint is about moving")
+	check(hints.text().contains("Right-click"), "the second hint is about moving")
 	hints.note(&"move")
 	check_eq(hints.current(), &"attack", "then: attack")
-	check(hints.text(def).contains("Press F"), "the third hint is about attacking")
+	check(hints.text().contains("Press F"), "the third hint is about attacking")
 	hints.note(&"attack")
 	check_eq(hints.current(), &"ability", "then: the commander's ability")
-	check(hints.text(def).contains("Mend") and hints.text(def).contains("Q"), "the fourth hint names the ability and its key")
+	check(hints.text().contains("Mend") and hints.text().contains("Q"), "the fourth hint names the ability and its key")
 	hints.note(&"ability")
 	check_eq(hints.current(), &"hold", "last: the control point")
-	check(hints.text(def).contains("45 seconds"), "the last hint gives the hold time from the mission data")
+	check(hints.text().contains("45 seconds"), "the last hint gives the hold time from the mission data")
 
-	var hasty := MissionHints.new()
+	var hasty := MissionHints.new(Mission.new(def))
 	hasty.note(&"attack")
 	check_eq(hasty.current(), &"ability", "a player who attacks at once skips the select and move hints")
-	var healer := MissionHints.new()
+	var healer := MissionHints.new(Mission.new(def))
 	healer.note(&"ability")
 	check_eq(healer.current(), &"select", "using the ability early does not skip the other hints")
 
@@ -549,7 +568,7 @@ func test_escape_pauses_instead_of_leaving() -> void:
 
 func test_a_finished_mission_cannot_be_paused() -> void:
 	var view := _view()
-	view.mission._finish(ENEMY, &"hold")
+	view.mission.finish(ENEMY, &"hold")
 	view._process(0.05)
 	check(view.hud.is_result_shown(), "the result screen is up")
 	_key(view, KEY_P)

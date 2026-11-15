@@ -1,29 +1,68 @@
-[gd_resource type="Resource" script_class="MissionDef" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="MissionDef" format=3]
 
-[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="1"]
-[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="2"]
-[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="3"]
-[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="4"]
-[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="5"]
-[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="6"]
+[ext_resource type="Script" path="res://scripts/sim/missions/placement.gd" id="1_1v8vs"]
+[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="2_gngvg"]
+[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="3_u81hi"]
+[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="4_fj6jk"]
+[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="5_0vnfs"]
+[ext_resource type="Resource" path="res://data/hints/raid.tres" id="6_qsmlq"]
+[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="7_wdjda"]
+[ext_resource type="Script" path="res://scripts/sim/missions/objective.gd" id="8_i52om"]
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="9_1eux3"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_side.gd" id="10_e2o07"]
+[ext_resource type="Script" path="res://scripts/sim/missions/raiders_def.gd" id="11_khepn"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_trigger.gd" id="12_buptu"]
+
+[sub_resource type="Resource" id="Resource_bl2j0"]
+script = ExtResource("1_1v8vs")
+type = ExtResource("2_gngvg")
+
+[sub_resource type="Resource" id="Resource_qcc7c"]
+script = ExtResource("1_1v8vs")
+type = ExtResource("3_u81hi")
+count = 3
+
+[sub_resource type="Resource" id="Resource_32f6y"]
+script = ExtResource("1_1v8vs")
+type = ExtResource("4_fj6jk")
+count = 2
+at = 2
+
+[sub_resource type="Resource" id="Resource_glwxl"]
+script = ExtResource("1_1v8vs")
+team = 1
+type = ExtResource("5_0vnfs")
+count = 3
+
+[sub_resource type="Resource" id="Resource_540ph"]
+script = ExtResource("8_i52om")
+id = &"practice"
+text = "Harvest, and keep your harvesters alive when the raiders come."
+
+[sub_resource type="Resource" id="Resource_nxgii"]
+script = ExtResource("10_e2o07")
+name = "Blue"
+color = Color(0.45, 0.72, 1, 1)
+knows_deposits = true
+
+[sub_resource type="Resource" id="Resource_jboaw"]
+script = ExtResource("11_khepn")
+
+[sub_resource type="Resource" id="Resource_u8dp1"]
+script = ExtResource("10_e2o07")
+name = "Red"
+color = Color(1, 0.45, 0.35, 1)
+start = 1
+opponent = SubResource("Resource_jboaw")
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("9_1eux3")
 id = &"raid_trial_blue"
 number = 0
 display_name = "Raid trial"
-map = ExtResource("2")
-player_side = "Blue"
-enemy_side = "Red"
-player_color = Color(0.45, 0.72, 1, 1)
-enemy_color = Color(1, 0.45, 0.35, 1)
-troop_count = 3
-enemy_troop_count = 3
-player_troop = ExtResource("5")
-enemy_troop = ExtResource("6")
-player_refinery = ExtResource("3")
-player_harvester = ExtResource("4")
-harvester_count = 2
-practice = true
-enemy_delay_seconds = 45.0
-objective = "Harvest, and keep your harvesters alive when the raiders come."
+kind = 1
+map = ExtResource("7_wdjda")
+sides = Array[ExtResource("10_e2o07")]([SubResource("Resource_nxgii"), SubResource("Resource_u8dp1")])
+forces = Array[ExtResource("1_1v8vs")]([SubResource("Resource_bl2j0"), SubResource("Resource_qcc7c"), SubResource("Resource_32f6y"), SubResource("Resource_glwxl")])
+objectives = Array[ExtResource("8_i52om")]([SubResource("Resource_540ph")])
+hints = ExtResource("6_qsmlq")

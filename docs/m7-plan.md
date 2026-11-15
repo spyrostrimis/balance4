@@ -197,8 +197,8 @@ Each step ends in something playable and a push, as for every milestone.
 
 | Step | What | Depends on |
 | --- | --- | --- |
-| M7.1 | Decisions below agreed and recorded in design.md | the user |
-| M7.2 | Mission scripting; existing missions ported; tests | M7.1 (scope only) |
+| M7.1 | Decisions below agreed and recorded in design.md. **Done** | the user |
+| M7.2 | Mission scripting; existing missions ported; tests. **Done**: see [missions.md](missions.md) | M7.1 (scope only) |
 | M7.3 | Abilities (area, passive), the prince, the hero death rule, building selection and repair | M7.1 |
 | M7.4 | The map and Mission 2, with placeholder art and no sound | M7.2, M7.3 |
 | M7.5 | HUD mockups, approval, then the new HUD, portraits, messages, briefing, title and settings | approval of the mockups |

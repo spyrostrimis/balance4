@@ -154,7 +154,9 @@ click, so it never ends a mission by accident.
 ## Mission 1: "The First Claim"
 
 The mission is defined in `data/missions/` (a `MissionDef` resource): the map,
-the two forces, the control radius, the hold time and the opponent's timing.
+the two forces, the control radius, the hold time, the opponent's timing and
+the objective. How a mission file is put together is in
+[missions.md](missions.md).
 
 | | Played as Blue | Played as Red |
 | --- | --- | --- |

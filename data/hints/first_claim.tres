@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="HintList" format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/missions/hint.gd" id="1_xnnug"]
+[ext_resource type="Script" path="res://scripts/sim/missions/event_condition.gd" id="2_1g2c6"]
+[ext_resource type="Script" path="res://scripts/sim/missions/mission_condition.gd" id="3_ht045"]
+[ext_resource type="Script" path="res://scripts/sim/missions/gone_condition.gd" id="4_jm8q4"]
+[ext_resource type="Script" path="res://scripts/sim/missions/any_condition.gd" id="5_vbf2k"]
+[ext_resource type="Script" path="res://scripts/sim/missions/hint_list.gd" id="6_tvd7g"]
+
+[sub_resource type="Resource" id="Resource_62myr"]
+script = ExtResource("2_1g2c6")
+event = &"select"
+
+[sub_resource type="Resource" id="Resource_sicfk"]
+script = ExtResource("1_xnnug")
+id = &"select"
+text = "Drag a box around your troops with the left mouse button to select them."
+done_when = SubResource("Resource_62myr")
+
+[sub_resource type="Resource" id="Resource_7df2f"]
+script = ExtResource("2_1g2c6")
+event = &"move"
+
+[sub_resource type="Resource" id="Resource_8fcxo"]
+script = ExtResource("1_xnnug")
+id = &"move"
+text = "Right-click the ground to send them there. The Orichalcum rock is in the middle of the map, inside the ring on the minimap."
+done_when = SubResource("Resource_7df2f")
+
+[sub_resource type="Resource" id="Resource_wxa5f"]
+script = ExtResource("2_1g2c6")
+event = &"attack"
+
+[sub_resource type="Resource" id="Resource_1oq6n"]
+script = ExtResource("1_xnnug")
+id = &"attack"
+text = "Press F, then left-click the ground: your troops walk there and fight whatever they meet. Right-click an enemy to attack that one."
+done_when = SubResource("Resource_wxa5f")
+
+[sub_resource type="Resource" id="Resource_blwfc"]
+script = ExtResource("2_1g2c6")
+event = &"ability"
+
+[sub_resource type="Resource" id="Resource_p4r53"]
+script = ExtResource("4_jm8q4")
+tag = &"commander"
+reason = &"eliminated"
+
+[sub_resource type="Resource" id="Resource_o7cxw"]
+script = ExtResource("5_vbf2k")
+conditions = Array[ExtResource("3_ht045")]([SubResource("Resource_blwfc"), SubResource("Resource_p4r53")])
+
+[sub_resource type="Resource" id="Resource_7mcxy"]
+script = ExtResource("1_xnnug")
+id = &"ability"
+text = "Your commander can help a wounded soldier. Press Q or the {ability} button, then left-click the soldier."
+done_when = SubResource("Resource_o7cxw")
+
+[sub_resource type="Resource" id="Resource_5ep5r"]
+script = ExtResource("1_xnnug")
+id = &"hold"
+text = "Keep your troops inside the ring around the rock, with no enemy inside, for {hold_seconds} seconds. Or destroy every enemy."
+
+[resource]
+script = ExtResource("6_tvd7g")
+hints = Array[ExtResource("1_xnnug")]([SubResource("Resource_sicfk"), SubResource("Resource_8fcxo"), SubResource("Resource_1oq6n"), SubResource("Resource_7mcxy"), SubResource("Resource_5ep5r")])
