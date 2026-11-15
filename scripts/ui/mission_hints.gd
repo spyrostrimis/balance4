@@ -7,7 +7,8 @@ extends RefCounted
 ## commander's ability, and finally the control point. A practice mission (the
 ## harvest trial, the raid trial) teaches selecting a harvester and sending it
 ## to the rock, and then explains what the harvesters do on their own and, if
-## raiders are coming, what to do about them.
+## raiders are coming, what to do about them. A skirmish teaches what the
+## base trial does, then how to attack the enemy's base.
 
 const STEPS: Array[StringName] = [&"select", &"move", &"attack", &"ability"]
 ## The step shown once the others are done.
@@ -23,13 +24,16 @@ const BASE_LAST := &"power"
 var practice := false
 ## Does the player have a base to build up in it?
 var base := false
+## Is it a skirmish against the computer?
+var skirmish := false
 
 var _done := {}
 
 
-func _init(p_practice := false, p_base := false) -> void:
+func _init(p_practice := false, p_base := false, p_skirmish := false) -> void:
 	practice = p_practice
 	base = p_base
+	skirmish = p_skirmish
 
 
 ## Tell the hints the player has done something: &"select", &"move",
@@ -60,6 +64,8 @@ func current() -> StringName:
 func text(def: MissionDef) -> String:
 	if practice:
 		return _practice_text(def)
+	if skirmish:
+		return _skirmish_text(def)
 	var ability: Ability = def.player_commander.ability if def.player_commander != null else null
 	match current():
 		&"select":
@@ -87,6 +93,15 @@ func _base_text() -> String:
 		&"train":
 			return "Now build a Barracks and place it. It gets a tab of its own in the build menu: open it and click a soldier to train one."
 	return "Buildings use power and Generators make it: use more than you make and everything builds at half speed. A Workshop builds more harvesters."
+
+
+func _skirmish_text(def: MissionDef) -> String:
+	match current():
+		&"select", &"harvest", &"build", &"place":
+			return _base_text()
+		&"train":
+			return "Build a Barracks to train soldiers, and a Workshop for light tanks and more harvesters. %s builds its own base in the far corner." % def.enemy_side
+	return "Destroy every %s building and soldier to win: right-click an enemy building to attack it, or attack-move (F) into %s's base. Keep some troops at home." % [def.enemy_side, def.enemy_side]
 
 
 func _practice_text(def: MissionDef) -> String:

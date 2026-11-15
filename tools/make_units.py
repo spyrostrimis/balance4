@@ -15,6 +15,8 @@ and one row per pose.
   harvesters  6 rows (empty truck, loaded truck, halfway between truck and robot, the two
               halves of the robot's swing, the robot standing), 44x44 pixels per sprite,
               with the middle of the vehicle on the ground at pixel (22, 25).
+  tanks       3 rows (standing, then the two halves of a turn of the tracks), 36x36 pixels
+              per sprite, with the middle of the tank on the ground at pixel (18, 20).
   trailers    2 rows (empty, loaded), the same size and middle as the harvester, so that a
               trailer drawn on the truck's cell sits exactly where it sat in the truck.
 
@@ -43,9 +45,10 @@ OUT = os.path.join(ROOT, 'assets', 'sprites', 'units')
 TROOP = (24, (12, 18), 3)
 VEHICLE = (44, (22, 25), 6)
 TRAILER = (44, (22, 25), 2)
+TANK = (36, (18, 20), 3)
 UNITS = {'infantry_blue': TROOP, 'infantry_red': TROOP, 'commander_blue': TROOP, 'commander_red': TROOP,
          'harvester_blue': VEHICLE, 'harvester_red': VEHICLE,
-         'trailer_blue': TRAILER, 'trailer_red': TRAILER}
+         'trailer_blue': TRAILER, 'trailer_red': TRAILER, 'tank_blue': TANK, 'tank_red': TANK}
 
 
 def load(name):

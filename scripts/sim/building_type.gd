@@ -21,6 +21,8 @@ extends Resource
 ## What it costs in Orichalcum, and how long it takes to construct, in seconds.
 @export var cost := 0
 @export var build_seconds := 10.0
+## How much damage it takes before it is destroyed.
+@export var max_health := 500
 ## Power it makes (above 0) or uses (below 0).
 @export var power := 0
 ## The buildings (BuildingType) a side that owns this one can construct. A

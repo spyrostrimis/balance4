@@ -209,4 +209,5 @@ All of these are first values, kept in data so they are easy to change.
   infantry types fight at range 1.
 - Passive hero abilities, and the leaders' abilities.
 - A mission briefing, a pause menu and sound.
-- An opponent that thinks. It follows the script above.
+- An opponent that thinks. It follows the script above. (M6 added one for
+  the skirmish: see [skirmish.md](skirmish.md). Mission 1 keeps its script.)

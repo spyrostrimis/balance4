@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="MissionDef" load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/sim/mission_def.gd" id="1"]
+[ext_resource type="Resource" path="res://data/maps/forest_01.tres" id="2"]
+[ext_resource type="Resource" path="res://data/buildings/blue_headquarters.tres" id="3"]
+[ext_resource type="Resource" path="res://data/buildings/blue_refinery.tres" id="4"]
+[ext_resource type="Resource" path="res://data/units/blue_harvester.tres" id="5"]
+[ext_resource type="Resource" path="res://data/units/blue_infantry.tres" id="6"]
+[ext_resource type="Resource" path="res://data/buildings/red_headquarters.tres" id="7"]
+[ext_resource type="Resource" path="res://data/buildings/red_refinery.tres" id="8"]
+[ext_resource type="Resource" path="res://data/units/red_harvester.tres" id="9"]
+[ext_resource type="Resource" path="res://data/units/red_infantry.tres" id="10"]
+
+[resource]
+script = ExtResource("1")
+id = &"skirmish_blue"
+number = 0
+display_name = "Skirmish"
+map = ExtResource("2")
+player_side = "Blue"
+enemy_side = "Red"
+player_color = Color(0.45, 0.72, 1, 1)
+enemy_color = Color(1, 0.45, 0.35, 1)
+troop_count = 3
+player_troop = ExtResource("6")
+enemy_troop = ExtResource("10")
+player_headquarters = ExtResource("3")
+start_orichalcum = 600
+ore_richness = 8
+player_refinery = ExtResource("4")
+player_harvester = ExtResource("5")
+harvester_count = 1
+enemy_headquarters = ExtResource("7")
+enemy_refinery = ExtResource("8")
+enemy_harvester = ExtResource("9")
+enemy_harvester_count = 1
+enemy_start_orichalcum = 600
+skirmish = true
+objective = "Destroy every enemy building and soldier. Lose all of yours and you are beaten."

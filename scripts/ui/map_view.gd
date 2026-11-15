@@ -7,7 +7,7 @@ extends Node2D
 ##
 ## Controls: left click selects a unit, dragging selects every unit in the box
 ## (hold Shift to add to the selection). Right click sends the selected units
-## to that spot, or at the enemy under the mouse; harvesters right-clicked onto
+## to that spot, or at the enemy unit or building under the mouse; harvesters right-clicked onto
 ## the Orichalcum rock start harvesting, and onto their refinery unload; units sent to a trailer
 ## whose harvester is destroyed take the Orichalcum in it. F then left click is
 ## attack-move; X stops; Q then left click on one of your units uses the
@@ -144,7 +144,7 @@ func show_map(p_map: MapData, squad: UnitType = null, squad_size := 0) -> void:
 ## Start a mission: its map, both forces, the control point and the scripted opponent.
 func show_mission(def: MissionDef) -> void:
 	mission = Mission.new(def)
-	hints = MissionHints.new(def.practice, def.has_base())
+	hints = MissionHints.new(def.practice, def.has_base(), def.skirmish)
 	var focus := Vector2(def.map.get_pixel_size()) / 2.0
 	var commander := mission.player_commander()
 	var refinery := mission.world.get_building(mission.player_refinery_id)
@@ -155,7 +155,7 @@ func show_mission(def: MissionDef) -> void:
 	elif not def.map.starts.is_empty():
 		focus = MapData.cell_center(def.map.starts[0])
 	_attach(def.map, mission.world, focus)
-	_map_name.text = def.display_name if def.practice else "%d: %s" % [def.number, def.display_name]
+	_map_name.text = def.display_name if def.practice or def.skirmish else "%d: %s" % [def.number, def.display_name]
 
 
 ## Start the current mission again from the beginning.
@@ -198,8 +198,8 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	camera.center_on(focus)
 	minimap.setup(map, camera, world)
 	var colors := {}
-	var control: ControlPoint = null        # nothing to hold in a practice mission
-	if mission != null and not mission.def.practice:
+	var control: ControlPoint = null        # nothing to hold in a practice mission or a skirmish
+	if mission != null and not mission.def.practice and not mission.def.skirmish:
 		colors = {Mission.PLAYER_TEAM: mission.def.player_color, Mission.ENEMY_TEAM: mission.def.enemy_color}
 		control = mission.control
 	control_view.setup(control, colors)
@@ -380,15 +380,19 @@ func set_mode(new_mode: Mode) -> void:
 		placement_view.stop()
 
 
-## A right click on the map: attack the enemy there, or walk there if there
-## is none. Selected harvesters start work if the click is on a deposit, and
-## go to unload if it is on their side's refinery.
+## A right click on the map: attack the enemy unit or building there, or
+## walk there if there is none. Selected harvesters start work if the click is
+## on a deposit, and go to unload if it is on their side's refinery.
 func order_at(map_point: Vector2) -> void:
 	if selection.is_empty() or is_over():
 		return
 	var enemy := UnitsView.enemy_at_point(world, map_point, SimWorld.PLAYER_TEAM, units_view.alpha)
 	if enemy != null:
 		order_attack_unit(enemy.id)
+		return
+	var site := enemy_building_at(map_point)
+	if site != null and not _selected_others().is_empty():
+		order_attack_building(site.id)
 		return
 	var cell := MapData.cell_at_pixel(map_point)
 	if not selected_harvesters().is_empty() and world.shroud_for(SimWorld.PLAYER_TEAM).is_explored(cell):
@@ -492,6 +496,24 @@ func order_attack_unit(unit_id: int) -> void:
 		hints.note(&"attack")
 
 
+## Send the selected units to attack an enemy building. Harvesters do not
+## attack buildings: they stay where they are.
+func order_attack_building(building_id: int) -> void:
+	var building := world.get_building(building_id)
+	if selection.is_empty() or is_over() or building == null or building.team == SimWorld.PLAYER_TEAM:
+		return
+	world.order_attack(selection.ids, building_id)
+	buildings_view.mark(building_id)
+	if hints != null:
+		hints.note(&"attack")
+
+
+## The enemy building under a point on the map that the player has seen, or null.
+func enemy_building_at(map_point: Vector2) -> SimBuilding:
+	var building := BuildingsView.building_at_point(world, map_point, SimWorld.PLAYER_TEAM)
+	return building if building != null and building.team != SimWorld.PLAYER_TEAM else null
+
+
 ## Stop the selected units where they are.
 func order_stop() -> void:
 	if not is_over():
@@ -527,8 +549,11 @@ func command_click(map_point: Vector2) -> void:
 	match mode:
 		Mode.ATTACK_MOVE:
 			var enemy := UnitsView.enemy_at_point(world, map_point, SimWorld.PLAYER_TEAM, units_view.alpha)
+			var site := enemy_building_at(map_point)
 			if enemy != null:
 				order_attack_unit(enemy.id)
+			elif site != null:
+				order_attack_building(site.id)
 			else:
 				order_attack_move_to(map_point)
 			set_mode(Mode.NORMAL)
@@ -639,7 +664,7 @@ func say(message: String) -> void:
 func hint_text() -> String:
 	match mode:
 		Mode.ATTACK_MOVE:
-			return "Attack-move: left-click where to go, or an enemy to attack. Right-click cancels."
+			return "Attack-move: left-click where to go, or an enemy unit or building to attack. Right-click cancels."
 		Mode.ABILITY:
 			var hero := ability_unit()
 			var ability_name := hero.type.ability.display_name if hero != null else "Ability"
@@ -735,7 +760,7 @@ static func describe_trailer(p_world: SimWorld, trailer: SimTrailer) -> String:
 ## What the sidebar says about a building.
 static func describe_building(p_world: SimWorld, building: SimBuilding) -> String:
 	var type := building.type
-	var text := "%s\n%s" % [type.display_name, type.role]
+	var text := "%s\n%s\nHealth %d / %d" % [type.display_name, type.role, building.health, type.max_health]
 	if type.storage > 0:
 		text += "\nStores up to %d" % type.storage
 		text += "\nIn store: %d" % p_world.stored_for(building.team)

@@ -231,8 +231,9 @@ the rock.
 ## Left out of M4
 
 - Spending Orichalcum and placing buildings (M5, see [base.md](base.md));
-  damaging and destroying buildings (M6).
-- A harvester or refinery for the opponent (M6).
+  damaging and destroying buildings (M6, see [skirmish.md](skirmish.md)).
+- A harvester or refinery for the opponent (M6: the computer opponent of the
+  skirmish has both).
 - Taking back one's own orphaned trailer, and a proper way to carry stolen
   Orichalcum home.
 - Storage buildings other than the refinery.

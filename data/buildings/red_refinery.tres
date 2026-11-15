@@ -10,6 +10,7 @@ display_name = "Refinery"
 role = "Red Refinery"
 footprint = Vector2i(3, 2)
 sight = 4
+max_health = 900
 cost = 400
 build_seconds = 15.0
 power = -30

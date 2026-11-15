@@ -44,11 +44,24 @@ extends Resource
 @export var player_harvester: UnitType
 @export var harvester_count := 0
 
+@export_group("Enemy base")
+## The same for the enemy, at the map's second start position. Only a
+## skirmish gives the enemy a base.
+@export var enemy_headquarters: BuildingType
+@export var enemy_refinery: BuildingType
+@export var enemy_harvester: UnitType
+@export var enemy_harvester_count := 0
+@export var enemy_start_orichalcum := 0
+
 @export_group("Rules")
 ## A practice mission has no way to win or lose. The player leaves it with
 ## Esc. If it has enemy troops they are raiders: after `enemy_delay_seconds`
 ## they go for the player's harvesters (see Raiders).
 @export var practice := false
+## A skirmish: both sides have a base and the enemy is the computer opponent
+## (see ComputerOpponent). There is no control area to hold: a side loses
+## when it has no buildings and no troops left (harvesters do not count).
+@export var skirmish := false
 ## Radius of the control area around the map's control point, in cells.
 @export var control_radius := 5.0
 ## How long a side must hold the control area on its own to win, in seconds.

@@ -49,15 +49,19 @@ var map: MapData
 var size := Vector2i.ZERO
 var tick_count := 0
 var units: Array[SimUnit] = []
-## Recent things worth showing: hits, heals and deaths. Each entry is a
-## dictionary with "kind" (&"hit", &"heal" or &"death"), "tick", "team" (of the
-## unit that acted or died), and "from" and "to" (positions in cells). The UI
-## draws them; nothing in the rules reads them.
+## Recent things worth showing: hits, heals, deaths, Orichalcum taken from a
+## trailer and buildings destroyed. Each entry is a dictionary with "kind"
+## (&"hit", &"heal", &"death", &"steal" or &"wreck"), "tick", "team" (of the
+## unit that acted or died, or of the building destroyed), and "from" and
+## "to" (positions in cells); a wreck also has "size" (the building's
+## footprint). The UI draws them; nothing in the rules reads them.
 var effects: Array[Dictionary] = []
 ## How many units have been killed so far. The UI watches it to forget dead units.
 var removed_count := 0
 ## Units lost per team: team -> count.
 var losses := {}
+## Buildings destroyed per team: team -> count.
+var buildings_lost := {}
 var buildings: Array[SimBuilding] = []
 ## The Orichalcum deposits of the map. A deposit stays in the list when it has
 ## run out.
@@ -69,6 +73,9 @@ var spent_log: Array[Vector2i] = []
 ## other sides' orphaned trailers: team -> amount.
 var stored := {}
 var stolen := {}
+## The cells destroyed buildings stood on, in the order it happened. The UI
+## follows it to draw what is left of them.
+var wreck_log: Array[Rect2i] = []
 ## Trailers standing on their own: unhitched by their robot, or orphaned.
 var trailers: Array[SimTrailer] = []
 ## The build queues of every side: constructing buildings and producing units.
@@ -155,6 +162,24 @@ func team_size(team: int) -> int:
 	return count
 
 
+## How many units a team has left that can fight. Harvesters do not count.
+func fighter_count(team: int) -> int:
+	var count := 0
+	for unit in units:
+		if unit.team == team and not unit.dead and unit.type.attack_damage > 0 and not unit.type.is_harvester():
+			count += 1
+	return count
+
+
+## How many buildings a team has left.
+func building_count(team: int) -> int:
+	var count := 0
+	for building in buildings:
+		if building.team == team:
+			count += 1
+	return count
+
+
 ## The unit occupying a cell, or null.
 func unit_at(cell: Vector2i) -> SimUnit:
 	if not map.in_bounds(cell):
@@ -213,15 +238,19 @@ func order_attack_move(unit_ids: Array, target: Vector2i) -> void:
 	_order_walk(unit_ids, target, SimUnit.Order.ATTACK_MOVE)
 
 
-## Tell units to chase one unit and attack it until it is dead. Units that
-## cannot attack, harvesters and the target itself ignore the order.
+## Tell units to chase one unit, or go up to a building of another side, and
+## attack it until it is destroyed. Units that cannot attack, harvesters and
+## the target itself ignore the order.
 func order_attack(unit_ids: Array, target_id: int) -> void:
 	var target := get_unit(target_id)
-	if target == null:
+	var building := get_building(target_id)
+	if target == null and building == null:
 		return
 	for id in unit_ids:
 		var unit := get_unit(id)
 		if unit == null or unit == target or unit.type.attack_damage <= 0 or unit.type.is_harvester():
+			continue
+		if building != null and building.team == unit.team:
 			continue
 		_stop(unit)
 		unit.order = SimUnit.Order.ATTACK
@@ -413,9 +442,9 @@ func _act(unit: SimUnit) -> bool:
 	if unit.type.attack_damage <= 0:
 		return false
 	var target := _pick_target(unit)
-	if target == null:
+	if target == 0:
 		if unit.order == SimUnit.Order.ATTACK:
-			unit.order = SimUnit.Order.NONE         # the target is dead
+			unit.order = SimUnit.Order.NONE         # the target is destroyed
 			unit.order_target = 0
 			_stop(unit)
 		elif unit.order == SimUnit.Order.ATTACK_MOVE:
@@ -427,44 +456,96 @@ func _act(unit: SimUnit) -> bool:
 		elif unit.has_goal:
 			_stop(unit)                             # what it was chasing got away
 		return false
-	if in_range(unit.cell, target.cell, unit.type.attack_range):
+	var aim := aim_cell(unit.cell, target)
+	if in_range(unit.cell, aim, unit.type.attack_range):
 		_stop(unit)
-		unit.facing = facing_toward(target.cell - unit.cell)
+		unit.facing = facing_toward(aim - unit.cell)
 		if unit.attack_ticks_left == 0:
 			_strike(unit, target)
 		return true
-	_approach(unit, target, unit.type.attack_range)
+	var building := get_building(target)
+	_approach_cell(unit, aim, building.cell if building != null else aim, unit.type.attack_range)
 	return false
 
 
-## The enemy a unit should fight now, or null. A unit with an attack order
-## sticks to that target. Otherwise it keeps a target it can reach, and else
-## takes the nearest enemy it notices.
-func _pick_target(unit: SimUnit) -> SimUnit:
+## Is there a unit or a building with this id?
+func is_alive(id: int) -> bool:
+	return id != 0 and (_by_id.has(id) or _buildings_by_id.has(id))
+
+
+## The cell to aim at to hit a unit or a building (the id of one) from a
+## cell: the unit's own cell, or the cell of the building nearest to it.
+## NO_CELL if it is gone.
+func aim_cell(from: Vector2i, id: int) -> Vector2i:
+	var unit := get_unit(id)
+	if unit != null:
+		return unit.cell
+	var building := get_building(id)
+	return building.nearest_cell(from) if building != null else NO_CELL
+
+
+## The id of what a unit should fight now (an enemy unit or building), or 0.
+## A unit with an attack order sticks to that target. Otherwise it keeps a
+## unit it is fighting while that is within reach, takes the nearest enemy
+## unit it notices, and only when there is none goes for a building it
+## notices. Units come first: a unit hitting a building turns on an enemy
+## unit that comes near.
+func _pick_target(unit: SimUnit) -> int:
 	if unit.order == SimUnit.Order.ATTACK:
-		return get_unit(unit.order_target)
+		return unit.order_target if is_alive(unit.order_target) else 0
 	var current := get_unit(unit.target_id) if unit.target_id != 0 else null
 	if current != null and in_range(unit.cell, current.cell, unit.type.attack_range):
-		return current
+		return current.id
 	var best := nearest_enemy(unit.cell, unit.team, unit.type.acquire_range)
 	if best == null and current != null:
 		var provoked := current.id == unit.provoked_by and tick_count - unit.provoked_tick <= PROVOKED_TICKS
 		if provoked or in_range(unit.cell, current.cell, unit.type.acquire_range + LEASH_EXTRA):
 			best = current
-	unit.target_id = best.id if best != null else 0
+	if best != null:
+		unit.target_id = best.id
+		return best.id
+	var site := get_building(unit.target_id)
+	if site == null or not in_range(unit.cell, site.nearest_cell(unit.cell), unit.type.acquire_range + LEASH_EXTRA):
+		site = nearest_enemy_building(unit.cell, unit.team, unit.type.acquire_range)
+	unit.target_id = site.id if site != null else 0
+	return unit.target_id
+
+
+## The nearest building of another team within `reach` cells of a cell that
+## the team has seen, or null.
+func nearest_enemy_building(cell: Vector2i, team: int, reach: int) -> SimBuilding:
+	var best: SimBuilding = null
+	var best_distance := 0
+	for building in buildings:
+		if building.team == team:
+			continue
+		var near := building.nearest_cell(cell)
+		if not in_range(cell, near, reach) or not shroud_for(team).is_explored(near):
+			continue
+		var distance := (near - cell).length_squared()
+		if best == null or distance < best_distance:
+			best = building
+			best_distance = distance
 	return best
 
 
 ## Walk towards a unit until it is within `reach` cells. Plans again only when
 ## the unit it is after has moved.
 func _approach(unit: SimUnit, target: SimUnit, reach: int) -> void:
-	if unit.has_goal and unit.chase_cell == target.cell:
+	_approach_cell(unit, target.cell, target.cell, reach)
+
+
+## Walk towards a cell until it is within `reach` cells. `key` names what is
+## being chased (a unit's cell, a building's corner): the unit plans again
+## only when it changes.
+func _approach_cell(unit: SimUnit, around: Vector2i, key: Vector2i, reach: int) -> void:
+	if unit.has_goal and unit.chase_cell == key:
 		return
-	var slot := _slot_near(unit, target.cell, reach)
+	var slot := _slot_near(unit, around, reach)
 	if slot == NO_CELL or slot == unit.cell:
 		_stop(unit)                                 # nowhere better to stand: wait here
 		return
-	unit.chase_cell = target.cell
+	unit.chase_cell = key
 	_set_goal(unit, slot)
 
 
@@ -491,9 +572,15 @@ func _slot_near(unit: SimUnit, around: Vector2i, reach: int) -> Vector2i:
 	return best
 
 
-func _strike(attacker: SimUnit, target: SimUnit) -> void:
+## Hit a unit or a building (the id of one).
+func _strike(attacker: SimUnit, target_id: int) -> void:
 	attacker.attack_ticks_left = attacker.type.attack_ticks()
 	attacker.last_attack_tick = tick_count
+	var building := get_building(target_id)
+	if building != null:
+		_strike_building(attacker, building)
+		return
+	var target := get_unit(target_id)
 	_add_effect(&"hit", attacker, target)
 	target.health = maxi(0, target.health - damage_to(target, attacker.type.attack_damage))
 	target.last_hurt_tick = tick_count
@@ -503,17 +590,59 @@ func _strike(attacker: SimUnit, target: SimUnit) -> void:
 		target.provoked_by = attacker.id        # a harvester looks after itself: see _threat()
 		target.provoked_tick = tick_count
 	# The victim fights back, and idle comrades near it come to its help.
+	_call_for_help(target.team, target.cell, attacker, target)
+
+
+## Idle fighters of a team near a cell (and the unit that was hit, if a unit
+## was) go after the attacker.
+func _call_for_help(team: int, cell: Vector2i, attacker: SimUnit, victim: SimUnit = null) -> void:
 	for unit in units:
-		if unit.team != target.team or unit.dead or unit.type.attack_damage <= 0 or unit.type.is_harvester():
+		if unit.team != team or unit.dead or unit.type.attack_damage <= 0 or unit.type.is_harvester():
 			continue
-		if unit != target and not in_range(unit.cell, target.cell, HELP_RANGE):
+		if unit != victim and not in_range(unit.cell, cell, HELP_RANGE):
 			continue
 		if unit.order != SimUnit.Order.NONE and unit.order != SimUnit.Order.ATTACK_MOVE:
 			continue
 		unit.provoked_by = attacker.id
 		unit.provoked_tick = tick_count
-		if unit.target_id == 0:
+		if unit.target_id == 0 or get_building(unit.target_id) != null:
 			unit.target_id = attacker.id
+
+
+func _strike_building(attacker: SimUnit, building: SimBuilding) -> void:
+	var aim := building.nearest_cell(attacker.cell)
+	_add_effect_at(&"hit", attacker.team, attacker.visual_cell(), Vector2(aim))
+	building.health = maxi(0, building.health - attacker.type.attack_damage)
+	building.last_hurt_tick = tick_count
+	if building.health == 0:
+		destroy_building(building)
+	else:
+		_call_for_help(building.team, aim, attacker)
+
+
+## Take a building off the map: it has been destroyed. Its cells can be
+## walked on again. What its side had in store beyond what is left of its
+## storage is lost, and a queue that has no building left to work it is
+## emptied (what was paid for it comes back).
+func destroy_building(building: SimBuilding) -> void:
+	if not _buildings_by_id.has(building.id):
+		return
+	building.health = 0
+	buildings.erase(building)
+	_buildings_by_id.erase(building.id)
+	for covered in building.cells():
+		_building[_index(covered)] = 0
+		_astar.set_point_solid(covered, not map.is_walkable(covered))
+	_build_regions()
+	buildings_lost[building.team] = int(buildings_lost.get(building.team, 0)) + 1
+	wreck_log.append(building.rect())
+	production.drop_orphaned_lines(building.team)
+	stored[building.team] = mini(stored_for(building.team), storage_for(building.team))
+	effects.append({
+		"kind": &"wreck", "tick": tick_count, "team": building.team,
+		"from": Vector2(building.cell), "to": building.center() - Vector2(0.5, 0.5),
+		"size": building.type.footprint,
+	})
 
 
 ## How much health a hit of `damage` takes off a unit. A harvester's robot
@@ -565,10 +694,11 @@ func _act_ability(unit: SimUnit) -> bool:
 
 
 func _add_effect(kind: StringName, actor: SimUnit, subject: SimUnit) -> void:
-	effects.append({
-		"kind": kind, "tick": tick_count, "team": actor.team,
-		"from": actor.visual_cell(), "to": subject.visual_cell(),
-	})
+	_add_effect_at(kind, actor.team, actor.visual_cell(), subject.visual_cell())
+
+
+func _add_effect_at(kind: StringName, team: int, from: Vector2, to: Vector2) -> void:
+	effects.append({"kind": kind, "tick": tick_count, "team": team, "from": from, "to": to})
 
 
 # --- buildings -------------------------------------------------------------------
@@ -603,6 +733,7 @@ func add_building(type: BuildingType, team: int, cell: Vector2i) -> SimBuilding:
 	building.type = type
 	building.team = team
 	building.cell = cell
+	building.health = type.max_health
 	buildings.append(building)
 	_buildings_by_id[building.id] = building
 	for covered in building.cells():
@@ -1393,7 +1524,7 @@ func _guard(unit: SimUnit, trailer: SimTrailer, threat: SimUnit) -> bool:
 			_stop(unit)
 			unit.facing = facing_toward(foe.cell - unit.cell)
 			if unit.attack_ticks_left == 0 and unit.type.attack_damage > 0:
-				_strike(unit, foe)
+				_strike(unit, foe.id)
 			return true
 	var best := NO_CELL
 	var best_distance := 0

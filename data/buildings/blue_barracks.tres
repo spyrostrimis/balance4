@@ -11,6 +11,7 @@ display_name = "Barracks"
 role = "Blue Barracks"
 footprint = Vector2i(2, 2)
 sight = 4
+max_health = 700
 cost = 200
 build_seconds = 10.0
 power = -20

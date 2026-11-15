@@ -144,7 +144,7 @@ makes builds at half speed. Left for M6, because they need an opponent to
 mean anything: buildings with health that can be attacked and destroyed, and
 combat vehicles for the workshop.
 
-## M6 Enemy AI
+## M6 Enemy AI (done)
 
 Someone to play against.
 
@@ -155,6 +155,17 @@ Done means:
 - It plays by the same rules as the player.
 - Playable result: a full skirmish against the computer, from first building to a
   win or a loss.
+
+What was built is described in [skirmish.md](skirmish.md). The playable
+result is the skirmish, on either map: each side starts with a headquarters,
+a refinery, a harvester, three soldiers and 600 Orichalcum, and the side that
+loses all its buildings and troops has lost. M6 also gave buildings health,
+so that they can be attacked and destroyed (with fire, explosions and scorch
+marks on screen), and the workshop a light tank, the first unit that fights
+at a distance. The computer knows where the enemy started, and once it has
+searched there it is told where what is left of the enemy is. Left for
+later: repairing and selling buildings, difficulty levels, heroes in the
+skirmish, and fog of war over ground that is no longer watched.
 
 ## M7 Vertical slice (outline)
 

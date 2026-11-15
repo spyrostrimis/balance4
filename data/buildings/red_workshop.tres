@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="BuildingType" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="BuildingType" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/sim/building_type.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/buildings/workshop_red.png" id="2"]
 [ext_resource type="Resource" path="res://data/units/red_harvester.tres" id="3"]
+[ext_resource type="Resource" path="res://data/units/red_tank.tres" id="4"]
 
 [resource]
 script = ExtResource("1")
@@ -11,11 +12,12 @@ display_name = "Workshop"
 role = "Red Workshop"
 footprint = Vector2i(3, 2)
 sight = 4
+max_health = 900
 cost = 400
 build_seconds = 15.0
 power = -40
-produces = Array[Resource]([ExtResource("3")])
-blurb = "Builds harvesters."
+produces = Array[Resource]([ExtResource("3"), ExtResource("4")])
+blurb = "Builds harvesters and light tanks."
 sprite = ExtResource("2")
 sprite_origin = Vector2i(8, 8)
 minimap_color = Color(1, 0.45, 0.35, 1)

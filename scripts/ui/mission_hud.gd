@@ -3,8 +3,9 @@ extends Control
 ## The mission parts of the HUD: a bar along the top of the map (with the
 ## Orichalcum in store, once the player has a refinery), a hint box, the
 ## command buttons, the objective with the hold progress (in a practice
-## mission: how full the store is; in a mission with a base: the build menu
-## instead, see BuildPanel), and the win or loss screen. It builds its
+## mission: how full the store is; in a mission with a base, a skirmish
+## included: the build menu instead, see BuildPanel), and the win or loss
+## screen. It builds its
 ## own controls. It is functional only; the HUD art will be redone later.
 
 signal command_pressed(command: StringName)     # &"attack", &"stop" or &"ability"
@@ -84,9 +85,9 @@ func _ready() -> void:
 
 	_result = _panel(Rect2((MAP_WIDTH - 360) / 2.0, 170, 360, 180), Color(0.06, 0.06, 0.05, 0.95))
 	_result.mouse_filter = Control.MOUSE_FILTER_STOP
-	_result_title = _label(Rect2(0, 18, 360, 50), 36, GOLD, _result)
+	_result_title = _label(Rect2(0, 12, 360, 50), 36, GOLD, _result)
 	_result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_text = _label(Rect2(20, 72, 320, 50), 12, TEXT, _result)
+	_result_text = _label(Rect2(20, 62, 320, 66), 12, TEXT, _result)
 	_result_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_result_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_again = Button.new()
@@ -112,7 +113,7 @@ func setup(mission: Mission) -> void:
 	if mission == null:
 		return
 	var def := mission.def
-	_top_left.text = def.display_name if def.practice else "Mission %d: %s" % [def.number, def.display_name]
+	_top_left.text = top_left_text(def)
 	_objective.text = def.objective
 	build_panel.visible = def.has_base()
 	build_panel.open(Production.BUILDINGS)
@@ -142,6 +143,12 @@ func refresh(mission: Mission, hint: String) -> void:
 		_bar.size.x = roundf((SIDE_WIDTH - 2.0) * (float(world.stored_for(Mission.PLAYER_TEAM)) / storage if storage > 0 else 0.0))
 		_bar.color = GOLD
 		return
+	if def.skirmish:
+		var world := mission.world
+		_top_right.text = "%s   %s   Time %s" % [store, BuildPanel.power_text(world, Mission.PLAYER_TEAM), clock(mission.seconds())]
+		_top_left.text = "%s    %s" % [top_left_text(def), skirmish_forces_text(mission)]
+		build_panel.refresh(world, Mission.PLAYER_TEAM)
+		return
 	_top_right.text = "%s%s %d   %s %d   Time %s" % [store + "   " if store != "" else "",
 			def.player_side, players, def.enemy_side, enemies, clock(mission.seconds())]
 	_status.text = hold_text(mission)
@@ -161,6 +168,23 @@ func show_result(mission: Mission) -> void:
 
 func is_result_shown() -> bool:
 	return _result.visible
+
+
+## What the top bar says at the left: the mission's name.
+static func top_left_text(def: MissionDef) -> String:
+	if def.skirmish:
+		return "Skirmish: %s against %s (computer)" % [def.player_side, def.enemy_side]
+	return def.display_name if def.practice else "Mission %d: %s" % [def.number, def.display_name]
+
+
+## The two sides in a skirmish: their buildings and troops, e.g.
+## "Blue 4 / 6   Red 3 / 9" (buildings / troops).
+static func skirmish_forces_text(mission: Mission) -> String:
+	var world := mission.world
+	var def := mission.def
+	return "%s %d / %d   %s %d / %d" % [
+		def.player_side, world.building_count(Mission.PLAYER_TEAM), world.fighter_count(Mission.PLAYER_TEAM),
+		def.enemy_side, world.building_count(Mission.ENEMY_TEAM), world.fighter_count(Mission.ENEMY_TEAM)]
 
 
 ## Seconds as minutes and seconds, e.g. 0:42. Part seconds count as a whole one.
@@ -218,9 +242,16 @@ static func result_text(mission: Mission) -> String:
 	var how := ""
 	match [mission.player_won(), mission.win_reason]:
 		[true, &"hold"]: how = "You held the Orichalcum rock."
-		[true, _]: how = "Every enemy is destroyed."
+		[true, _]: how = "Every enemy building and soldier is destroyed." if def.skirmish else "Every enemy is destroyed."
 		[false, &"hold"]: how = "%s held the Orichalcum rock." % def.enemy_side
-		[false, _]: how = "Your force is destroyed."
+		[false, _]: how = "Your base and your troops are destroyed." if def.skirmish else "Your force is destroyed."
+	if def.skirmish:
+		var world := mission.world
+		return "%s\nTime %s.  Lost: %d units, %d buildings.\nDestroyed: %d units, %d buildings." % [
+			how, clock(mission.seconds()),
+			int(world.losses.get(Mission.PLAYER_TEAM, 0)), int(world.buildings_lost.get(Mission.PLAYER_TEAM, 0)),
+			int(world.losses.get(Mission.ENEMY_TEAM, 0)), int(world.buildings_lost.get(Mission.ENEMY_TEAM, 0)),
+		]
 	return "%s\nTime %s.  Units lost: %d.  Enemies destroyed: %d." % [
 		how, clock(mission.seconds()),
 		int(mission.world.losses.get(Mission.PLAYER_TEAM, 0)),

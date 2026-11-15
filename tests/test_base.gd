@@ -93,7 +93,8 @@ func test_building_data() -> void:
 		for kind: String in ["refinery", "barracks", "workshop"]:
 			check(_type(kind, team).power < 0, "the %s uses power" % kind)
 		check_eq(_type("barracks", team).produces, [_unit("infantry", team)] as Array[Resource], "the barracks trains infantry")
-		check_eq(_type("workshop", team).produces, [_unit("harvester", team)] as Array[Resource], "the workshop builds harvesters")
+		check_eq(_type("workshop", team).produces, [_unit("harvester", team), _unit("tank", team)] as Array[Resource],
+				"the workshop builds harvesters and light tanks")
 		check(_unit("infantry", team).cost > 0 and _unit("harvester", team).cost > _unit("infantry", team).cost,
 				"units cost Orichalcum, a harvester more than a soldier")
 		check_eq(_unit("commander", team).cost, 0, "commanders are not for sale")

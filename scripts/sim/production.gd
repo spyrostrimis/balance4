@@ -160,6 +160,22 @@ func place(team: int, cell: Vector2i) -> SimBuilding:
 	return building
 
 
+## Empty every queue of a side that has no building left to work it, and
+## give back what was paid for the item being built. Called when one of its
+## buildings is destroyed.
+func drop_orphaned_lines(team: int) -> void:
+	if not _lines.has(team):
+		return
+	var lines: Dictionary = _lines[team]
+	for key: StringName in lines:
+		var the_line: BuildLine = lines[key]
+		if the_line.is_empty() or builder(team, key) != null:
+			continue
+		world.refund(team, the_line.paid)
+		the_line.items.clear()
+		_start_next(the_line)
+
+
 ## Advance every queue by one tick.
 func tick() -> void:
 	for team: int in _lines:

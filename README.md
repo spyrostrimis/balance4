@@ -7,8 +7,15 @@ of music and level in this repository is original; nothing is taken from Dune II
 
 > Every faction claims to seek Balance, but each defines it differently.
 
-**Status:** milestone M5 (Base building and production) is done. These can
-be played from a placeholder title screen:
+**Status:** milestone M6 (Enemy AI) is done. These can be played from a
+placeholder title screen:
+
+- **A skirmish against the computer**, as Blue on the forest map or as Red on
+  the desert map. Both sides start with a headquarters, a refinery, a
+  harvester, three soldiers and 600 Orichalcum, at opposite corners, with one
+  Orichalcum rock between them. The computer harvests, builds its base,
+  trains soldiers and light tanks, defends, and attacks in waves, under the
+  same rules as you. Destroy every enemy building and soldier to win.
 
 - **Mission 1, "The First Claim"** (provisional name), to a win or a loss: as
   Blue on the forest map or as Red on the desert map. Each side has four
@@ -27,11 +34,14 @@ be played from a placeholder title screen:
 
 - **The base trial**, with a headquarters, a refinery, one harvester and
   some Orichalcum. Build a generator, a barracks and a workshop from the
-  build menu, place them on building ground, and train soldiers and more
-  harvesters. Everything is paid for with what the harvesters bring in.
+  build menu, place them on building ground, and train soldiers, light tanks
+  and more harvesters. Everything is paid for with what the harvesters bring
+  in.
 
-There is no opponent that builds a base yet, and buildings cannot be attacked.
-See [docs/roadmap.md](docs/roadmap.md).
+See [docs/roadmap.md](docs/roadmap.md) for what comes next.
+
+![A skirmish as Red: light tanks and a soldier attack Blue's burning headquarters](docs/screenshots/m6_attack.png)
+![A skirmish as Blue: a light tank shells Red's headquarters from a distance](docs/screenshots/m6_burning.png)
 
 ![The base trial as Red: a base with all five buildings](docs/screenshots/m5_base.png)
 ![Placing a generator: green squares show that it fits](docs/screenshots/m5_placing.png)
@@ -49,12 +59,13 @@ See [docs/roadmap.md](docs/roadmap.md).
 | Shift + click or drag | Add to the selection (Shift + click on a selected unit removes it) |
 | Right click on the ground | Move the selected units there |
 | Right click on an enemy | Attack that enemy |
+| Right click on an enemy building | Attack that building (harvesters stay out of it) |
 | Right click on the Orichalcum rock, with harvesters selected | They start harvesting, and keep going on their own |
 | Right click on your refinery, with harvesters selected | They unload there now |
 | Right click on an enemy trailer whose harvester is destroyed | The selected units walk up to it and take its Orichalcum |
-| Click in the build menu (base trial) | Add that building or unit to the queue; Cancel takes the last one out |
+| Click in the build menu (base trial, skirmish) | Add that building or unit to the queue; Cancel takes the last one out |
 | Click "Place the ...", then left click on the map | Put the finished building there (right click or Esc leaves placing) |
-| F, then left click | Attack-move: walk there and fight whatever is met on the way |
+| F, then left click | Attack-move: walk there and fight whatever is met on the way (a click on an enemy unit or building attacks it) |
 | X | Stop |
 | Q, then left click on one of your units | The commander heals that unit ("Mend") |
 | Right click or Esc after F or Q | Cancel |
@@ -95,10 +106,17 @@ You need Godot 4.7.2 (standard build, not .NET).
   godot --path . -- --map=desert
   ```
 
-  And the harvest trial (or `harvest-desert`, `raid-forest`, `raid-desert`):
+  And the harvest trial (or `harvest-desert`, `raid-forest`, `raid-desert`,
+  `base-forest`, `base-desert`):
 
   ```bash
   godot --path . -- --map=harvest-forest
+  ```
+
+  And a skirmish against the computer (or `skirmish-desert`):
+
+  ```bash
+  godot --path . -- --map=skirmish-forest
   ```
 
 - **Tests** (headless; no window). Import the project once, then run the tests:
@@ -137,7 +155,7 @@ The game renders at 960x540 and is scaled up by whole numbers only (x2 fills a
 | --- | --- |
 | `scenes/` | Godot scenes (`.tscn`). `main.tscn` is the scene the game starts in; `map_view.tscn` is the in-game screen. |
 | `scripts/` | GDScript code. |
-| `scripts/sim/` | The game simulation: grid, units, orders, combat, economy. No drawing or input code. So far: terrain, maps, units, orders, pathfinding, shroud, combat, hero abilities, the control point, missions, the scripted opponent of Mission 1, Orichalcum deposits, buildings, harvesting and storage, trailers, the raiders of the raid trial, build queues and power. |
+| `scripts/sim/` | The game simulation: grid, units, orders, combat, economy. No drawing or input code. So far: terrain, maps, units, orders, pathfinding, shroud, combat, hero abilities, the control point, missions, the scripted opponent of Mission 1, Orichalcum deposits, buildings, harvesting and storage, trailers, the raiders of the raid trial, build queues and power, destroying buildings, and the computer opponent of the skirmish. |
 | `scripts/ui/` | Screens, HUD, input handling and anything else the player sees or clicks. So far: title screen, terrain, unit, building, shroud, control-area and mined-out rock drawing, selection and orders, camera, minimap, the mission HUD and hints. |
 | `data/` | Unit, building and terrain definitions, stored as Godot `Resource` files. So far: `terrain/` (one file per terrain type), `biomes/` (which terrain types belong together, in drawing order), `maps/`, `units/` (one file per unit type), `buildings/` (one file per building type), `abilities/` (hero abilities) and `missions/` (forces and win rules of a mission). |
 | `assets/sprites/` | Unit, building and effect sprites. `units/` holds the unit sprite sheets, generated by `tools/render_units.py` and `tools/make_units.py`; `buildings/` the building pictures, generated by `tools/render_units.py` and `tools/make_buildings.py`. |
@@ -195,7 +213,8 @@ is explained in [docs/terrain.md](docs/terrain.md); units, orders and the shroud
 in [docs/units.md](docs/units.md); combat and Mission 1 in
 [docs/combat.md](docs/combat.md); Orichalcum, the harvester and the refinery in
 [docs/economy.md](docs/economy.md); base building, production and power in
-[docs/base.md](docs/base.md).
+[docs/base.md](docs/base.md); destroying buildings, the light tank, the
+computer opponent and the skirmish in [docs/skirmish.md](docs/skirmish.md).
 
 ## Documents
 
@@ -205,6 +224,7 @@ in [docs/units.md](docs/units.md); combat and Mission 1 in
 - [docs/units.md](docs/units.md): units, the simulation tick, move orders, pathfinding, shroud, controls.
 - [docs/combat.md](docs/combat.md): fighting, orders and keys, the field commander, the control point, Mission 1, and every provisional number.
 - [docs/base.md](docs/base.md): the buildings and their costs, build queues, placing, production, power, the build menu and the base trial.
+- [docs/skirmish.md](docs/skirmish.md): destroying buildings, the light tank, the computer opponent, the skirmish, and every provisional number.
 - [docs/economy.md](docs/economy.md): deposits, the harvester, the refinery and storage, guarding and stealing trailers, the practice missions, and every provisional number.
 - [docs/roadmap.md](docs/roadmap.md): milestones M0 to M10 and what "done" means for each.
 
@@ -220,7 +240,7 @@ Each milestone ends in something playable and a push to this repository.
 | M3 Combat | Combat and the control-point rule: a playable Mission 1. **Done.** |
 | M4 Economy | Harvester (truck, robot and trailer), refinery, storage: the harvest and raid trials. **Done.** |
 | M5 Base | Base building and production: the base trial. **Done.** |
-| M6 Enemy AI | A computer opponent. |
+| M6 Enemy AI | A computer opponent: the skirmish. **Done.** |
 | M7 Vertical slice | One complete, representative mission. |
 | M8 Content | The rest of the units, buildings and terrain. |
 | M9 Campaign | The Blue and Red campaigns. |

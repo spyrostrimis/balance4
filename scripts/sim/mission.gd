@@ -3,7 +3,9 @@ extends RefCounted
 ## A mission being played: the world, the control point, the scripted opponent
 ## and the rule that decides who has won. A practice mission (see MissionDef)
 ## has no control point to hold and no winner: it is just the world, ticking,
-## with raiders in it if the mission has enemy troops.
+## with raiders in it if the mission has enemy troops. In a skirmish both
+## sides have a base, the enemy is the computer opponent, and the side that
+## loses all its buildings and troops has lost.
 
 const PLAYER_TEAM := SimWorld.PLAYER_TEAM
 const ENEMY_TEAM := 1
@@ -13,6 +15,8 @@ var def: MissionDef
 var world: SimWorld
 var control: ControlPoint
 var opponent: ScriptedOpponent
+## The enemy of a skirmish, otherwise null.
+var computer: ComputerOpponent
 ## The enemy of a practice mission with a raid, otherwise null.
 var raiders: Raiders
 ## Id of the player's commander. It stays the same after the commander dies.
@@ -21,10 +25,13 @@ var player_commander_id := 0
 var player_refinery_id := 0
 ## Id of the player's headquarters, or 0 if the mission gives none.
 var player_headquarters_id := 0
+## Ids of the enemy's headquarters and refinery, or 0.
+var enemy_headquarters_id := 0
+var enemy_refinery_id := 0
 ## The team that has won, or NOBODY while the mission is being played.
 var winner := NOBODY
 ## How it was won: &"hold" (held the control area) or &"eliminated" (the other
-## side has no units left).
+## side has no units left; in a skirmish, no buildings and no troops).
 var win_reason := &""
 
 
@@ -41,32 +48,32 @@ func _init(p_def: MissionDef) -> void:
 	var player_start := starts[0] if starts.size() > 0 else Vector2i.ZERO
 	var enemy_start := starts[1] if starts.size() > 1 else map.get_size() - Vector2i.ONE
 	# The buildings go down first, so that nobody is put where they will stand.
-	if def.player_headquarters != null:
-		var hq_site := world.nearest_build_site(def.player_headquarters, player_start)
-		if hq_site != SimWorld.NO_CELL:
-			player_headquarters_id = world.add_building(def.player_headquarters, PLAYER_TEAM, hq_site).id
-	if def.player_refinery != null:
-		var site := world.nearest_build_site(def.player_refinery, player_start)
-		if site != SimWorld.NO_CELL:
-			player_refinery_id = world.add_building(def.player_refinery, PLAYER_TEAM, site).id
-	world.stored[PLAYER_TEAM] = mini(def.start_orichalcum, world.storage_for(PLAYER_TEAM))
+	var player_base := _set_up_base(PLAYER_TEAM, player_start, def.player_headquarters, def.player_refinery, def.start_orichalcum)
+	player_headquarters_id = player_base[0]
+	player_refinery_id = player_base[1]
+	if def.skirmish:
+		var enemy_base := _set_up_base(ENEMY_TEAM, enemy_start, def.enemy_headquarters, def.enemy_refinery, def.enemy_start_orichalcum)
+		enemy_headquarters_id = enemy_base[0]
+		enemy_refinery_id = enemy_base[1]
 	var commander := _spawn(PLAYER_TEAM, player_start, def.player_commander, def.player_troop, def.troop_count)
 	player_commander_id = commander.id if commander != null else 0
-	if def.practice:
+	if def.practice or def.skirmish:
 		# Nothing is hidden in a practice mission that the player is sent to: the rock is on the map from the start.
+		# In a skirmish both sides know where it is.
 		for deposit in world.deposits:
 			for cell in deposit.cells:
 				world.shroud_for(PLAYER_TEAM).reveal_circle(cell, 2)
-	if def.player_harvester != null and def.harvester_count > 0:
-		var refinery := world.get_building(player_refinery_id)
-		var beside := player_start
-		if refinery != null:
-			beside = refinery.cell + Vector2i(refinery.type.footprint.x / 2, refinery.type.footprint.y)
-		for unit in world.add_group(def.player_harvester, PLAYER_TEAM, beside, def.harvester_count):
-			unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
+				if def.skirmish:
+					world.shroud_for(ENEMY_TEAM).reveal_circle(cell, 2)
+	_add_harvesters(PLAYER_TEAM, player_start, player_refinery_id, def.player_harvester, def.harvester_count)
+	if def.skirmish:
+		_add_harvesters(ENEMY_TEAM, enemy_start, enemy_refinery_id, def.enemy_harvester, def.enemy_harvester_count)
 	_spawn(ENEMY_TEAM, enemy_start, def.enemy_commander, def.enemy_troop, def.enemy_troops())
 	if def.has_raid():
 		raiders = Raiders.new(world, ENEMY_TEAM, def.enemy_delay_seconds)
+	if def.skirmish:
+		computer = ComputerOpponent.new(world, ENEMY_TEAM, PLAYER_TEAM, player_start)
+		return
 	opponent = ScriptedOpponent.new(world, control, ENEMY_TEAM, enemy_start, def.enemy_delay_seconds)
 	# The second wave is the commander and the second half of the troops.
 	var troops := 0
@@ -77,6 +84,33 @@ func _init(p_def: MissionDef) -> void:
 			troops += 1
 		if def.enemy_wave_seconds > 0.0 and (unit.type.is_hero or troops > (def.enemy_troops() + 1) / 2):
 			opponent.hold_back(unit.id, def.enemy_wave_seconds)
+
+
+## Put a side's headquarters and refinery on the building ground nearest to
+## its start, and fill its store. Returns their ids (0 for one it has not got).
+func _set_up_base(team: int, start: Vector2i, headquarters: BuildingType, refinery: BuildingType, orichalcum: int) -> Array[int]:
+	var ids: Array[int] = [0, 0]
+	for i in 2:
+		var type := headquarters if i == 0 else refinery
+		if type == null:
+			continue
+		var site := world.nearest_build_site(type, start)
+		if site != SimWorld.NO_CELL:
+			ids[i] = world.add_building(type, team, site).id
+	world.stored[team] = mini(orichalcum, world.storage_for(team))
+	return ids
+
+
+## Put a side's harvesters beside its refinery, facing the control point.
+func _add_harvesters(team: int, start: Vector2i, refinery_id: int, type: UnitType, count: int) -> void:
+	if type == null or count <= 0:
+		return
+	var refinery := world.get_building(refinery_id)
+	var beside := start
+	if refinery != null:
+		beside = refinery.cell + Vector2i(refinery.type.footprint.x / 2, refinery.type.footprint.y)
+	for unit in world.add_group(type, team, beside, count):
+		unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
 
 
 ## Put one side on the map: the commander on the start cell, the troops around
@@ -90,6 +124,11 @@ func _spawn(team: int, start: Vector2i, commander_type: UnitType, troop_type: Un
 	for unit in group:
 		unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
 	return group[0] if commander_type != null and not group.is_empty() else null
+
+
+## Has a side lost a skirmish: no buildings and no troops left?
+func is_beaten(team: int) -> bool:
+	return world.building_count(team) == 0 and world.fighter_count(team) == 0
 
 
 func is_over() -> bool:
@@ -113,6 +152,15 @@ func tick() -> void:
 		if raiders != null:
 			raiders.tick()
 		world.tick()
+		return
+	if def.skirmish:
+		computer.tick()
+		world.tick()
+		var player_out := is_beaten(PLAYER_TEAM)
+		if player_out:
+			_finish(ENEMY_TEAM, &"eliminated")
+		elif is_beaten(ENEMY_TEAM):
+			_finish(PLAYER_TEAM, &"eliminated")
 		return
 	opponent.tick()
 	world.tick()

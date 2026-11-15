@@ -18,7 +18,7 @@ Blue and for Red. The two sides' buildings differ only in colour so far.
 | Generator | 2 by 2 | 150 | 8 s | makes 100 | Makes power. |
 | Refinery | 3 by 2 | 400 | 15 s | uses 30 | Harvesters unload here. Stores 800. |
 | Barracks | 2 by 2 | 200 | 10 s | uses 20 | Trains infantry (60, 6 s). |
-| Workshop | 3 by 2 | 400 | 15 s | uses 40 | Builds harvesters (300, 12 s). |
+| Workshop | 3 by 2 | 400 | 15 s | uses 40 | Builds harvesters (300, 12 s) and, since M6, light tanks (300, 14 s). |
 
 A building type lists what it `builds` (which makes it a headquarters) and
 what it `produces` (which makes it a production building). Unit types carry
@@ -107,8 +107,9 @@ screen ("Base trial") or with `-- --map=base-forest` or `--map=base-desert`.
 The rock in this mission is three times as rich as usual (150 a cell), so
 that there is enough to build a base with. The hints lead through sending
 the harvester out, building and placing a generator, and building a barracks
-and training a soldier. There is nothing to win or lose yet: buildings cannot
-be attacked, and the opponent that builds a base of its own comes with M6.
+and training a soldier. There is nothing to win or lose: it has no opponent.
+The game against an opponent with a base of its own is the skirmish, added
+in M6 (see [skirmish.md](skirmish.md)).
 
 ## Provisional choices
 
@@ -137,8 +138,10 @@ functional only, like the rest of the HUD.
 ## Left out of M5
 
 - Attacking, damaging, repairing and selling buildings. Buildings have no
-  health yet; that comes with the opponent in M6.
-- Combat vehicles. The workshop builds only harvesters so far.
+  health yet; that comes with the opponent in M6. (Done in M6, apart from
+  repairing and selling: see [skirmish.md](skirmish.md).)
+- Combat vehicles. The workshop builds only harvesters so far. (M6 added the
+  light tank.)
 - Rally points, and choosing which building a unit comes out of.
 - Requirements between buildings (everything can be built from the start).
 - Sound.

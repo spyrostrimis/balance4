@@ -14,6 +14,7 @@
 # Troops: pose 0 stands; poses 1 and 2 are the two halves of a walking step.
 # Harvesters: pose 0 is the empty truck, 1 the loaded truck, 2 halfway between truck and
 # robot, 3 and 4 the two halves of the robot's swing, 5 the robot standing with its arms down.
+# Light tanks: pose 0 stands; poses 1 and 2 are the two halves of a turn of the tracks.
 # Trailers (the back of the truck, left standing when the robot steps off): pose 0 is empty,
 # 1 loaded. A trailer is rendered where it sits in the truck, so the two pictures line up.
 # Buildings have one pose and one facing.
@@ -460,6 +461,34 @@ def harvester_robot(team, pose):
         ell(0.05, 0.05, 0.05, x=tip.x, y=tip.y, z=tip.z, m=STEEL)
 
 
+def light_tank(team, pose):
+    """The workshop's light tank: a low grey hull on two dark tracks with a round turret in the
+    team colour and a long gun. pose 0 stands still; poses 1 and 2 are the two halves of a turn
+    of the tracks (the track links move by half a link)."""
+    T, T2 = TEAM[team]
+    pitch = 0.1
+    shift = 0.0 if pose != 2 else pitch / 2
+    for sx in (-1, 1):
+        x = sx * 0.22
+        box(0.13, 0.76, 0.12, x=x, y=0.0, z=0.0, m=TIRE, bevel=0.04)                   # track
+        for i in range(-4, 5):
+            y = i * pitch + shift
+            if abs(y) < 0.36:
+                box(0.14, 0.03, 0.014, x=x, y=y, z=0.12, m=IRON, bevel=0)            # track links
+        box(0.03, 0.7, 0.03, x=sx * 0.165, y=0.0, z=0.12, m=HULL_D, bevel=0.005)     # track guard
+    box(0.3, 0.68, 0.12, y=0.03, z=0.07, m=HULL, bevel=0.03)                          # hull
+    box(0.28, 0.14, 0.06, y=-0.28, z=0.1, m=HULL, rot=(0.5, 0, 0), bevel=0.02)       # sloped glacis
+    box(0.26, 0.12, 0.03, y=0.3, z=0.19, m=HULL_D, bevel=0.01)                        # engine deck
+    box(0.3, 0.04, 0.02, y=0.37, z=0.19, m=T2, bevel=0)                               # team stripe at the back
+    for x in (-0.06, 0.06):
+        box(0.04, 0.1, 0.01, x=x, y=0.3, z=0.22, m=IRON, bevel=0)                      # grilles
+    cyl(0.14, 0.09, y=0.04, z=0.19, m=T, verts=20)                                    # turret
+    cyl(0.1, 0.025, y=0.06, z=0.28, m=T2, verts=16)
+    cyl(0.035, 0.03, x=0.05, y=0.1, z=0.3, m=HULL_D, verts=8)                         # hatch
+    seg((0, -0.08, 0.235), (0, -0.5, 0.235), 0.035, HULL_D, verts=10)                 # gun
+    cyl(0.045, 0.06, y=-0.5, z=0.235, m=IRON, rot=(pi / 2, 0, 0), center=True, verts=10)  # muzzle
+
+
 # --- buildings (footprint centred on the origin; sizes in cells) ----------------------------
 WALL = mat('wall', '#8c8e86', 0.1, 0.8)
 WALL_D = mat('wall_d', '#62645e', 0.1, 0.8)
@@ -608,6 +637,11 @@ for team in ('blue', 'red'):
             else:
                 harvester_robot(team, pose - 2)
             render(f'{unit}_p{pose}', 2, 8, 1.0, STEEP)
+    tank = f'tank_{team}'
+    if not ONLY or tank in ONLY:
+        for pose in range(3):
+            light_tank(team, pose)
+            render(f'{tank}_p{pose}', 2, 8, 1.0, STEEP)
     trailer = f'trailer_{team}'
     if not ONLY or trailer in ONLY:
         for pose in range(2):
