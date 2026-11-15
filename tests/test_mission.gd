@@ -438,7 +438,7 @@ func _click(view: MapView, map_point: Vector2, button := MOUSE_BUTTON_LEFT) -> v
 	var event := InputEventMouseButton.new()
 	event.button_index = button
 	event.pressed = true
-	event.position = map_point - view.camera.position
+	event.position = view.map_to_screen(map_point)
 	view._unhandled_input(event)
 	if button == MOUSE_BUTTON_LEFT:
 		var release := InputEventMouseButton.new()

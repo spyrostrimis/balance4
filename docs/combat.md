@@ -76,7 +76,7 @@ These follow the habits of modern strategy games.
 
 The sidebar has three buttons that do the same as F, X and Q. Q works whether
 or not the commander is selected. After F or Q the mouse pointer becomes a
-cross and the hint box says what the next click will do.
+cross and the message box says what the next click will do.
 
 ## What the player sees
 

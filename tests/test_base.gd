@@ -445,7 +445,7 @@ func _click(view: MapView, map_point: Vector2, button := MOUSE_BUTTON_LEFT) -> v
 	var event := InputEventMouseButton.new()
 	event.button_index = button
 	event.pressed = true
-	event.position = map_point - view.camera.position
+	event.position = view.map_to_screen(map_point)
 	view._unhandled_input(event)
 	if button == MOUSE_BUTTON_LEFT:
 		var release := InputEventMouseButton.new()
@@ -477,8 +477,6 @@ func test_title_screen_offers_the_base_trial() -> void:
 
 func test_build_menu_texts() -> void:
 	var generator := _type("generator")
-	check_eq(BuildPanel.cell_text(generator), "Generator\n150", "a grid cell shows name and cost")
-	check_eq(BuildPanel.cell_text(_unit("infantry")), "Guardsman\n60", "for units too")
 	var line := BuildLine.new()
 	check_eq(BuildPanel.queue_title(line), "Nothing in the queue", "an empty queue says so")
 	check_eq(BuildPanel.queue_status(line, false), "", "and has no status")
@@ -505,14 +503,14 @@ func test_build_menu_texts() -> void:
 func test_scene_shows_the_build_menu_only_with_a_base() -> void:
 	var view := _view(HARVEST_TRIAL)
 	check(not view.hud.build_panel.visible, "the harvest trial has no build menu")
-	check(view._help.visible, "and keeps the list of controls")
-	check(view.hud._objective.visible, "and its objective")
+	check(view.hud.is_help_shown(), "and keeps the list of controls")
+	check(view.hud.is_objective_box_shown(), "and its objective")
 	view.free()
 	view = _view(BASES[0])
 	check(view.hud.build_panel.visible, "the base trial has the build menu")
-	check(not view._help.visible and not view.hud._objective.visible, "in place of the controls and the objective")
-	check(view.hud._top_right.text.contains("Orichalcum 500 / 1000"), "the top bar shows the store: '%s'" % view.hud._top_right.text)
-	check(view.hud._top_right.text.contains("Power 30 / 30"), "and the power")
+	check(not view.hud.is_help_shown() and not view.hud.is_objective_box_shown(), "in place of the controls and the objective")
+	check(view.hud.top_bar_text().contains("Orichalcum 500 / 1000"), "the top bar shows the store: '%s'" % view.hud.top_bar_text())
+	check(view.hud.top_bar_text().contains("Power 30 / 30"), "and the power")
 	view.free()
 
 
@@ -526,7 +524,7 @@ func test_building_from_the_build_menu() -> void:
 		view._process(0.05)
 		check_eq(panel.tab_keys(), [BUILDINGS] as Array[StringName], "the menu has one tab at first")
 		check_eq(panel.items().size(), 4, "with four buildings")
-		check_eq(panel._names[0].text, "Generator\n150", "the first is the generator")
+		check_eq([panel._names[0].text, panel._costs[0].text], ["Generator", "150"], "the first is the generator, with its cost")
 		check(panel._icons[0].texture != null, "with its picture")
 		check(not panel._cancel.visible and not panel._place.visible, "nothing is queued, so there is nothing to cancel or place")
 		view.hints.note(&"harvest")
@@ -572,7 +570,7 @@ func test_building_from_the_build_menu() -> void:
 		check_eq(view.hints.current(), &"train", "the hints move on to production")
 		check(BuildingsView.building_at_point(world, middle, BLUE) == world.buildings[2], "the new building is on the map")
 		view._process(0.05)
-		check(view.hud._top_right.text.contains("Power 30 / 130"), "the top bar shows the new power: '%s'" % view.hud._top_right.text)
+		check(view.hud.top_bar_text().contains("Power 30 / 130"), "the top bar shows the new power: '%s'" % view.hud.top_bar_text())
 
 		# A barracks gets a tab of its own, and its soldiers come out beside it.
 		var barracks: BuildingType = panel.items()[2]
@@ -588,7 +586,7 @@ func test_building_from_the_build_menu() -> void:
 		check(view.place_at(Vector2(place * 32) + Vector2(32, 32)), "and placed")
 		view._process(0.05)
 		check_eq(panel.tab_keys().size(), 2, "the menu has a second tab")
-		check_eq(panel._tabs[1].text, "Barracks", "named after the barracks")
+		check_eq(panel._tabs[1].tooltip_text, "Barracks", "named after the barracks")
 		panel._on_tab(1)
 		view._process(0.05)
 		check_eq(panel.items().size(), 1, "it offers one kind of soldier")

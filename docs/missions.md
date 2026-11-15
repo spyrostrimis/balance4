@@ -22,7 +22,7 @@ updates the control area, checks the objectives and fires the triggers.
 | `control_radius`, `hold_seconds` | The control area around the map's control point; a hold time of 0 means there is none |
 | `objectives` | What the player must do (`Objective`) |
 | `triggers` | What happens during the mission (`MissionTrigger`) |
-| `hints` | What the hint box teaches (`HintList`, shared files in `data/hints/`) |
+| `hints` | What the message box teaches when nobody is talking (`HintList`, shared files in `data/hints/`) |
 
 `MissionDef.problems()` lists what is wrong with a mission's data (a
 placement for a side that does not exist, a start position the map has not
@@ -82,7 +82,7 @@ order.
 
 | Action | What it does |
 | --- | --- |
-| `MessageAction` | Shows a message, with who says it. For now it appears in the hint box for eight seconds; the HUD gets a message box in M7.5 |
+| `MessageAction` | Shows a message in the message box for eight seconds, with who says it and their portrait (its own `portrait`, or else that of the player's hero with the speaker's name) |
 | `ObjectiveAction` | Shows a hidden objective, and says so in a message |
 | `GiveAction` | Puts Orichalcum into a side's store, as far as it fits |
 | `ReinforceAction` | Puts more units or buildings on the map (placements) |
@@ -111,7 +111,8 @@ when that condition decides the mission.
 
 ### Hints
 
-A `HintList` (`data/hints/`) is the hint box's steps in order. Each `Hint`
+A `HintList` (`data/hints/`) is the hints' steps in order, shown in the
+message box while no character is talking. Each `Hint`
 has a text and a condition; the box shows the first step not yet done, and a
 step once done stays done. The last step has no condition and stays up. A
 text may name values from the mission: `{player}`, `{enemy}`,

@@ -15,16 +15,18 @@ should look like, made by scripts; they are not game art and not game code.
 | [`balance_v5_units_sheet.png`](../mockups/balance_v5_units_sheet.png) | Approved unit sizes |
 | [`balance_v7_forest_blue.png`](../mockups/balance_v7_forest_blue.png), [`balance_v7_desert_red.png`](../mockups/balance_v7_desert_red.png) | Approved way of grounding sprites (rim and contact shadow) |
 | [`balance_v7_forest_closeup.png`](../mockups/balance_v7_forest_closeup.png), [`balance_v7_desert_closeup.png`](../mockups/balance_v7_desert_closeup.png) | Close-ups of the same |
-| [`balance_v8_forest_blue.png`](../mockups/balance_v8_forest_blue.png), [`balance_v8_desert_red.png`](../mockups/balance_v8_desert_red.png) | Current HUD layout and hero portrait; the game (M3) is built on v8 |
+| [`balance_v8_forest_blue.png`](../mockups/balance_v8_forest_blue.png), [`balance_v8_desert_red.png`](../mockups/balance_v8_desert_red.png) | The HUD layout the game used up to M7.4; replaced by v12 D |
 | [`balance_v9_forest_blue.png`](../mockups/balance_v9_forest_blue.png), [`balance_v9_desert_red.png`](../mockups/balance_v9_desert_red.png) (+ `_zoom`) | Experiment, not approved: orange rippled sand, purple Orichalcum, four tree types, warm/cool grade, medium zoom |
 | [`balance_v10_forest_blue.png`](../mockups/balance_v10_forest_blue.png), [`balance_v10_desert_red.png`](../mockups/balance_v10_desert_red.png) (+ `_zoom`) | Experiment, not approved: v8 repainted after the user's concept images, with sun-lit, height-shaded terrain and individual trees |
 | [`balance_v11_forest_blue.png`](../mockups/balance_v11_forest_blue.png), [`balance_v11_desert_red.png`](../mockups/balance_v11_desert_red.png) (+ `_zoom`) | Experiment, not approved: v10 with more orange sand, bigger bright purple Orichalcum crystals, lighter high-contrast bases with more team colour, vehicles mostly in team colour |
+| [`balance_v12_hud_a.png`](../mockups/balance_v12_hud_a.png), [`_b`](../mockups/balance_v12_hud_b.png), [`_c`](../mockups/balance_v12_hud_c.png) | Three warm HUD layouts drawn over a real Mission 2 frame (M7.5) |
+| [`balance_v12_hud_d.png`](../mockups/balance_v12_hud_d.png) | **The approved HUD** (2026-11-15): C's look with A's heroes, message box and objectives |
 
 Everything before v4 (`balance_mock_*`, `balance_v2_*`, `balance_v3_*`) was
 rejected and is kept only as a record of what not to do. See "Rejected
 directions" below.
 
-The generator scripts are in [`mockups/src/`](../mockups/src/) (v2 to v11, each
+The generator scripts are in [`mockups/src/`](../mockups/src/) (v2 to v12, each
 building on the one before). They are Python and Blender scripts and are
 reference material.
 
@@ -73,16 +75,30 @@ reuses the palettes and the texture recipe of the v4 mockup scripts. See
 
 ## HUD
 
-Layout:
+**Approved on 2026-11-15: mockup v12 D** ([`balance_v12_hud_d.png`](../mockups/balance_v12_hud_d.png)).
+The user asked for something warmer than the old, "too serious" HUD, a top
+bar from one side of the screen to the other, and rounder corners; of three
+layouts they took C's look with A's heroes, message box and objectives, the
+heroes stacked one above the other a little lower down.
 
-- A short **top bar**, centred over the map: Objectives, Menu, mission name,
-  resources, round timer.
-- The **hero portrait** in the top-left corner.
-- A **right sidebar**: power bar, minimap, tabs, preview, a 3x2 build grid, the
-  build queue, command buttons.
+- **Skin:** chestnut wood, gold rims, parchment panels, navy command buttons,
+  rounded corners; the corner where the top bar meets the sidebar is rounded
+  too. Text is Georgia (Verdana for small print), ink on parchment, light
+  with a shadow on wood.
+- **Top bar**, the whole width: the scales emblem, Objectives and Menu, the
+  mission's name on a parchment plaque, then Orichalcum, Power and Time.
+- **Heroes:** a framed portrait for each of the player's heroes down the
+  top-left of the map, with a health bar and the ability's key (the seconds
+  left while it recharges). Click selects, double click goes there.
+- **Message box** at the bottom left of the map: what the mission's
+  characters say, with their portrait, or else the hint.
+- **Objectives** open as a parchment list under the Objectives button (or O).
+- **Sidebar:** minimap; build tabs, a 3x2 build grid with costs, the queue
+  and power (or, without a base, the objective box and the controls); a card
+  about what is selected or under the mouse; the command buttons with icons.
 
-**The HUD art is not final.** The current HUD is considered functional only and
-will be revisited later. Keep the layout; do not treat the art as approved.
+The art is made by `tools/make_hud.py` into `assets/ui/`; the portraits there
+are placeholders until the art pass (M7.6).
 
 ## Rejected directions
 

@@ -225,8 +225,8 @@ func has_done(what: StringName) -> bool:
 	return _done.has(what)
 
 
-func add_message(speaker: String, text: String) -> void:
-	messages.append({"speaker": speaker, "text": text, "tick": world.tick_count})
+func add_message(speaker: String, text: String, portrait: Texture2D = null) -> void:
+	messages.append({"speaker": speaker, "text": text, "tick": world.tick_count, "portrait": portrait})
 
 
 ## HIDDEN, OPEN, DONE or FAILED; &"" for an objective the mission has not got.

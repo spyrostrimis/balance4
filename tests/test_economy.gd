@@ -523,7 +523,7 @@ func _click(view: MapView, map_point: Vector2, button := MOUSE_BUTTON_LEFT) -> v
 	var event := InputEventMouseButton.new()
 	event.button_index = button
 	event.pressed = true
-	event.position = map_point - view.camera.position
+	event.position = view.map_to_screen(map_point)
 	view._unhandled_input(event)
 	if button == MOUSE_BUTTON_LEFT:
 		var release := InputEventMouseButton.new()
@@ -573,7 +573,7 @@ func test_scene_runs_the_trial() -> void:
 		check(not view.control_view.visible, "and no control ring")
 		check(view.camera.get_view_rect().has_point(refinery.center() * 32.0), "the camera shows the refinery")
 		check_eq(view.hint_text(), view.hints.text(), "the first hint is shown")
-		check(view.hud._top_right.text.begins_with("Orichalcum 0 / 800"), "the top bar shows the store: '%s'" % view.hud._top_right.text)
+		check(view.hud.top_bar_text().begins_with("Orichalcum 0 / 800"), "the top bar shows the store: '%s'" % view.hud.top_bar_text())
 		check_eq(view.hud._forces.text, "Harvesters: 2", "and the sidebar counts the harvesters")
 		check(view.hud._status.text.begins_with("Left in the rock"), "and the sidebar what is left in the rock")
 		check(BuildingsView.building_at_point(world, refinery.center() * 32.0, PLAYER) == refinery, "the refinery can be found under the mouse")
@@ -615,7 +615,7 @@ func test_scene_runs_the_trial() -> void:
 			view._process(0.05)
 		check_eq(world.stored_for(PLAYER), 100, "the first load reaches the store")
 		view._process(0.05)
-		check(view.hud._top_right.text.begins_with("Orichalcum 100 / 800"), "and the top bar shows it: '%s'" % view.hud._top_right.text)
+		check(view.hud.top_bar_text().begins_with("Orichalcum 100 / 800"), "and the top bar shows it: '%s'" % view.hud.top_bar_text())
 		check_eq(view.deposit_view.spent.size(), world.spent_log.size(), "the mined-out cells are drawn")
 		check(view.deposit_view.spent.size() >= 2, "there are some by now")
 		check(view.deposit_view.get_used_cells().size() >= 4, "as tiles over the rock")

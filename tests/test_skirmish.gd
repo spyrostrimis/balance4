@@ -371,9 +371,9 @@ func test_skirmish_on_screen() -> void:
 	var world := view.world
 	view._process(0.05)
 	check(view.hud.build_panel.visible, "the skirmish has the build menu")
-	check(view.hud._top_left.text.contains("Skirmish: Blue against Red"), "the top bar names the sides: '%s'" % view.hud._top_left.text)
+	check(view.hud._top_left.text.begins_with("Skirmish"), "the top bar says it is a skirmish: '%s'" % view.hud._top_left.text)
 	check(view.hud._top_left.text.contains("Red 2 / 3"), "and counts their buildings and troops")
-	check(view.hud._top_right.text.contains("Orichalcum 600 / 1000"), "and shows the store")
+	check(view.hud.top_bar_text().contains("Orichalcum 600 / 1000"), "and shows the store")
 	check(view.control_view.control == null, "there is no control area to hold")
 	check(view.hint_text() != "", "a hint is shown")
 	# Right-click an enemy building with soldiers selected: they attack it.
@@ -398,8 +398,8 @@ func test_skirmish_on_screen() -> void:
 	_clear_side(world, RED)
 	view._process(0.05)
 	check(view.hud.is_result_shown(), "the result is shown once Red is beaten")
-	check(view.hud._result_text.text.contains("Every enemy building and soldier is destroyed"), "with how it was won")
-	check(view.hud._result_text.text.contains("2 buildings"), "and how many buildings were destroyed")
+	check(view.hud.result_text_shown().contains("Every enemy building and soldier is destroyed"), "with how it was won")
+	check(view.hud.result_text_shown().contains("2 buildings"), "and how many buildings were destroyed")
 	view.free()
 
 

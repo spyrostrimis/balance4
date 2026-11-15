@@ -2,8 +2,8 @@
 
 The vertical slice of milestone M7 (see [m7-plan.md](m7-plan.md)): the first
 mission with base building and both of Blue's heroes. Step M7.4 built it
-with placeholder art and no sound; the HUD, briefing, art and sound come in
-the later steps of M7. Played as Blue only; Red's version waits for the Red
+with placeholder art and no sound; M7.5 gave it the new HUD, and the
+briefing, art and sound come in the later steps of M7. Played as Blue only; Red's version waits for the Red
 campaign (M9).
 
 **The name, the story and every number are provisional.**
@@ -60,10 +60,9 @@ mission), or Blue loses every building and every troop.
 The hints teach, one at a time: selecting, the heroes, moving the Prince to
 the site, building and placing, harvesting, training, the abilities,
 repairing, and attacking across a ford. The mission's characters talk in
-the hint box for now (eight seconds a message); new objectives are
-announced there too, and the sidebar shows the objective being worked on
-until the build menu takes its place. The HUD gets a message box and an
-objectives list in M7.5.
+the message box, with their portraits (eight seconds a message); new
+objectives are announced there too, and the Objectives button (or O) lists
+them all.
 
 ## Tested
 

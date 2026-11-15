@@ -151,6 +151,6 @@ border tiles in `assets/tiles/shroud.png`.
   moves the camera.
 - The minimap shows unexplored cells in black, units as coloured dots and,
   in a mission, the control area as a ring.
-- When nothing is selected the sidebar shows the cell under the mouse: its
-  position, terrain and whether it can be crossed or built on. This is a
-  development aid, not final HUD.
+- When nothing is selected the sidebar's card shows what is under the
+  mouse: an enemy, a building, or the cell's position, terrain and whether it
+  can be crossed or built on.

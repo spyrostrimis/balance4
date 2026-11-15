@@ -240,7 +240,7 @@ func test_right_click_orders_a_move() -> void:
 func test_mouse_events_reach_the_map() -> void:
 	var view := _view()
 	var first: SimUnit = view.world.units[0]
-	var on_screen := _body(first) - view.camera.position
+	var on_screen := view.map_to_screen(_body(first))
 	var press := InputEventMouseButton.new()
 	press.button_index = MOUSE_BUTTON_LEFT
 	press.pressed = true
@@ -263,6 +263,7 @@ func test_mouse_events_reach_the_map() -> void:
 
 	check(MapView.in_map_area(Vector2(100, 100)), "the left part of the screen is the map")
 	check(not MapView.in_map_area(Vector2(800, 100)), "the sidebar is not")
+	check(not MapView.in_map_area(Vector2(100, 10)), "nor is the top bar")
 	view.free()
 
 

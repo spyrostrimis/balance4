@@ -201,7 +201,7 @@ Each step ends in something playable and a push, as for every milestone.
 | M7.2 | Mission scripting; existing missions ported; tests. **Done**: see [missions.md](missions.md) | M7.1 (scope only) |
 | M7.3 | Abilities (area, passive), the prince, the hero death rule, building selection and repair. **Done**: see [heroes.md](heroes.md) | M7.1 |
 | M7.4 | The map and Mission 2, with placeholder art and no sound. **Done**: see [mission2.md](mission2.md) | M7.2, M7.3 |
-| M7.5 | HUD mockups, approval, then the new HUD, portraits, messages, briefing, title and settings | approval of the mockups |
+| M7.5 | HUD mockups, approval, then the new HUD, portraits, messages, briefing, title and settings. **In progress:** mockup v12 D approved; the new HUD (portraits, message box, objectives list) is built; briefing, title and settings to come | approval of the mockups |
 | M7.6 | Final art pass and effects | M7.4 |
 | M7.7 | Placeholder sound and music, audio buses, volume settings | M7.4 |
 | M7.8 | Windows export and the first-time player test; fix what it finds | everything |

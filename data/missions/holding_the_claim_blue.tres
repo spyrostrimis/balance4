@@ -40,6 +40,7 @@
 [ext_resource type="Script" path="res://scripts/sim/missions/send_action.gd" id="38_00c0c"]
 [ext_resource type="Script" path="res://scripts/sim/missions/time_condition.gd" id="39_b43u6"]
 [ext_resource type="Script" path="res://scripts/sim/missions/any_condition.gd" id="40_s20by"]
+[ext_resource type="Texture2D" path="res://assets/ui/portraits/scout_blue.png" id="90_scout"]
 
 [sub_resource type="Resource" id="Resource_l1jgx"]
 script = ExtResource("1_pkn38")
@@ -273,6 +274,7 @@ cell = Vector2i(14, 33)
 [sub_resource type="Resource" id="Resource_u6ugo"]
 script = ExtResource("30_806h7")
 speaker = "Scout"
+portrait = ExtResource("90_scout")
 text = "Red scouts at the southern ford!"
 
 [sub_resource type="Resource" id="Resource_lfk58"]
@@ -288,6 +290,7 @@ actions = Array[ExtResource("29_vq8jj")]([SubResource("Resource_40apy"), SubReso
 [sub_resource type="Resource" id="Resource_nxdju"]
 script = ExtResource("30_806h7")
 speaker = "Scout"
+portrait = ExtResource("90_scout")
 text = "A large Red force is gathering at their camp. It will cross the river soon."
 
 [sub_resource type="Resource" id="Resource_keuyg"]
@@ -347,6 +350,7 @@ toward_tag = &"prince"
 [sub_resource type="Resource" id="Resource_p2cp2"]
 script = ExtResource("30_806h7")
 speaker = "Scout"
+portrait = ExtResource("90_scout")
 text = "Here they come, over both fords!"
 
 [sub_resource type="Resource" id="Resource_nwm51"]

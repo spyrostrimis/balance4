@@ -132,8 +132,8 @@ their foundations by `tools/make_buildings.py`, like the refinery: flat, low,
 grey, with the team colour on roofs, bands and flags. The headquarters is a
 square keep with corner turrets; the generator a round furnace whose core
 glows with Orichalcum; the barracks a hall with a drill yard; the workshop a
-hall with a wide door, an apron and a crane. The build menu itself is
-functional only, like the rest of the HUD.
+hall with a wide door, an apron and a crane. The build menu got its final
+look with the new HUD in M7.5 (see [visual-style.md](visual-style.md)).
 
 ## Left out of M5
 

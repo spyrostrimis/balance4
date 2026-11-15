@@ -70,6 +70,8 @@ extends Resource
 @export var minimap_color := Color(0.45, 0.72, 1.0)
 ## The point of a sprite that stands on the ground (its feet).
 @export var sprite_anchor := Vector2i(12, 18)
+## Heroes: the face the HUD shows (from tools/make_hud.py), 44x54 pixels.
+@export var portrait: Texture2D
 
 
 ## How many simulation ticks it takes to cross one cell, straight or diagonally.

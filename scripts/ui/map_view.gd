@@ -31,7 +31,9 @@ enum Mode {
 }
 
 const SCREEN_SIZE := Vector2(960, 540)
-const SIDEBAR_WIDTH := 212.0
+## The sidebar's width and the top bar's height (see HudStyle): the map is shown in the rest.
+const SIDEBAR_WIDTH := 960.0 - HudStyle.SIDEBAR_X
+const MAP_TOP := HudStyle.TOP
 const TITLE_SCENE := "res://scenes/main.tscn"
 ## Moving the mouse less than this (in pixels) between press and release is a click, not a drag.
 const CLICK_SLOP := 4.0
@@ -77,6 +79,8 @@ var _result_shown := false
 var paused := false
 ## The key of the ability waiting for its target (Mode.ABILITY).
 var _ability_key := "Q"
+## What the card shows, so it is only rebuilt when that changes.
+var _shown_info := ""
 
 @onready var terrain: TerrainView = $Terrain
 @onready var deposit_view: DepositView = $Deposits
@@ -85,12 +89,9 @@ var _ability_key := "Q"
 @onready var units_view: UnitsView = $Units
 @onready var shroud_view: ShroudView = $Shroud
 @onready var camera: MapCamera = $Camera
-@onready var minimap: Minimap = $Hud/Sidebar/Minimap
+@onready var minimap: Minimap = $Hud/Minimap
 @onready var drag_box: DragBox = $Hud/DragBox
 @onready var hud: MissionHud = $Hud/MissionHud
-@onready var _map_name: Label = $Hud/Sidebar/MapName
-@onready var _info: Label = $Hud/Sidebar/Info
-@onready var _help: Label = $Hud/Sidebar/Help
 
 ## Shows where the building being placed would stand. Made in _ready().
 var placement_view: PlacementView
@@ -103,6 +104,8 @@ func _ready() -> void:
 	hud.again_pressed.connect(restart_mission)
 	hud.title_pressed.connect(back_to_title)
 	hud.resume_pressed.connect(set_paused.bind(false))
+	hud.menu_pressed.connect(set_paused.bind(true))
+	hud.hero_pressed.connect(_on_hero_pressed)
 	hud.build_panel.build_pressed.connect(queue_build)
 	hud.build_panel.cancel_pressed.connect(cancel_build)
 	hud.build_panel.place_pressed.connect(begin_placement)
@@ -144,8 +147,6 @@ func show_map(p_map: MapData, squad: UnitType = null, squad_size := 0) -> void:
 			unit.facing = SimWorld.facing_toward(p_map.get_size() / 2 - start)
 		focus = MapData.cell_center(start)
 	_attach(p_map, new_world, focus)
-	var size := map.get_size()
-	_map_name.text = "%s  %dx%d" % [map.display_name, size.x, size.y]
 
 
 ## Start a mission: its map, both forces, the control point and the scripted opponent.
@@ -162,7 +163,6 @@ func show_mission(def: MissionDef) -> void:
 	elif not def.map.starts.is_empty():
 		focus = MapData.cell_center(def.map.starts[0])
 	_attach(def.map, mission.world, focus)
-	_map_name.text = def.display_name if def.practice or def.skirmish else "%d: %s" % [def.number, def.display_name]
 
 
 ## Start the current mission again from the beginning.
@@ -226,7 +226,8 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	buildings_view.setup(world, selection)
 	units_view.setup(world, selection)
 	shroud_view.setup(world.shroud_for(SimWorld.PLAYER_TEAM))
-	var view_size := Vector2(SCREEN_SIZE.x - SIDEBAR_WIDTH, SCREEN_SIZE.y)
+	var view_size := Vector2(SCREEN_SIZE.x - SIDEBAR_WIDTH, SCREEN_SIZE.y - MAP_TOP)
+	camera.offset = Vector2(0, -MAP_TOP)      # the map starts under the top bar
 	camera.setup(Vector2(map.get_pixel_size()), view_size, SCREEN_SIZE)
 	camera.center_on(focus)
 	minimap.setup(map, camera, world)
@@ -237,9 +238,9 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 		control = mission.control
 	control_view.setup(control, colors)
 	minimap.show_control(control, colors)
-	hud.setup(mission)
-	_help.visible = mission == null or not mission.def.has_base()      # the build menu takes its place
-	_info.text = ""
+	var size := map.get_size()
+	hud.setup(mission, "%s  %dx%d" % [map.display_name, size.x, size.y])
+	_shown_info = "-"
 
 
 ## Put `count` units of one type on the free cells nearest to a cell.
@@ -277,7 +278,7 @@ func _process(delta: float) -> void:
 	if _dragging:
 		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 			if mouse.distance_to(_drag_start_screen) >= CLICK_SLOP:
-				drag_box.show_rect(Rect2(_drag_start_map - camera.position, mouse - (_drag_start_map - camera.position)))
+				drag_box.show_rect(Rect2(map_to_screen(_drag_start_map), mouse - map_to_screen(_drag_start_map)))
 		else:
 			_finish_drag(mouse, Input.is_key_pressed(KEY_SHIFT))
 	_update_info(mouse)
@@ -292,8 +293,12 @@ func _process(delta: float) -> void:
 	if mission != null:
 		var chosen := world.get_building(selection.building_id) if selection.building_id != 0 else null
 		hud.set_selected_building(chosen if chosen != null and chosen.team == SimWorld.PLAYER_TEAM else null)
-		hud.refresh(mission, hint_text())
-		_help.visible = not hud.build_panel.visible      # the build menu takes the place of the controls
+		var prompt := prompt_text()
+		if prompt != "":
+			hud.refresh(mission, prompt)
+		else:
+			hud.refresh(mission, hints.text() if hints != null else "", fresh_message())
+		hud.show_selected(selection.ids)
 		if mission.is_over() and not _result_shown:
 			_show_result()
 
@@ -361,6 +366,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		begin_ability("E")
 	elif key.keycode == KEY_R:
 		toggle_repair()
+	elif key.keycode == KEY_O:
+		hud.toggle_objectives()
 
 
 func _on_command(command: StringName) -> void:
@@ -381,14 +388,30 @@ func _on_selection_changed() -> void:
 		hints.note(&"select")
 
 
-## Is this screen position over the map (not the sidebar)?
+## Is this screen position over the map (not the top bar or the sidebar)?
 static func in_map_area(screen_point: Vector2) -> bool:
-	return screen_point.x >= 0 and screen_point.y >= 0 \
+	return screen_point.x >= 0 and screen_point.y >= MAP_TOP \
 			and screen_point.x < SCREEN_SIZE.x - SIDEBAR_WIDTH and screen_point.y < SCREEN_SIZE.y
 
 
 func screen_to_map(screen_point: Vector2) -> Vector2:
-	return camera.position + screen_point
+	return camera.position + screen_point - Vector2(0, MAP_TOP)
+
+
+func map_to_screen(map_point: Vector2) -> Vector2:
+	return map_point - camera.position + Vector2(0, MAP_TOP)
+
+
+## A hero's portrait was clicked: select the hero, and on a double click go there.
+func _on_hero_pressed(unit_id: int, twice: bool) -> void:
+	if is_halted():
+		return
+	var hero := world.get_unit(unit_id)
+	if hero == null:
+		return
+	selection.set_ids([unit_id])
+	if twice:
+		camera.center_on(UnitsView.feet_position(hero))
 
 
 func _finish_drag(screen_point: Vector2, add: bool) -> void:
@@ -746,8 +769,21 @@ func say(message: String) -> void:
 	_message_left = MESSAGE_SECONDS
 
 
-## What the hint box shows now: what the next click does, a recent message, or the mission's hint.
+## What the message box shows now: what the next click does, a recent
+## message, the mission's latest message while it is fresh, or the hint.
 func hint_text() -> String:
+	var prompt := prompt_text()
+	if prompt != "":
+		return prompt
+	var said := mission_message_text()
+	if said != "":
+		return said
+	return hints.text() if hints != null and mission != null else ""
+
+
+## What the next click does, or a short message such as "Mend is not ready
+## yet" while it is recent; "" otherwise.
+func prompt_text() -> String:
 	match mode:
 		Mode.ATTACK_MOVE:
 			return "Attack-move: left-click where to go, or an enemy unit or building to attack. Right-click cancels."
@@ -763,20 +799,25 @@ func hint_text() -> String:
 			return "Placing the %s: left-click building ground where every square is green. Right-click cancels." % ready_name
 	if _message_left > 0.0:
 		return _message
-	var said := mission_message_text()
-	if said != "":
-		return said
-	return hints.text() if hints != null and mission != null else ""
+	return ""
 
 
 ## The mission's latest message while it is fresh (MISSION_MESSAGE_SECONDS),
-## e.g. "Field Commander: They are coming.", or "". Shown in the hint box
-## until the HUD gets a message box of its own.
-func mission_message_text() -> String:
+## or an empty dictionary. See Mission.messages.
+func fresh_message() -> Dictionary:
 	if mission == null or mission.messages.is_empty():
-		return ""
+		return {}
 	var last: Dictionary = mission.messages.back()
 	if mission.world.tick_count - int(last["tick"]) > roundi(MISSION_MESSAGE_SECONDS * SimWorld.TICKS_PER_SECOND):
+		return {}
+	return last
+
+
+## The mission's latest message while it is fresh, in words, e.g. "Field
+## Commander: They are coming.", or "".
+func mission_message_text() -> String:
+	var last := fresh_message()
+	if last.is_empty():
 		return ""
 	return "%s: %s" % [last["speaker"], last["text"]] if last["speaker"] != "" else String(last["text"])
 
@@ -955,5 +996,36 @@ func _update_info(mouse: Vector2) -> void:
 			text = describe_spot(world, cell)
 		elif map.in_bounds(cell):
 			text = "Cell %d, %d\nUnexplored" % [cell.x, cell.y]
-	if text != _info.text:
-		_info.text = text
+	if text == _shown_info:
+		return
+	_shown_info = text
+	var picture: Texture2D = null
+	var health := -1.0
+	var thing: Variant = _info_subject(mouse)
+	if thing is SimUnit:
+		var unit := thing as SimUnit
+		picture = MissionHud.portrait_of(unit.type)
+		health = float(unit.health) / unit.type.max_health
+	elif thing is SimBuilding:
+		var building := thing as SimBuilding
+		picture = building.type.sprite
+		health = float(building.health) / building.type.max_health
+	hud.show_info(text, picture, health)
+
+
+## The unit or building the card is about: the one selected, or the enemy or
+## building under the mouse; null for anything else.
+func _info_subject(mouse: Vector2) -> Variant:
+	if selection.building_id != 0:
+		return world.get_building(selection.building_id)
+	if selection.ids.size() == 1:
+		return world.get_unit(selection.ids[0])
+	if not selection.ids.is_empty() or not in_map_area(mouse):
+		return null
+	var point := screen_to_map(mouse)
+	var enemy := UnitsView.enemy_at_point(world, point, SimWorld.PLAYER_TEAM, units_view.alpha)
+	if enemy != null:
+		return enemy
+	if world.shroud_for(SimWorld.PLAYER_TEAM).is_explored(MapData.cell_at_pixel(point)):
+		return world.building_at(MapData.cell_at_pixel(point))
+	return null
