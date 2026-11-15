@@ -70,7 +70,8 @@ These follow the habits of modern strategy games.
 | W A S D or arrow keys, mouse at a screen edge, or drag with the middle mouse button | Scroll the map |
 | F11 or Alt + Enter | Switch between full screen (the default) and a window |
 | Click or drag on the minimap | Jump the camera |
-| Esc | Back to the title screen |
+| Esc or P | Pause: the game stands still and a menu offers Resume, Restart and Title screen. Esc or P again carries on |
+| Esc on the result screen | Back to the title screen |
 
 The sidebar has three buttons that do the same as F, X and Q. Q works whether
 or not the commander is selected. After F or Q the mouse pointer becomes a
@@ -144,6 +145,12 @@ The game then stops and shows VICTORY or DEFEAT with the reason, the time
 played and the losses on both sides. "Play again" restarts the mission;
 "Title screen" (or Esc) goes back to the title.
 
+**Pausing.** Esc or P pauses a mission that is being played: the
+simulation stands still, no orders are taken, and a menu offers Resume,
+Restart and Title screen. Esc or P again carries on. Esc first leaves
+attack-move, the ability or placing, if one of them is waiting for a
+click, so it never ends a mission by accident.
+
 ## Mission 1: "The First Claim"
 
 The mission is defined in `data/missions/` (a `MissionDef` resource): the map,
@@ -208,6 +215,6 @@ All of these are first values, kept in data so they are easy to change.
 - Ranged weapons with projectiles. The rules support any range, but both
   infantry types fight at range 1.
 - Passive hero abilities, and the leaders' abilities.
-- A mission briefing, a pause menu and sound.
+- A mission briefing and sound. (A pause menu was added after M6.)
 - An opponent that thinks. It follows the script above. (M6 added one for
   the skirmish: see [skirmish.md](skirmish.md). Mission 1 keeps its script.)

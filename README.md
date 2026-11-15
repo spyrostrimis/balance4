@@ -74,7 +74,8 @@ See [docs/roadmap.md](docs/roadmap.md) for what comes next.
 | W A S D or arrow keys, mouse at a screen edge, or drag with the middle mouse button | Scroll the map |
 | F11 or Alt + Enter | Switch between full screen (the default) and a window |
 | Click or drag on the minimap | Jump the camera |
-| Esc | Back to the title screen |
+| Esc or P | Pause: the game stands still and a menu offers Resume, Restart and Title screen. Esc or P again carries on |
+| Esc on the result screen | Back to the title screen |
 
 The sidebar has buttons for attack-move, stop and the commander's ability. A
 hint box at the bottom of the map explains the controls one at a time while

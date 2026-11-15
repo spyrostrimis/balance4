@@ -117,7 +117,7 @@ F, then left click: attack-move
 X: stop.  Q, then left click: ability
 Ctrl+1..9 stores a group, 1..9 selects it
 WASD, arrows, edges, middle-drag: scroll
-F11: full screen.  Esc: cancel / title"
+F11: full screen.  Esc or P: pause"
 
 [node name="MissionHud" type="Control" parent="Hud"]
 layout_mode = 3

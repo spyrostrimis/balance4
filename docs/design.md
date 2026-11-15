@@ -133,12 +133,13 @@ are in [combat.md](combat.md).
 
 ## Planned for later
 
-These are part of the game but come after Mission 1 is playable:
+These are part of the game but are not in it yet:
 
 - Wandering creature hazards
-- Base building
-- The refinery and the Orichalcum economy
-- Unit production
+
+Base building, the refinery and the Orichalcum economy, and unit production,
+once listed here, have been in the game since milestones M4 and M5 (see
+[economy.md](economy.md) and [base.md](base.md)).
 
 ## Technical decisions
 

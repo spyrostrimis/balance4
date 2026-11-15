@@ -117,11 +117,12 @@ After M4 was first played the harvester became a truck in two parts: the cab
 is the robot, and the trailer stays where the truck stopped and is filled by
 the robot. The robot guards its trailer against enemies, and the trailer of a
 destroyed harvester can be taken by the enemy. A second practice mission, the
-"Raid trial", shows this: the same base, three soldiers and three raiders. Left for later milestones: spending Orichalcum, and placing and
-placing buildings (M5); destroying buildings, and an opponent that harvests
+"Raid trial", shows this: the same base, three soldiers and three raiders.
+Left for later milestones: spending Orichalcum, and building and placing
+buildings (M5); destroying buildings, and an opponent that harvests
 (M6).
 
-## M5 Base building and production
+## M5 Base building and production (done)
 
 Spend what you earn.
 

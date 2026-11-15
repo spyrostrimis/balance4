@@ -4,13 +4,14 @@ extends Control
 ## Orichalcum in store, once the player has a refinery), a hint box, the
 ## command buttons, the objective with the hold progress (in a practice
 ## mission: how full the store is; in a mission with a base, a skirmish
-## included: the build menu instead, see BuildPanel), and the win or loss
+## included: the build menu instead, see BuildPanel), the pause menu and the win or loss
 ## screen. It builds its
 ## own controls. It is functional only; the HUD art will be redone later.
 
 signal command_pressed(command: StringName)     # &"attack", &"stop" or &"ability"
 signal again_pressed
 signal title_pressed
+signal resume_pressed
 
 const GOLD := Color(0.91, 0.72, 0.29)
 const TEXT := Color(0.78, 0.76, 0.68)
@@ -36,6 +37,8 @@ var _result: Panel
 var _result_title: Label
 var _result_text: Label
 var _again: Button
+var _pause: Panel
+var _resume: Button
 ## The build menu, shown in missions with a base.
 var build_panel: BuildPanel
 ## The controls of the objective box, which the build menu takes the place of.
@@ -103,6 +106,19 @@ func _ready() -> void:
 	to_title.pressed.connect(func() -> void: title_pressed.emit())
 	_result.add_child(to_title)
 	_result.visible = false
+
+	_pause = _panel(Rect2((MAP_WIDTH - 360) / 2.0, 170, 360, 160), Color(0.06, 0.06, 0.05, 0.95))
+	_pause.mouse_filter = Control.MOUSE_FILTER_STOP
+	var pause_title := _label(Rect2(0, 12, 360, 50), 36, GOLD, _pause)
+	pause_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_title.text = "PAUSED"
+	var pause_text := _label(Rect2(20, 64, 320, 20), 12, TEXT, _pause)
+	pause_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_text.text = "Esc or P carries on."
+	_resume = _menu_button(_pause, Rect2(15, 106, 104, 30), "Resume", resume_pressed)
+	_menu_button(_pause, Rect2(128, 106, 104, 30), "Restart", again_pressed)
+	_menu_button(_pause, Rect2(241, 106, 104, 30), "Title screen", title_pressed)
+	_pause.visible = false
 	visible = false
 
 
@@ -110,6 +126,7 @@ func _ready() -> void:
 func setup(mission: Mission) -> void:
 	visible = mission != null
 	_result.visible = false
+	_pause.visible = false
 	if mission == null:
 		return
 	var def := mission.def
@@ -168,6 +185,20 @@ func show_result(mission: Mission) -> void:
 
 func is_result_shown() -> bool:
 	return _result.visible
+
+
+## Show the pause menu: Resume, Restart and Title screen.
+func show_pause() -> void:
+	_pause.visible = true
+	_resume.grab_focus()
+
+
+func hide_pause() -> void:
+	_pause.visible = false
+
+
+func is_pause_shown() -> bool:
+	return _pause.visible
 
 
 ## What the top bar says at the left: the mission's name.
@@ -297,6 +328,17 @@ func _label(rect: Rect2, font_size: int, color: Color, parent: Control = null) -
 	label.clip_text = false
 	(parent if parent != null else self).add_child(label)
 	return label
+
+
+## A large button on a menu panel that sends `signal_to_send` when clicked.
+func _menu_button(parent: Control, rect: Rect2, text: String, signal_to_send: Signal) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.position = rect.position
+	button.size = rect.size
+	button.pressed.connect(func() -> void: signal_to_send.emit())
+	parent.add_child(button)
+	return button
 
 
 func _button(rect: Rect2, text: String, command: StringName) -> Button:

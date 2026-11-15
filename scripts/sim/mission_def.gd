@@ -54,8 +54,8 @@ extends Resource
 @export var enemy_start_orichalcum := 0
 
 @export_group("Rules")
-## A practice mission has no way to win or lose. The player leaves it with
-## Esc. If it has enemy troops they are raiders: after `enemy_delay_seconds`
+## A practice mission has no way to win or lose. The player leaves it from
+## the pause menu (Esc). If it has enemy troops they are raiders: after `enemy_delay_seconds`
 ## they go for the player's harvesters (see Raiders).
 @export var practice := false
 ## A skirmish: both sides have a base and the enemy is the computer opponent

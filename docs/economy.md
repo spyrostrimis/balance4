@@ -150,7 +150,7 @@ only fills.
 
 Other units in the same selection walk to the spot that was clicked. The rock
 and the refinery must be on ground the player has explored. A harvester sent
-with A (attack-move) or at an enemy just moves.
+with F (attack-move) or at an enemy just moves.
 
 ## What the player sees
 
@@ -180,7 +180,7 @@ Mission 1 is unchanged: it has no base and no harvesters.
 
 Blue plays on the forest map, Red on the desert map. A practice mission
 (`practice` in `MissionDef`) has no control ring and no way to win or lose;
-Esc leaves it. The rock is on the player's map from the start.
+it is left from the pause menu (Esc). The rock is on the player's map from the start.
 
 - **Harvest trial.** The hints teach two things: select a harvester, and
   right-click the rock. After that the harvesters work alone. In a little

@@ -499,6 +499,61 @@ func test_attack_move_key() -> void:
 	view._unhandled_input(escape)
 	check_eq(view.mode, MapView.Mode.NORMAL, "Esc cancels the mode")
 	check(view.is_inside_tree() and view.mission != null, "and the mission goes on")
+	check(not view.paused, "without pausing it")
+	view.free()
+
+
+func _escape(view: MapView) -> void:
+	var escape := InputEventAction.new()
+	escape.action = "ui_cancel"
+	escape.pressed = true
+	view._unhandled_input(escape)
+
+
+func test_escape_pauses_instead_of_leaving() -> void:
+	var view := _view()
+	var soldier := _soldier(view)
+	view._process(0.06)
+	var ticks := view.world.tick_count
+	_escape(view)
+	check(view.paused, "Esc pauses the mission")
+	check(view.is_inside_tree() and view.mission != null, "and does not leave it")
+	check(view.hud.is_pause_shown(), "the pause menu is shown")
+	for i in 10:
+		view._process(0.05)
+	check_eq(view.world.tick_count, ticks, "nothing moves while paused")
+	_select_all(view)
+	_click(view, _body(soldier) + Vector2(64, 96), MOUSE_BUTTON_RIGHT)
+	check_eq(soldier.order, SimUnit.Order.NONE, "no orders are taken while paused")
+	_key(view, KEY_F)
+	check_eq(view.mode, MapView.Mode.NORMAL, "nor keys")
+	_escape(view)
+	check(not view.paused and not view.hud.is_pause_shown(), "Esc again carries on")
+	view._process(0.06)
+	check(view.world.tick_count > ticks, "and the clock runs again")
+	_key(view, KEY_P)
+	check(view.paused, "P pauses too")
+	_key(view, KEY_P)
+	check(not view.paused, "and P carries on")
+	# The menu's buttons.
+	_escape(view)
+	view.hud.resume_pressed.emit()
+	check(not view.paused and not view.hud.is_pause_shown(), "Resume carries on")
+	view._process(0.5)
+	_escape(view)
+	view.hud.again_pressed.emit()
+	check(not view.paused and not view.hud.is_pause_shown(), "Restart leaves the pause")
+	check_eq(view.world.tick_count, 0, "and starts the mission again")
+	view.free()
+
+
+func test_a_finished_mission_cannot_be_paused() -> void:
+	var view := _view()
+	view.mission._finish(ENEMY, &"hold")
+	view._process(0.05)
+	check(view.hud.is_result_shown(), "the result screen is up")
+	_key(view, KEY_P)
+	check(not view.paused, "a finished mission cannot be paused")
 	view.free()
 
 

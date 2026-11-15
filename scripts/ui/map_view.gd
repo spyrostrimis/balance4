@@ -16,7 +16,7 @@ extends Node2D
 ## WASD, the arrow keys, the screen edges and the middle mouse button scroll
 ## the map (see MapCamera). In a mission with a base the build menu in the
 ## sidebar queues buildings and units; a finished building is placed with a
-## left click on the map.
+## left click on the map. Esc or P pauses a mission and shows the pause menu.
 
 ## What a left click on the map does.
 enum Mode {
@@ -71,6 +71,8 @@ var _message := ""
 var _message_left := 0.0
 var _seen_removed := 0
 var _result_shown := false
+## Is the mission paused (Esc or P)? See set_paused().
+var paused := false
 
 @onready var terrain: TerrainView = $Terrain
 @onready var deposit_view: DepositView = $Deposits
@@ -96,6 +98,7 @@ func _ready() -> void:
 	hud.command_pressed.connect(_on_command)
 	hud.again_pressed.connect(restart_mission)
 	hud.title_pressed.connect(back_to_title)
+	hud.resume_pressed.connect(set_paused.bind(false))
 	hud.build_panel.build_pressed.connect(queue_build)
 	hud.build_panel.cancel_pressed.connect(cancel_build)
 	hud.build_panel.place_pressed.connect(begin_placement)
@@ -174,6 +177,30 @@ func is_over() -> bool:
 	return mission != null and mission.is_over()
 
 
+## Is the game standing still, because the mission is over or paused? No
+## orders are taken then.
+func is_halted() -> bool:
+	return paused or is_over()
+
+
+## Pause or carry on with the mission. Paused, the simulation stands still,
+## no orders are taken and the pause menu is shown. Only a mission that is
+## being played can be paused.
+func set_paused(on: bool) -> void:
+	on = on and mission != null and not is_over()
+	if on == paused:
+		return
+	paused = on
+	camera.set_process(not paused)
+	if paused:
+		set_mode(Mode.NORMAL)
+		_dragging = false
+		drag_box.hide_rect()
+		hud.show_pause()
+	else:
+		hud.hide_pause()
+
+
 func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	map = p_map
 	for problem in map.problems():
@@ -187,6 +214,8 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	_message_left = 0.0
 	_seen_removed = world.removed_count
 	_result_shown = false
+	paused = false
+	camera.set_process(true)
 	drag_box.hide_rect()
 	terrain.show_map(map)
 	deposit_view.setup(world)
@@ -221,7 +250,7 @@ func _process(delta: float) -> void:
 		return
 	_clock += delta
 	_message_left = maxf(0.0, _message_left - delta)
-	if not is_over():
+	if not is_halted():
 		_tick_time += delta
 		var ticks := 0
 		while _tick_time >= SimWorld.TICK_SECONDS and ticks < MAX_TICKS_PER_FRAME:
@@ -277,13 +306,22 @@ func _show_result() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if world == null:
 		return
+	# Esc first leaves attack-move, the ability or placing. Otherwise, in a
+	# mission being played, it pauses (and Esc again carries on); on the
+	# result screen, or with no mission, it goes back to the title screen.
 	if event.is_action_pressed("ui_cancel"):
 		if mode != Mode.NORMAL:
 			set_mode(Mode.NORMAL)
+		elif mission != null and not is_over():
+			set_paused(not paused)
 		else:
 			back_to_title()
 		return
-	if is_over():
+	var pause_key := event as InputEventKey
+	if pause_key != null and pause_key.pressed and not pause_key.echo and pause_key.keycode == KEY_P:
+		set_paused(not paused)
+		return
+	if is_halted():
 		return
 	var button := event as InputEventMouseButton
 	if button != null and in_map_area(button.position):
@@ -317,7 +355,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_command(command: StringName) -> void:
-	if is_over():
+	if is_halted():
 		return
 	match command:
 		&"attack": begin_attack_move()
@@ -384,7 +422,7 @@ func set_mode(new_mode: Mode) -> void:
 ## walk there if there is none. Selected harvesters start work if the click is
 ## on a deposit, and go to unload if it is on their side's refinery.
 func order_at(map_point: Vector2) -> void:
-	if selection.is_empty() or is_over():
+	if selection.is_empty() or is_halted():
 		return
 	var enemy := UnitsView.enemy_at_point(world, map_point, SimWorld.PLAYER_TEAM, units_view.alpha)
 	if enemy != null:
@@ -432,7 +470,7 @@ func order_harvest_at(map_point: Vector2) -> bool:
 	var harvesters := selected_harvesters()
 	var cell := MapData.cell_at_pixel(map_point)
 	var deposit := world.deposit_at(cell)
-	if harvesters.is_empty() or deposit == null or is_over():
+	if harvesters.is_empty() or deposit == null or is_halted():
 		return false
 	if deposit.is_empty():
 		say("That rock has no Orichalcum left.")
@@ -451,7 +489,7 @@ func order_unload_at(map_point: Vector2) -> bool:
 	var harvesters := selected_harvesters()
 	var cell := MapData.cell_at_pixel(map_point)
 	var building := world.building_at(cell)
-	if harvesters.is_empty() or building == null or is_over():
+	if harvesters.is_empty() or building == null or is_halted():
 		return false
 	if not world.order_unload(harvesters, building.id):
 		return false
@@ -462,7 +500,7 @@ func order_unload_at(map_point: Vector2) -> bool:
 
 ## Send the selected units to a point on the map. They ignore enemies on the way.
 func order_move_to(map_point: Vector2) -> void:
-	if selection.is_empty() or is_over():
+	if selection.is_empty() or is_halted():
 		return
 	var cell := MapData.cell_at_pixel(map_point)
 	if not map.in_bounds(cell):
@@ -475,7 +513,7 @@ func order_move_to(map_point: Vector2) -> void:
 
 ## Send the selected units to a point on the map, fighting what they meet on the way.
 func order_attack_move_to(map_point: Vector2) -> void:
-	if selection.is_empty() or is_over():
+	if selection.is_empty() or is_halted():
 		return
 	var cell := MapData.cell_at_pixel(map_point)
 	if not map.in_bounds(cell):
@@ -488,7 +526,7 @@ func order_attack_move_to(map_point: Vector2) -> void:
 
 ## Send the selected units after one enemy unit.
 func order_attack_unit(unit_id: int) -> void:
-	if selection.is_empty() or is_over() or world.get_unit(unit_id) == null:
+	if selection.is_empty() or is_halted() or world.get_unit(unit_id) == null:
 		return
 	world.order_attack(selection.ids, unit_id)
 	units_view.add_target_marker(unit_id)
@@ -500,7 +538,7 @@ func order_attack_unit(unit_id: int) -> void:
 ## attack buildings: they stay where they are.
 func order_attack_building(building_id: int) -> void:
 	var building := world.get_building(building_id)
-	if selection.is_empty() or is_over() or building == null or building.team == SimWorld.PLAYER_TEAM:
+	if selection.is_empty() or is_halted() or building == null or building.team == SimWorld.PLAYER_TEAM:
 		return
 	world.order_attack(selection.ids, building_id)
 	buildings_view.mark(building_id)
@@ -516,13 +554,13 @@ func enemy_building_at(map_point: Vector2) -> SimBuilding:
 
 ## Stop the selected units where they are.
 func order_stop() -> void:
-	if not is_over():
+	if not is_halted():
 		world.order_stop(selection.ids)
 
 
 ## F or the Attack button: the next left click on the map is an attack-move order.
 func begin_attack_move() -> void:
-	if is_over():
+	if is_halted():
 		return
 	if selection.is_empty():
 		say("Select some units first.")
@@ -532,7 +570,7 @@ func begin_attack_move() -> void:
 
 ## Q or the ability button: the next left click picks the unit the commander's ability is used on.
 func begin_ability() -> void:
-	if is_over():
+	if is_halted():
 		return
 	var hero := ability_unit()
 	if hero == null:
@@ -573,7 +611,7 @@ func command_click(map_point: Vector2) -> void:
 ## player's. Clicking the building that is ready to be placed starts placing
 ## it instead. Returns false, and tells the player why, if it cannot be queued.
 func queue_build(key: StringName, item: Resource) -> bool:
-	if world == null or is_over():
+	if world == null or is_halted():
 		return false
 	var production := world.production
 	if key == Production.BUILDINGS and production.ready_building(SimWorld.PLAYER_TEAM) == item:
@@ -592,7 +630,7 @@ func queue_build(key: StringName, item: Resource) -> bool:
 ## Cancel in the build menu: take the last item out of a queue of the
 ## player's. What was paid for it comes back.
 func cancel_build(key: StringName) -> void:
-	if world == null or is_over():
+	if world == null or is_halted():
 		return
 	world.production.cancel(SimWorld.PLAYER_TEAM, key)
 	if mode == Mode.PLACE and world.production.ready_building(SimWorld.PLAYER_TEAM) == null:
@@ -601,7 +639,7 @@ func cancel_build(key: StringName) -> void:
 
 ## The next left click on the map puts the finished building there.
 func begin_placement() -> void:
-	if world == null or is_over():
+	if world == null or is_halted():
 		return
 	if world.production.ready_building(SimWorld.PLAYER_TEAM) == null:
 		say("No building is ready to be placed.")
@@ -614,7 +652,7 @@ func begin_placement() -> void:
 func place_at(map_point: Vector2) -> bool:
 	var production := world.production
 	var type := production.ready_building(SimWorld.PLAYER_TEAM)
-	if type == null or is_over():
+	if type == null or is_halted():
 		return false
 	var cell := PlacementView.cell_for(type, map_point)
 	if production.place(SimWorld.PLAYER_TEAM, cell) == null:
@@ -629,7 +667,7 @@ func place_at(map_point: Vector2) -> bool:
 ## Have the commander use its ability on a unit. Returns false, and tells the player why, if it cannot.
 func use_ability_on(unit_id: int) -> bool:
 	var hero := ability_unit()
-	if hero == null or is_over():
+	if hero == null or is_halted():
 		return false
 	var problem := world.ability_problem(hero.id, unit_id)
 	if problem != "":
