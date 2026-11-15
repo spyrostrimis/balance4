@@ -41,6 +41,7 @@ func _ready() -> void:
 	_begin.focus_mode = Control.FOCUS_ALL
 	_begin.pressed.connect(begin)
 	_begin.grab_focus()
+	SoundPlayer.music(&"music_menu")
 
 
 func _build_dossier() -> void:

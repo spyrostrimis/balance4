@@ -143,6 +143,7 @@ static func button(parent: Control, rect: Rect2, kind: String, text := "", icon_
 			b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.4))
 		b.add_theme_constant_override("h_separation", 3)
+	b.pressed.connect(func() -> void: SoundPlayer.sound(&"click"))
 	parent.add_child(b)
 	return b
 

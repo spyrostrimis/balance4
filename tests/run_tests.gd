@@ -82,4 +82,9 @@ func _run() -> void:
 		failed += 1
 	print("%d passed, %d failed" % [passed, failed])
 	print("TESTS PASSED" if failed == 0 else "TESTS FAILED")
-	quit(0 if failed == 0 else 1)
+	# Through the Sounds autoload, which stops every sound before quitting.
+	var sounds := root.get_node_or_null("Sounds") as SoundPlayer
+	if sounds != null:
+		sounds.quit_game(0 if failed == 0 else 1)
+	else:
+		quit(0 if failed == 0 else 1)

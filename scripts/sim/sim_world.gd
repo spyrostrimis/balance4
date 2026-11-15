@@ -57,7 +57,9 @@ var units: Array[SimUnit] = []
 ## trailer and buildings destroyed. Each entry is a dictionary with "kind"
 ## (&"hit", &"heal", &"death", &"steal" or &"wreck"), "tick", "team" (of the
 ## unit that acted or died, or of the building destroyed), and "from" and
-## "to" (positions in cells); a hit also has "ranged" (a shot from afar, such
+## "to" (positions in cells). Also &"transform" (a harvester begins to
+## change shape), &"ready" (a building is built, waiting to be placed) and
+## &"trained" (a unit has come out of its building). A hit also has "ranged" (a shot from afar, such
 ## as a tank's), a death "vehicle" (it explodes), a wreck "size" (the
 ## building's footprint). The UI draws them; nothing in the rules reads them.
 var effects: Array[Dictionary] = []
@@ -1485,6 +1487,7 @@ func stolen_for(team: int) -> int:
 ## Begin to change a truck into a robot. `then` is what the robot does next.
 func _start_deploy(unit: SimUnit, then: SimUnit.Job) -> void:
 	unit.job = SimUnit.Job.DEPLOY
+	_add_effect(&"transform", unit, unit)
 	unit.job_ticks_left = unit.type.transform_ticks()
 	unit.next_job = then
 	unit.work_part = 0
@@ -1575,6 +1578,7 @@ func _go_hitch(unit: SimUnit, trailer: SimTrailer) -> bool:
 	_begin_step(unit, trailer.cell)             # at the robot's pace: it still has its trailer_id
 	unit.trailer_id = 0
 	unit.job = SimUnit.Job.PACK
+	_add_effect(&"transform", unit, unit)
 	unit.job_ticks_left = unit.type.transform_ticks()
 	unit.work_part = 0
 	return true

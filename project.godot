@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 FullscreenToggle="*res://scripts/ui/window_keys.gd"
 Settings="*res://scripts/ui/game_settings.gd"
+Sounds="*res://scripts/ui/sounds.gd"
 
 [display]
 

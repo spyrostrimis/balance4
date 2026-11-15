@@ -84,6 +84,7 @@ func _ready() -> void:
 	_settings.visible = false
 	_settings.closed.connect(show_page.bind("main"))
 	show_page("main")
+	SoundPlayer.music(&"music_menu")
 	var wanted := map_from_args(OS.get_cmdline_user_args())
 	if wanted != "":
 		open_map.call_deferred(wanted)
@@ -233,7 +234,7 @@ func open_map(map_name: String, briefed := false) -> void:
 
 
 func quit() -> void:
-	get_tree().quit()
+	SoundPlayer.quit()
 
 
 func _unhandled_input(event: InputEvent) -> void:

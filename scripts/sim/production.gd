@@ -214,12 +214,15 @@ func _advance(team: int, key: StringName, the_line: BuildLine, slow: bool) -> vo
 		if the_line.progress < total:
 			return
 	if item is BuildingType:
+		if the_line.waiting != BuildLine.Waiting.PLACE:
+			world._add_effect_at(&"ready", team, Vector2(maker.cell), Vector2(maker.cell))
 		the_line.waiting = BuildLine.Waiting.PLACE
 		return
 	var unit := world.add_unit_beside(item as UnitType, team, maker)
 	if unit == null:
 		the_line.waiting = BuildLine.Waiting.ROOM
 		return
+	world._add_effect(&"trained", unit, unit)
 	the_line.items.remove_at(0)
 	_start_next(the_line)
 	if unit.type.is_harvester() and not world.deposits.is_empty():

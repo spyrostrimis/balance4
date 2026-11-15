@@ -45,6 +45,8 @@ const MAX_TICKS_PER_FRAME := 5
 const MESSAGE_SECONDS := 2.5
 ## How long a mission's message (see Mission.messages) stays in the hint box, in game seconds.
 const MISSION_MESSAGE_SECONDS := 8.0
+## How often a building being repaired is heard, in seconds.
+const REPAIR_SOUND_SECONDS := 1.2
 
 ## The mission to play when this scene starts (a MissionDef file), or "" to
 ## just show `requested_map`. Set it before changing to this scene.
@@ -81,6 +83,11 @@ var paused := false
 var _ability_key := "Q"
 ## What the card shows, so it is only rebuilt when that changes.
 var _shown_info := ""
+## What has been sounded already: effects up to this tick, this many mission messages.
+var _heard_tick := 0
+var _heard_messages := 0
+var _was_low_power := false
+var _repair_sound_left := 0.0
 
 @onready var terrain: TerrainView = $Terrain
 @onready var deposit_view: DepositView = $Deposits
@@ -164,6 +171,7 @@ func show_mission(def: MissionDef) -> void:
 	elif not def.map.starts.is_empty():
 		focus = MapData.cell_center(def.map.starts[0])
 	_attach(def.map, mission.world, focus)
+	SoundPlayer.music(&"music_mission")
 
 
 ## Start the current mission again from the beginning.
@@ -257,6 +265,9 @@ func _attach(p_map: MapData, p_world: SimWorld, focus: Vector2) -> void:
 	var size := map.get_size()
 	hud.setup(mission, "%s  %dx%d" % [map.display_name, size.x, size.y])
 	_shown_info = "-"
+	_heard_tick = world.tick_count
+	_heard_messages = mission.messages.size() if mission != null else 0
+	_was_low_power = world.is_low_power(SimWorld.PLAYER_TEAM)
 
 
 ## Put `count` units of one type on the free cells nearest to a cell.
@@ -289,6 +300,7 @@ func _process(delta: float) -> void:
 		selection.prune(world)
 	shroud_view.refresh()
 	deposit_view.refresh()
+	_listen()
 
 	var mouse := get_viewport().get_mouse_position()
 	if _dragging:
@@ -325,6 +337,8 @@ func _show_result() -> void:
 	_dragging = false
 	drag_box.hide_rect()
 	hud.show_result(mission)
+	SoundPlayer.music(&"")
+	SoundPlayer.sound(&"victory" if mission.player_won() else &"defeat")
 
 
 # --- input -------------------------------------------------------------------------
@@ -400,6 +414,8 @@ func _on_command(command: StringName) -> void:
 
 
 func _on_selection_changed() -> void:
+	if not selection.ids.is_empty() or selection.building_id != 0:
+		SoundPlayer.sound(&"select")
 	if hints != null and not selection.ids.is_empty():
 		hints.note(&"select")
 
@@ -534,6 +550,7 @@ func order_harvest_at(map_point: Vector2) -> bool:
 	world.order_harvest(harvesters, cell)
 	world.order_move(_selected_others(), cell)
 	units_view.add_harvest_marker(map_point)
+	SoundPlayer.sound(&"order")
 	if hints != null:
 		hints.note(&"harvest")
 	return true
@@ -551,6 +568,7 @@ func order_unload_at(map_point: Vector2) -> bool:
 		return false
 	world.order_move(_selected_others(), cell)
 	units_view.add_harvest_marker(map_point)
+	SoundPlayer.sound(&"order")
 	return true
 
 
@@ -563,6 +581,7 @@ func order_move_to(map_point: Vector2) -> void:
 		return
 	world.order_move(selection.ids, cell)
 	units_view.add_move_marker(map_point)
+	SoundPlayer.sound(&"order")
 	if hints != null:
 		hints.note(&"move")
 
@@ -576,6 +595,7 @@ func order_attack_move_to(map_point: Vector2) -> void:
 		return
 	world.order_attack_move(selection.ids, cell)
 	units_view.add_attack_move_marker(map_point)
+	SoundPlayer.sound(&"order_attack")
 	if hints != null:
 		hints.note(&"attack")
 
@@ -586,6 +606,7 @@ func order_attack_unit(unit_id: int) -> void:
 		return
 	world.order_attack(selection.ids, unit_id)
 	units_view.add_target_marker(unit_id)
+	SoundPlayer.sound(&"order_attack")
 	if hints != null:
 		hints.note(&"attack")
 
@@ -598,6 +619,7 @@ func order_attack_building(building_id: int) -> void:
 		return
 	world.order_attack(selection.ids, building_id)
 	buildings_view.mark(building_id)
+	SoundPlayer.sound(&"order_attack")
 	if hints != null:
 		hints.note(&"attack")
 
@@ -721,6 +743,7 @@ func place_at(map_point: Vector2) -> bool:
 		say("It cannot stand there. Buildings need free building ground under every cell.")
 		return false
 	set_mode(Mode.NORMAL)
+	SoundPlayer.sound(&"place")
 	if hints != null:
 		hints.note(&"place")
 	return true
@@ -783,6 +806,59 @@ func toggle_repair() -> void:
 func say(message: String) -> void:
 	_message = message
 	_message_left = MESSAGE_SECONDS
+	SoundPlayer.sound(&"denied")
+
+
+# --- sound -------------------------------------------------------------------------
+
+## Sound what has happened in the world since the last frame: the effects
+## (hits, shots, deaths, heals, buildings finished, units trained, ...) where
+## the player can see them, low power, new mission messages, and repairs.
+func _listen() -> void:
+	var view := camera.get_view_rect().grow(MapData.CELL_SIZE * 3)
+	var shroud := world.shroud_for(SimWorld.PLAYER_TEAM)
+	var pulse_now := false
+	for effect in world.effects:
+		if int(effect["tick"]) > _heard_tick and effect["kind"] == &"pulse":
+			pulse_now = true
+	for effect in world.effects:
+		if int(effect["tick"]) <= _heard_tick:
+			continue
+		var kind: StringName = effect["kind"]
+		var mine: bool = effect["team"] == SimWorld.PLAYER_TEAM
+		if kind == &"ready" or kind == &"trained":
+			if mine:
+				SoundPlayer.sound(kind)
+			continue
+		var where := (effect["to"] as Vector2) * MapData.CELL_SIZE
+		if not view.has_point(where) or not shroud.is_explored(Vector2i((effect["to"] as Vector2).round())):
+			continue
+		match kind:
+			&"hit": SoundPlayer.sound(&"shot" if effect.get("ranged", false) else &"hit")
+			&"death": SoundPlayer.sound(&"explosion" if effect.get("vehicle", false) else &"death")
+			&"wreck": SoundPlayer.sound(&"wreck")
+			&"pulse": SoundPlayer.sound(&"restore")
+			&"heal":
+				if not pulse_now:
+					SoundPlayer.sound(&"mend")
+			&"steal": SoundPlayer.sound(&"steal")
+			&"transform": SoundPlayer.sound(&"transform")
+	_heard_tick = world.tick_count
+	var low := world.is_low_power(SimWorld.PLAYER_TEAM)
+	if low and not _was_low_power:
+		SoundPlayer.sound(&"low_power")
+	_was_low_power = low
+	if mission != null and mission.messages.size() > _heard_messages:
+		SoundPlayer.sound(&"message")
+	_heard_messages = mission.messages.size() if mission != null else 0
+	_repair_sound_left -= get_process_delta_time()
+	if _repair_sound_left <= 0.0:
+		_repair_sound_left = REPAIR_SOUND_SECONDS
+		for building in world.buildings:
+			if building.team == SimWorld.PLAYER_TEAM and building.repairing \
+					and view.has_point(building.center() * MapData.CELL_SIZE):
+				SoundPlayer.sound(&"repair")
+				break
 
 
 ## What the message box shows now: what the next click does, a recent

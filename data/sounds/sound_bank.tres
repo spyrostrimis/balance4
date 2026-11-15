@@ -1,0 +1,253 @@
+[gd_resource type="Resource" script_class="SoundBank" load_steps=56 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/sound_bank.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/sound_event.gd" id="2"]
+[ext_resource type="AudioStream" path="res://assets/audio/click.wav" id="a0"]
+[ext_resource type="AudioStream" path="res://assets/audio/select_1.wav" id="a1"]
+[ext_resource type="AudioStream" path="res://assets/audio/select_2.wav" id="a2"]
+[ext_resource type="AudioStream" path="res://assets/audio/order_1.wav" id="a3"]
+[ext_resource type="AudioStream" path="res://assets/audio/order_2.wav" id="a4"]
+[ext_resource type="AudioStream" path="res://assets/audio/order_attack.wav" id="a5"]
+[ext_resource type="AudioStream" path="res://assets/audio/denied.wav" id="a6"]
+[ext_resource type="AudioStream" path="res://assets/audio/hit_1.wav" id="a7"]
+[ext_resource type="AudioStream" path="res://assets/audio/hit_2.wav" id="a8"]
+[ext_resource type="AudioStream" path="res://assets/audio/hit_3.wav" id="a9"]
+[ext_resource type="AudioStream" path="res://assets/audio/shot.wav" id="a10"]
+[ext_resource type="AudioStream" path="res://assets/audio/death_1.wav" id="a11"]
+[ext_resource type="AudioStream" path="res://assets/audio/death_2.wav" id="a12"]
+[ext_resource type="AudioStream" path="res://assets/audio/explosion.wav" id="a13"]
+[ext_resource type="AudioStream" path="res://assets/audio/wreck.wav" id="a14"]
+[ext_resource type="AudioStream" path="res://assets/audio/mend.wav" id="a15"]
+[ext_resource type="AudioStream" path="res://assets/audio/restore.wav" id="a16"]
+[ext_resource type="AudioStream" path="res://assets/audio/place.wav" id="a17"]
+[ext_resource type="AudioStream" path="res://assets/audio/ready.wav" id="a18"]
+[ext_resource type="AudioStream" path="res://assets/audio/trained.wav" id="a19"]
+[ext_resource type="AudioStream" path="res://assets/audio/low_power.wav" id="a20"]
+[ext_resource type="AudioStream" path="res://assets/audio/transform.wav" id="a21"]
+[ext_resource type="AudioStream" path="res://assets/audio/repair.wav" id="a22"]
+[ext_resource type="AudioStream" path="res://assets/audio/steal.wav" id="a23"]
+[ext_resource type="AudioStream" path="res://assets/audio/message.wav" id="a24"]
+[ext_resource type="AudioStream" path="res://assets/audio/victory.wav" id="a25"]
+[ext_resource type="AudioStream" path="res://assets/audio/defeat.wav" id="a26"]
+[ext_resource type="AudioStream" path="res://assets/audio/music_menu.wav" id="a27"]
+[ext_resource type="AudioStream" path="res://assets/audio/music_mission.wav" id="a28"]
+
+[sub_resource type="Resource" id="e_click"]
+script = ExtResource("2")
+id = &"click"
+streams = Array[AudioStream]([ExtResource("a0")])
+volume_db = -6.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.03
+
+[sub_resource type="Resource" id="e_select"]
+script = ExtResource("2")
+id = &"select"
+streams = Array[AudioStream]([ExtResource("a1"), ExtResource("a2")])
+volume_db = -6.0
+pitch_variation = 0.03
+bus = &"Effects"
+min_gap = 0.08
+
+[sub_resource type="Resource" id="e_order"]
+script = ExtResource("2")
+id = &"order"
+streams = Array[AudioStream]([ExtResource("a3"), ExtResource("a4")])
+volume_db = -6.0
+pitch_variation = 0.03
+bus = &"Effects"
+min_gap = 0.08
+
+[sub_resource type="Resource" id="e_order_attack"]
+script = ExtResource("2")
+id = &"order_attack"
+streams = Array[AudioStream]([ExtResource("a5")])
+volume_db = -5.0
+pitch_variation = 0.03
+bus = &"Effects"
+min_gap = 0.08
+
+[sub_resource type="Resource" id="e_denied"]
+script = ExtResource("2")
+id = &"denied"
+streams = Array[AudioStream]([ExtResource("a6")])
+volume_db = -6.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.3
+
+[sub_resource type="Resource" id="e_hit"]
+script = ExtResource("2")
+id = &"hit"
+streams = Array[AudioStream]([ExtResource("a7"), ExtResource("a8"), ExtResource("a9")])
+volume_db = -10.0
+pitch_variation = 0.08
+bus = &"Effects"
+min_gap = 0.05
+
+[sub_resource type="Resource" id="e_shot"]
+script = ExtResource("2")
+id = &"shot"
+streams = Array[AudioStream]([ExtResource("a10")])
+volume_db = -6.0
+pitch_variation = 0.08
+bus = &"Effects"
+min_gap = 0.06
+
+[sub_resource type="Resource" id="e_death"]
+script = ExtResource("2")
+id = &"death"
+streams = Array[AudioStream]([ExtResource("a11"), ExtResource("a12")])
+volume_db = -8.0
+pitch_variation = 0.08
+bus = &"Effects"
+min_gap = 0.08
+
+[sub_resource type="Resource" id="e_explosion"]
+script = ExtResource("2")
+id = &"explosion"
+streams = Array[AudioStream]([ExtResource("a13")])
+volume_db = -3.0
+pitch_variation = 0.08
+bus = &"Effects"
+min_gap = 0.1
+
+[sub_resource type="Resource" id="e_wreck"]
+script = ExtResource("2")
+id = &"wreck"
+streams = Array[AudioStream]([ExtResource("a14")])
+volume_db = 0.0
+pitch_variation = 0.05
+bus = &"Effects"
+min_gap = 0.2
+
+[sub_resource type="Resource" id="e_mend"]
+script = ExtResource("2")
+id = &"mend"
+streams = Array[AudioStream]([ExtResource("a15")])
+volume_db = -5.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.1
+
+[sub_resource type="Resource" id="e_restore"]
+script = ExtResource("2")
+id = &"restore"
+streams = Array[AudioStream]([ExtResource("a16")])
+volume_db = -4.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.2
+
+[sub_resource type="Resource" id="e_place"]
+script = ExtResource("2")
+id = &"place"
+streams = Array[AudioStream]([ExtResource("a17")])
+volume_db = -4.0
+pitch_variation = 0.03
+bus = &"Effects"
+min_gap = 0.1
+
+[sub_resource type="Resource" id="e_ready"]
+script = ExtResource("2")
+id = &"ready"
+streams = Array[AudioStream]([ExtResource("a18")])
+volume_db = -4.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.3
+
+[sub_resource type="Resource" id="e_trained"]
+script = ExtResource("2")
+id = &"trained"
+streams = Array[AudioStream]([ExtResource("a19")])
+volume_db = -6.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.2
+
+[sub_resource type="Resource" id="e_low_power"]
+script = ExtResource("2")
+id = &"low_power"
+streams = Array[AudioStream]([ExtResource("a20")])
+volume_db = -5.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 3.0
+
+[sub_resource type="Resource" id="e_transform"]
+script = ExtResource("2")
+id = &"transform"
+streams = Array[AudioStream]([ExtResource("a21")])
+volume_db = -9.0
+pitch_variation = 0.05
+bus = &"Effects"
+min_gap = 0.15
+
+[sub_resource type="Resource" id="e_repair"]
+script = ExtResource("2")
+id = &"repair"
+streams = Array[AudioStream]([ExtResource("a22")])
+volume_db = -10.0
+pitch_variation = 0.05
+bus = &"Effects"
+min_gap = 0.5
+
+[sub_resource type="Resource" id="e_steal"]
+script = ExtResource("2")
+id = &"steal"
+streams = Array[AudioStream]([ExtResource("a23")])
+volume_db = -6.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.3
+
+[sub_resource type="Resource" id="e_message"]
+script = ExtResource("2")
+id = &"message"
+streams = Array[AudioStream]([ExtResource("a24")])
+volume_db = -5.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 0.3
+
+[sub_resource type="Resource" id="e_victory"]
+script = ExtResource("2")
+id = &"victory"
+streams = Array[AudioStream]([ExtResource("a25")])
+volume_db = -3.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 1.0
+
+[sub_resource type="Resource" id="e_defeat"]
+script = ExtResource("2")
+id = &"defeat"
+streams = Array[AudioStream]([ExtResource("a26")])
+volume_db = -3.0
+pitch_variation = 0.0
+bus = &"Effects"
+min_gap = 1.0
+
+[sub_resource type="Resource" id="e_music_menu"]
+script = ExtResource("2")
+id = &"music_menu"
+streams = Array[AudioStream]([ExtResource("a27")])
+volume_db = -6.0
+pitch_variation = 0.0
+bus = &"Music"
+min_gap = 0.0
+
+[sub_resource type="Resource" id="e_music_mission"]
+script = ExtResource("2")
+id = &"music_mission"
+streams = Array[AudioStream]([ExtResource("a28")])
+volume_db = -8.0
+pitch_variation = 0.0
+bus = &"Music"
+min_gap = 0.0
+
+[resource]
+script = ExtResource("1")
+events = Array[ExtResource("2")]([SubResource("e_click"), SubResource("e_select"), SubResource("e_order"), SubResource("e_order_attack"), SubResource("e_denied"), SubResource("e_hit"), SubResource("e_shot"), SubResource("e_death"), SubResource("e_explosion"), SubResource("e_wreck"), SubResource("e_mend"), SubResource("e_restore"), SubResource("e_place"), SubResource("e_ready"), SubResource("e_trained"), SubResource("e_low_power"), SubResource("e_transform"), SubResource("e_repair"), SubResource("e_steal"), SubResource("e_message"), SubResource("e_victory"), SubResource("e_defeat"), SubResource("e_music_menu"), SubResource("e_music_mission")])

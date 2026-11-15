@@ -3,8 +3,8 @@
 The vertical slice of milestone M7 (see [m7-plan.md](m7-plan.md)): the first
 mission with base building and both of Blue's heroes. Step M7.4 built it
 with placeholder art and no sound; M7.5 gave it the new HUD, the briefing
-and the debriefing, M7.6 the portraits and the effects; sound comes in
-M7.7. Played as Blue only; Red's version waits for the Red
+and the debriefing, M7.6 the portraits and the effects, M7.7 placeholder
+sound and music. Played as Blue only; Red's version waits for the Red
 campaign (M9).
 
 **The name, the story and every number are provisional.**

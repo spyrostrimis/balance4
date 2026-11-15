@@ -179,8 +179,8 @@ Progress: M7.1 (decisions), M7.2 (missions as data: see
 hero, repairing buildings: see [heroes.md](heroes.md)), M7.4 (the map and
 Mission 2, with placeholder art: see [mission2.md](mission2.md)), M7.5
 (the new HUD, briefing and debriefing, title screen and settings: see
-[visual-style.md](visual-style.md)) and M7.6 (portraits and effects) are
-done.
+[visual-style.md](visual-style.md)), M7.6 (portraits and effects) and M7.7
+(placeholder sound and music: see [sound.md](sound.md)) are done.
 
 Done means:
 
