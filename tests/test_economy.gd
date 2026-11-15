@@ -1,6 +1,8 @@
 extends TestCase
-## Orichalcum: deposits, buildings, the harvester's round trip, the refinery
-## and its storage limit, the harvest trial, and what the screen shows of it.
+## Orichalcum: deposits, buildings, the harvester's round trip (the robot
+## fills the trailer, the truck takes it to the refinery), the refinery and
+## its storage limit, the harvest trial, and what the screen shows of it.
+## Guarding and stealing are in test_trailer.gd.
 
 const FOREST := "res://data/biomes/forest.tres"
 const MAPS := ["res://data/maps/forest_01.tres", "res://data/maps/desert_01.tres"]
@@ -59,6 +61,15 @@ func _run_until(world: SimWorld, unit: SimUnit, job: SimUnit.Job, seconds := 60.
 			return true
 		world.tick()
 	return unit.job == job
+
+
+## Tick for as long as a harvester keeps a job. Returns how many ticks that was.
+func _ticks_in(world: SimWorld, unit: SimUnit, job: SimUnit.Job) -> int:
+	var ticks := 0
+	while unit.job == job and ticks < 1000:
+		world.tick()
+		ticks += 1
+	return ticks
 
 
 # --- deposits ------------------------------------------------------------------------
@@ -174,10 +185,14 @@ func test_harvester_data() -> void:
 	for i in 2:
 		var type := load(HARVESTERS[i]) as UnitType
 		check(type != null and type.is_harvester(), "%s is a harvester" % HARVESTERS[i])
-		check_eq(type.attack_damage, 0, "it cannot attack")
 		check(type.cargo_capacity > 0 and type.harvest_rate > 0 and type.unload_rate > 0, "it carries, digs and unloads")
+		check(type.pack_capacity > 0 and type.pack_capacity < type.cargo_capacity, "the robot's pack is smaller than the trailer")
+		check(type.load_rate > 0 and type.robot_speed > 0.0, "the robot walks and fills the trailer")
+		check(type.attack_damage > 0 and type.robot_armor >= 50, "the robot can hit back and is heavily armoured")
+		check(type.attack_damage < (load(GUARD) as UnitType).attack_damage, "but hits less hard than a soldier")
 		check_eq(type.transform_ticks(), 20, "changing shape takes a second")
-		check_eq(type.sprites.get_size(), Vector2(8 * type.sprite_size.x, 5 * type.sprite_size.y), "its sheet has 8 facings and 5 rows")
+		check_eq(type.sprites.get_size(), Vector2(8 * type.sprite_size.x, 6 * type.sprite_size.y), "its sheet has 8 facings and 6 rows")
+		check_eq(type.trailer_sprites.get_size(), Vector2(8 * type.sprite_size.x, 2 * type.sprite_size.y), "the trailer's has 8 facings and 2 rows")
 		var refinery := load(REFINERIES[i]) as BuildingType
 		check(refinery != null and refinery.is_refinery and refinery.storage > 0, "%s is a refinery with storage" % REFINERIES[i])
 		check_eq(refinery.sprite.get_size(), Vector2(refinery.footprint * 32 + refinery.sprite_origin * 2),
@@ -193,26 +208,35 @@ func test_harvester_round_trip() -> void:
 	check(world.order_harvest([harvester.id], ROCK), "the order is accepted")
 	check_eq(harvester.order, SimUnit.Order.HARVEST, "the harvester has a harvest order")
 	var jobs: Array = []
-	var robot_moved := false
-	var dug_while_truck := false
+	var trailer_cells := {}
+	var truck_dug := false
+	var filled_away_from_trailer := false
 	for i in 20 * 40:
-		var before := harvester.cell
+		var pack := harvester.pack
 		var cargo := harvester.cargo
+		var job := harvester.job
 		world.tick()
 		if jobs.is_empty() or jobs[-1] != harvester.job:
 			jobs.append(harvester.job)
-		if harvester.is_robot() and harvester.cell != before:
-			robot_moved = true
-		if harvester.cargo > cargo and harvester.job != Job.EXTRACT and harvester.job != Job.PACK:
-			dug_while_truck = true
+		var trailer := world.get_trailer(harvester.trailer_id)
+		if trailer != null:
+			trailer_cells[trailer.cell] = true
+			if harvester.cargo > cargo and SimWorld._cells_apart(harvester.cell, trailer.cell) != 1:
+				filled_away_from_trailer = true
+		if harvester.pack > pack and job != Job.EXTRACT:
+			truck_dug = true
 		if world.stored_for(PLAYER) > 0 and harvester.job == Job.TO_DEPOSIT:
 			break
-	check_eq(jobs.slice(0, 6), [Job.TO_DEPOSIT, Job.DEPLOY, Job.EXTRACT, Job.PACK, Job.TO_REFINERY, Job.UNLOAD],
-			"it drives out as a truck, unfolds, digs, folds up, drives back and unloads")
-	check(not robot_moved, "the robot never drives")
-	check(not dug_while_truck, "and the truck never digs")
+	check_eq(jobs.slice(0, 6), [Job.TO_DEPOSIT, Job.DEPLOY, Job.TO_ROCK, Job.EXTRACT, Job.TO_TRAILER, Job.LOAD],
+			"it drives out as a truck, unfolds, and the robot digs and tips its pack into the trailer")
+	check_eq(jobs.count(Job.EXTRACT), 4, "four packs fill the trailer")
+	check_eq(jobs.slice(jobs.find(Job.PACK)), [Job.PACK, Job.TO_REFINERY, Job.UNLOAD, Job.NONE, Job.TO_DEPOSIT],
+			"then it folds up, drives back and unloads")
+	check_eq(trailer_cells.size(), 1, "the trailer stays where the truck stopped")
+	check(not truck_dug, "only the digging robot fills its pack")
+	check(not filled_away_from_trailer, "and the trailer is filled from right beside it")
 	check_eq(world.stored_for(PLAYER), 100, "one full load is in store")
-	check_eq(harvester.cargo, 0, "the hold is empty again")
+	check_eq(harvester.cargo, 0, "the trailer is empty again")
 	check_eq(deposit.amount, 100, "and the deposit is a load poorer")
 	check_eq(world.spent_log.size(), 2, "two of its cells are spent")
 	check_eq(harvester.order, SimUnit.Order.HARVEST, "it keeps its order")
@@ -223,6 +247,7 @@ func test_harvester_round_trip() -> void:
 	check(deposit.is_empty(), "until the deposit has run out")
 	check_eq(harvester.order, SimUnit.Order.NONE, "then it has nothing left to do")
 	check_eq(harvester.job, Job.NONE, "and stands as a truck")
+	check(not harvester.is_robot() and world.trailers.is_empty(), "with its trailer hitched")
 	check(not world.order_harvest([harvester.id], Vector2i(8, 6)), "grass cannot be harvested")
 
 
@@ -230,49 +255,61 @@ func test_harvester_times() -> void:
 	var world := _world()
 	world.add_building(_refinery_type(), PLAYER, SITE)
 	var harvester := world.add_unit(_harvester_type(), PLAYER, Vector2i(15, 4))
+	var parked := Vector2i(15, 4)
 	world.order_harvest([harvester.id], ROCK)
 	world.tick()
 	check_eq(harvester.job, Job.DEPLOY, "beside the rock it unfolds at once")
-	check_eq(harvester.cell, Vector2i(15, 4), "where it stands")
+	check_eq(harvester.cell, parked, "where it stands")
 	check_eq(harvester.facing, 6, "facing the rock (east)")
-	var ticks := 0
-	while harvester.job == Job.DEPLOY and ticks < 100:
-		world.tick()
-		ticks += 1
-	check_eq(ticks, 20, "unfolding takes a second")
-	ticks = 0
-	while harvester.job == Job.EXTRACT and ticks < 400:
-		world.tick()
-		ticks += 1
-	# The first bite is taken on the tick that ends the unfolding.
-	check_eq(ticks, 99, "filling the hold takes five seconds at 20 a second")
-	check_eq(harvester.cargo, 100, "and fills it exactly")
-	ticks = 0
-	while harvester.job == Job.PACK and ticks < 100:
-		world.tick()
-		ticks += 1
-	check_eq(ticks, 20, "folding up takes a second")
+	check(world.trailers.is_empty(), "the trailer is still hitched")
+	check_eq(_ticks_in(world, harvester, Job.DEPLOY), 20, "unfolding takes a second")
+	var trailer := world.get_trailer(harvester.trailer_id)
+	check(trailer != null and trailer.cell == parked, "then the trailer stands where the truck stood")
+	check(world.trailer_at(parked) == trailer and trailer.owner_id == harvester.id, "and belongs to the robot")
+	check_eq(trailer.facing, 6, "facing the way the truck did")
+	check(not world.is_free(parked), "it takes up its cell")
+	check_eq(SimWorld._cells_apart(harvester.cell, parked), 1, "and the robot has stepped off next to it")
+	check(_run_until(world, harvester, Job.EXTRACT, 5.0), "the robot starts to dig")
+	check_eq(_ticks_in(world, harvester, Job.EXTRACT), 25, "filling the pack of 25 takes 25 ticks at 20 a second")
+	check_eq(harvester.pack, 25, "and fills it exactly")
+	check_eq(harvester.cargo, 0, "nothing is in the trailer yet")
+	check(_run_until(world, harvester, Job.LOAD, 5.0), "it turns to the trailer")
+	check_eq(_ticks_in(world, harvester, Job.LOAD), 10, "tipping the pack out takes half a second at 50 a second")
+	check_eq([harvester.pack, harvester.cargo], [0, 25], "then the load is in the trailer")
+	check(_run_until(world, harvester, Job.PACK), "with the trailer full it goes back to it")
+	check_eq(harvester.cargo, 100, "the trailer holds four packs")
+	check(world.trailers.is_empty(), "the trailer is hitched again")
+	var ticks := _ticks_in(world, harvester, Job.PACK)
+	check(ticks >= 20 and ticks <= 35, "stepping onto the trailer and folding up takes a good second (%d ticks)" % ticks)
+	check_eq(harvester.cell, parked, "the truck stands where the trailer stood")
+	check_eq(harvester.facing, 6, "facing the way it did")
 	check(_run_until(world, harvester, Job.UNLOAD), "it drives to the refinery")
-	ticks = 0
-	while harvester.job == Job.UNLOAD and ticks < 400:
-		world.tick()
-		ticks += 1
-	check_eq(ticks, 40, "unloading takes two seconds at 50 a second")
+	check_eq(_ticks_in(world, harvester, Job.UNLOAD), 40, "unloading takes two seconds at 50 a second")
 
 
 func test_storage_has_a_limit() -> void:
 	var world := _world()
-	world.add_building(_refinery_type(150), PLAYER, SITE)
+	var refinery := world.add_building(_refinery_type(150), PLAYER, SITE)
 	var harvester := world.add_unit(_harvester_type(), PLAYER, Vector2i(5, 4))
 	check_eq(world.storage_for(PLAYER), 150, "the side can store 150")
 	world.order_harvest([harvester.id], ROCK)
 	_run(world, 100.0)
 	check(world.deposits[0].is_empty(), "the whole deposit was fetched")
 	check_eq(world.stored_for(PLAYER), 150, "but only what fits is in store")
-	check_eq(int(world.lost.get(PLAYER, 0)), 50, "the rest was lost")
-	check_eq(harvester.cargo, 0, "the harvester did not keep it")
+	check_eq(harvester.cargo, 50, "the harvester keeps the rest")
+	check(world.is_waiting_for_room(harvester), "and waits at the refinery")
+	check(refinery.is_beside(harvester.cell) and harvester.is_settled(), "right beside it")
+	check_eq(harvester.order, SimUnit.Order.HARVEST, "still on its harvest order")
+	check_eq(MapView.job_text(harvester, world), "Waiting: the store is full", "the sidebar says why it waits")
 	check_eq(MissionHud.store_text(world, PLAYER), "Orichalcum 150 / 150 (full)", "the HUD says the store is full")
 	check_eq(MissionHud.rock_text(world), "The rock has run out", "and that the rock has run out")
+	refinery.type.storage = 180
+	_run(world, 3.0)
+	check_eq([world.stored_for(PLAYER), harvester.cargo], [180, 20], "when there is room again it unloads as much as fits")
+	refinery.type.storage = 800
+	_run(world, 3.0)
+	check_eq([world.stored_for(PLAYER), harvester.cargo], [200, 0], "and the rest once that fits too")
+	check_eq(harvester.order, SimUnit.Order.NONE, "then it is done")
 
 
 func test_two_refineries_store_twice_as_much() -> void:
@@ -295,10 +332,13 @@ func test_two_harvesters_share_a_rock() -> void:
 	world.order_harvest([first.id, second.id], ROCK)
 	check(_run_until(world, first, Job.EXTRACT) and _run_until(world, second, Job.EXTRACT), "both get to dig")
 	check(first.cell != second.cell, "each from its own cell")
-	_run(world, 60.0)
+	check_eq(world.trailers.size(), 2, "each with its own trailer")
+	check(world.trailers[0].cell != world.trailers[1].cell, "on its own cell")
+	_run(world, 90.0)
 	check_eq(world.stored_for(PLAYER), 200, "together they bring in the whole deposit")
 	check_eq(first.order, SimUnit.Order.NONE, "and then both stop")
 	check_eq(second.order, SimUnit.Order.NONE, "and then both stop")
+	check(world.trailers.is_empty(), "as trucks")
 
 
 func test_new_orders_interrupt_the_work() -> void:
@@ -308,29 +348,52 @@ func test_new_orders_interrupt_the_work() -> void:
 	world.order_harvest([harvester.id], ROCK)
 	check(_run_until(world, harvester, Job.EXTRACT), "it starts digging")
 	_run(world, 1.0)
-	var cargo := harvester.cargo
-	check(cargo > 0 and cargo < 100, "it has part of a load")
-	var cell := harvester.cell
+	var pack := harvester.pack
+	check(pack > 0 and pack < 25, "it has part of a pack")
+	var parked := world.get_trailer(harvester.trailer_id).cell
 	world.order_move([harvester.id], Vector2i(10, 6))
-	check_eq(harvester.job, Job.PACK, "told to move, the robot first folds up")
-	_run(world, 0.5)
-	check_eq(harvester.cell, cell, "and stays where it is meanwhile")
-	_run(world, 5.0)
+	check(harvester.leaving and harvester.is_robot(), "told to move, the robot first goes back to its trailer")
+	check_eq(MapView.job_text(harvester), "Going back to its trailer", "and the sidebar says so")
+	check(_run_until(world, harvester, Job.PACK, 5.0), "it steps onto it and folds up")
+	check_eq(harvester.cell, parked, "where the trailer stands")
+	check_eq(harvester.cargo, pack, "what was in its pack goes into the trailer")
+	_run(world, 6.0)
 	check_eq(harvester.cell, Vector2i(10, 6), "then it drives where it was sent")
 	check_eq(harvester.job, Job.NONE, "as a truck")
+	check(not harvester.is_robot() and world.trailers.is_empty(), "with its trailer")
 	check_eq(harvester.order, SimUnit.Order.NONE, "and waits there")
-	check_eq(harvester.cargo, cargo, "with what it had dug")
+	check_eq([harvester.cargo, harvester.pack], [pack, 0], "with what it had dug")
 	# Sent to the refinery with a part load, it unloads and goes back to work.
 	check(world.order_unload([harvester.id], refinery.id), "it can be sent to unload")
 	check(_run_until(world, harvester, Job.UNLOAD), "it drives to the refinery")
 	check(_run_until(world, harvester, Job.EXTRACT), "and afterwards back to the rock it was working")
-	check_eq(world.stored_for(PLAYER), cargo, "the part load is in store")
+	check_eq(world.stored_for(PLAYER), pack, "the part load is in store")
+	# Sent to the rock it is already working, the robot just carries on.
+	world.order_harvest([harvester.id], ROCK)
+	check(not harvester.leaving and harvester.job == Job.EXTRACT, "a second order for the same rock changes nothing")
 	world.order_stop([harvester.id])
-	check_eq(harvester.job, Job.PACK, "stop makes it fold up")
-	_run(world, 2.0)
+	check(harvester.leaving, "stop sends it back to its trailer")
+	_run(world, 4.0)
 	check_eq(harvester.order, SimUnit.Order.NONE, "and it stays stopped")
 	check_eq(harvester.job, Job.NONE, "as a truck")
+	check(world.trailers.is_empty(), "with its trailer hitched")
 	check(not world.order_unload([harvester.id], 12345), "there is no unloading at something that is not a refinery")
+
+
+func test_an_unfolding_truck_can_be_called_off() -> void:
+	var world := _world()
+	var harvester := world.add_unit(_harvester_type(), PLAYER, Vector2i(15, 4))
+	world.order_harvest([harvester.id], ROCK)
+	_run(world, 0.5)
+	check_eq(harvester.job, Job.DEPLOY, "it is unfolding")
+	world.order_move([harvester.id], Vector2i(10, 4))
+	check_eq(harvester.job, Job.PACK, "told to move, it folds up again at once")
+	check(world.trailers.is_empty(), "the trailer was never unhitched")
+	_run(world, 0.5)
+	check_eq(harvester.cell, Vector2i(15, 4), "it stays put while it folds")
+	_run(world, 4.0)
+	check_eq(harvester.cell, Vector2i(10, 4), "then drives where it was sent")
+	check_eq(harvester.order, SimUnit.Order.NONE, "and waits")
 
 
 func test_without_a_refinery_the_harvester_waits_with_its_load() -> void:
@@ -408,7 +471,7 @@ func test_trial_start() -> void:
 		check_eq(mission.world.tick_count, 600, "but time passes")
 
 
-func test_trial_earns_on_its_own_and_the_rock_runs_out() -> void:
+func test_trial_earns_on_its_own_and_fills_the_store() -> void:
 	for i in 2:
 		var mission := Mission.new(load(TRIALS[i]) as MissionDef)
 		var world := mission.world
@@ -420,17 +483,22 @@ func test_trial_earns_on_its_own_and_the_rock_runs_out() -> void:
 		for tick in 20 * 60:
 			mission.tick()
 		check(world.stored_for(PLAYER) >= 100, "a minute later Orichalcum is in store in %s (%d)" % [TRIALS[i], world.stored_for(PLAYER)])
+		var full_tick := -1
 		for tick in 20 * 600:
-			if deposit.is_empty() and world.units.all(func(unit: SimUnit) -> bool: return unit.order == SimUnit.Order.NONE):
+			if world.stored_for(PLAYER) >= 800 and full_tick < 0:
+				full_tick = world.tick_count
+			if full_tick >= 0 and world.tick_count - full_tick > 20 * 60:
 				break
 			mission.tick()
-		check(deposit.is_empty(), "the rock runs out in %s" % TRIALS[i])
-		check_eq(world.stored_for(PLAYER), mini(800, deposit.capacity), "the store holds what fits")
-		check_eq(int(world.lost.get(PLAYER, 0)), maxi(0, deposit.capacity - 800), "and the rest was lost")
-		check_eq(world.spent_log.size(), deposit.cells.size(), "every cell of the rock is spent")
+		check(full_tick > 0 and full_tick < 20 * 240, "the store is full within four minutes in %s (%d s)" % [TRIALS[i], full_tick / 20])
+		check_eq(world.stored_for(PLAYER), 800, "and never holds more than fits")
+		var on_board := 0
 		for unit in world.units:
-			check_eq(unit.cargo, 0, "harvester %d ends empty" % unit.id)
-			check_eq(unit.job, Job.NONE, "and at rest")
+			on_board += unit.cargo + unit.pack
+			check(world.is_waiting_for_room(unit), "harvester %d waits at the refinery with its load" % unit.id)
+			check_eq(unit.cargo, 100, "a full one")
+		check_eq(world.stored_for(PLAYER) + on_board + deposit.amount, deposit.capacity, "nothing was lost on the way")
+		check(world.trailers.is_empty(), "no trailer is left standing")
 
 
 func test_mission_1_has_no_economy() -> void:
@@ -506,6 +574,7 @@ func test_scene_runs_the_trial() -> void:
 		check(view.camera.get_view_rect().has_point(refinery.center() * 32.0), "the camera shows the refinery")
 		check_eq(view.hint_text(), view.hints.text(view.mission.def), "the first hint is shown")
 		check(view.hud._top_right.text.begins_with("Orichalcum 0 / 800"), "the top bar shows the store: '%s'" % view.hud._top_right.text)
+		check_eq(view.hud._forces.text, "Harvesters: 2", "and the sidebar counts the harvesters")
 		check(view.hud._status.text.begins_with("Left in the rock"), "and the sidebar what is left in the rock")
 		check(BuildingsView.building_at_point(world, refinery.center() * 32.0, PLAYER) == refinery, "the refinery can be found under the mouse")
 		check(MapView.describe_spot(world, refinery.cell).contains("Stores up to 800"), "and described")
@@ -530,6 +599,14 @@ func test_scene_runs_the_trial() -> void:
 		check_eq(harvester.job, Job.EXTRACT, "it gets there and digs")
 		check(UnitsView.sprite_frame(harvester, 0).y >= 3, "drawn as a robot")
 		check(MapView.describe_selection(world, view.selection).contains("Digging"), "and described as digging")
+		check(MapView.describe_selection(world, view.selection).contains("Pack "), "with what is in its pack")
+		var trailer := world.get_trailer(harvester.trailer_id)
+		check(trailer != null and world.is_trailer_visible_to(trailer, PLAYER), "its trailer stands beside it")
+		check_eq(UnitsView.trailer_frame(world, trailer), Vector2i(trailer.facing, 0), "drawn empty")
+		check(MapView.describe_spot(world, trailer.cell).begins_with("Trailer"), "and described when the mouse is on it")
+		harvester.cargo = 60
+		check_eq(UnitsView.trailer_frame(world, trailer).y, 1, "half full, it is drawn loaded")
+		harvester.cargo = 0
 		for i in 20 * 60:
 			if world.stored_for(PLAYER) >= 100:
 				break
@@ -551,7 +628,7 @@ func test_scene_runs_the_trial() -> void:
 		harvester.cargo = 30
 		view.camera.center_on(refinery.center() * 32.0)
 		_click(view, refinery.center() * 32.0, MOUSE_BUTTON_RIGHT)
-		check_eq(harvester.job if harvester.job != Job.PACK else Job.TO_REFINERY, Job.TO_REFINERY, "a right click on the refinery sends it to unload")
+		check(harvester.job == Job.TO_REFINERY or harvester.next_job == Job.TO_REFINERY, "a right click on the refinery sends it to unload")
 		check(harvester.unload_first, "with whatever it carries")
 		_click(view, Vector2(refinery.cell * 32) + Vector2(16, 4 * 32), MOUSE_BUTTON_RIGHT)
 		check_eq(harvester.order, SimUnit.Order.MOVE, "a right click on open ground is a move order")

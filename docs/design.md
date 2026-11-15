@@ -50,13 +50,31 @@ stone and rock ground that buildings stand on can be walked on.
 Orichalcum (provisional name) is the game's only resource. It is scarce and is
 mined from small rock formations.
 
-The harvester:
+The harvester is a truck in two parts, a cab and a trailer:
 
-1. travels to a deposit as a truck,
-2. transforms into a humanoid robot at the deposit,
-3. extracts Orichalcum,
-4. transforms back into a truck,
-5. returns to a refinery to unload.
+1. it travels to a deposit as a truck,
+2. the cab transforms into a humanoid robot at the deposit; the trailer stays
+   where the truck stopped,
+3. the robot extracts Orichalcum into the pack on its back and carries it to
+   the trailer, until the trailer is full,
+4. the robot transforms back into the truck's cab,
+5. the truck returns to a refinery to unload.
+
+Truck and robot share one health bar; truck and trailer share one cargo bar.
+The trailer cannot be attacked or destroyed.
+
+The robot defends its trailer. A truck that is attacked transforms, and the
+robot stands guard next to the trailer and fights any enemy that comes near. A
+robot at the rock stops harvesting when an enemy is near and does the same,
+whether the trailer is empty or full. Enemy harvesters are the exception:
+they do not attack, so nobody guards against them. The robot has heavy armour
+and a weak attack: it is hard to destroy, which gives the player time to send
+help, and it can kill about two troops, slowly, before it dies.
+
+If the robot dies, an enemy unit can go to the trailer and take all its
+cargo. An empty trailer disappears with its robot; a loaded one stays until
+it is taken. (Taking it needs no transport and no refinery for now. This is a
+simplification that will be worked on later.)
 
 How this works in the game since milestone M4 is in [economy.md](economy.md).
 
@@ -158,9 +176,14 @@ Nothing in this section has been decided. Do not treat any guess as canon.
 - **OPEN: What happens to the hold time while the area is contested?** For now
   it waits and carries on when the intruders are gone; it starts again from
   zero only when the area is left empty or changes hands.
-- **OPEN: What happens to Orichalcum that does not fit in the store?** For now
-  it is lost, as in Dune II. The alternative is that the harvester waits with
-  its load.
+- **DECIDED: Orichalcum that does not fit in the store is not lost.** The
+  harvester waits at the refinery with its load.
+- **OPEN: How is a stolen trailer's cargo brought home?** For now a unit that
+  reaches the trailer takes the cargo on the spot. Can a side also take back
+  its own orphaned trailer?
+- **OPEN: The robot's values**: its armour, its attack and how near an enemy
+  must come before it stops work. The first values are in
+  [economy.md](economy.md).
 - **OPEN: What becomes of mined-out rock?** For now it stays rock that cannot
   be crossed. It could instead become open ground.
 - **OPEN: The numbers of the economy**: how much a rock holds, what a

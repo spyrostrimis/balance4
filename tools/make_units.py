@@ -12,9 +12,11 @@ and one row per pose.
 
   troops      3 rows (standing, then the two halves of a walking step), 24x24 pixels per
               sprite, with the unit's feet at pixel (12, 18) of each sprite.
-  harvesters  5 rows (empty truck, loaded truck, halfway between truck and robot, then the
-              two halves of the robot's swing), 44x44 pixels per sprite, with the middle of
-              the vehicle on the ground at pixel (22, 25).
+  harvesters  6 rows (empty truck, loaded truck, halfway between truck and robot, the two
+              halves of the robot's swing, the robot standing), 44x44 pixels per sprite,
+              with the middle of the vehicle on the ground at pixel (22, 25).
+  trailers    2 rows (empty, loaded), the same size and middle as the harvester, so that a
+              trailer drawn on the truck's cell sits exactly where it sat in the truck.
 
 The treatment is the approved one from the style mockups (v5 and v7): shrink the render,
 cut it down to a few colours, add per-pixel grit like the terrain, then give the sprite a
@@ -39,9 +41,11 @@ RAW = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'tools', '_raw')
 OUT = os.path.join(ROOT, 'assets', 'sprites', 'units')
 # unit -> (sprite size in pixels, where its feet are inside a sprite, number of poses)
 TROOP = (24, (12, 18), 3)
-VEHICLE = (44, (22, 25), 5)
+VEHICLE = (44, (22, 25), 6)
+TRAILER = (44, (22, 25), 2)
 UNITS = {'infantry_blue': TROOP, 'infantry_red': TROOP, 'commander_blue': TROOP, 'commander_red': TROOP,
-         'harvester_blue': VEHICLE, 'harvester_red': VEHICLE}
+         'harvester_blue': VEHICLE, 'harvester_red': VEHICLE,
+         'trailer_blue': TRAILER, 'trailer_red': TRAILER}
 
 
 def load(name):

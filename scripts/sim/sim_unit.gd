@@ -23,18 +23,26 @@ enum Order {
 enum Job {
 	## Nothing, or about to decide where to go next.
 	NONE,
-	## Driving to its deposit.
+	## Driving to its deposit, as a truck.
 	TO_DEPOSIT,
-	## Changing from truck to robot beside the deposit.
+	## Changing from truck to robot. The trailer is unhitched at the end.
 	DEPLOY,
-	## Extracting, as a robot.
+	## The robot is walking to the place where it digs.
+	TO_ROCK,
+	## Digging: filling the pack on its back.
 	EXTRACT,
-	## Changing back into a truck.
+	## The robot is walking back to its trailer.
+	TO_TRAILER,
+	## Emptying its pack into the trailer.
+	LOAD,
+	## Stepping back onto the trailer and changing into a truck.
 	PACK,
-	## Driving to its refinery.
+	## Driving to its refinery, as a truck.
 	TO_REFINERY,
 	## Handing its cargo over, beside the refinery.
 	UNLOAD,
+	## The robot stands by its trailer and fights enemies that come near.
+	GUARD,
 }
 
 var id := 0
@@ -81,18 +89,35 @@ var last_hurt_tick := -1000
 ## unit goes after that enemy even if it is too far away to notice otherwise.
 var provoked_by := 0
 var provoked_tick := -1000
-## Harvesters: the Orichalcum on board, what the harvester is doing, the
-## deposit and the refinery it works between (their ids, 0 for none), and the
-## deposit cell it is digging at.
+## Harvesters: the Orichalcum in the trailer, what the harvester is doing,
+## the deposit and the refinery it works between (their ids, 0 for none), and
+## the deposit cell it is digging at.
 var cargo := 0
 var job := Job.NONE
 var deposit_id := 0
 var refinery_id := 0
 var job_cell := Vector2i(-1, -1)
-## Ticks left of a change of shape (DEPLOY or PACK).
+## Orichalcum in the pack on the robot's back, on its way to the trailer.
+var pack := 0
+## Id of its trailer while that stands unhitched (the harvester is a robot),
+## otherwise 0 (it is a truck, or changing shape on top of the trailer).
+var trailer_id := 0
+## Ticks left of a change of shape (DEPLOY or PACK), the job it takes up when
+## the change is done, and the way the truck faces once it is hitched again.
 var job_ticks_left := 0
+var next_job := Job.NONE
+var park_facing := 0
+## Set when a robot has to go back to its trailer and become a truck again.
+var leaving := false
+## Where a move order sends it once it is a truck again.
+var held_goal := Vector2i.ZERO
+var has_held_goal := false
+## The tick at which a guarding robot last had an enemy near.
+var threat_tick := -1000
+## Has it dug anything since it last unhitched its trailer?
+var dug_here := false
 ## Part of a unit of Orichalcum carried over from tick to tick while
-## extracting or unloading, in twentieths.
+## digging, loading or unloading, in twentieths.
 var work_part := 0
 ## Set by an order to unload: it goes to the refinery even with a part load.
 var unload_first := false
@@ -112,9 +137,10 @@ func is_settled() -> bool:
 	return not has_goal and move_ticks_left == 0
 
 
-## Is a harvester a robot right now (or halfway there)? Trucks drive, robots dig.
+## Is a harvester a robot right now (or halfway there)? Trucks drive between
+## rock and refinery; robots dig, carry and fight.
 func is_robot() -> bool:
-	return job == Job.DEPLOY or job == Job.EXTRACT or job == Job.PACK
+	return trailer_id != 0 or job == Job.DEPLOY or job == Job.PACK
 
 
 ## Where to draw the unit, in cells (whole numbers are cell positions).

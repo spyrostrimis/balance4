@@ -120,7 +120,7 @@ func refresh(mission: Mission, hint: String) -> void:
 		var storage := world.storage_for(Mission.PLAYER_TEAM)
 		_top_right.text = "%s   Time %s" % [store, clock(mission.seconds())]
 		_status.text = rock_text(world)
-		_forces.text = "Harvesters: %d    Lost (store full): %d" % [players, int(world.lost.get(Mission.PLAYER_TEAM, 0))]
+		_forces.text = practice_forces_text(mission)
 		_bar.size.x = roundf((SIDE_WIDTH - 2.0) * (float(world.stored_for(Mission.PLAYER_TEAM)) / storage if storage > 0 else 0.0))
 		_bar.color = GOLD
 		return
@@ -159,6 +159,22 @@ static func store_text(world: SimWorld, team: int) -> String:
 		return ""
 	var stored := world.stored_for(team)
 	return "Orichalcum %d / %d%s" % [stored, storage, " (full)" if stored >= storage else ""]
+
+
+## The line under the bar in a practice mission: the player's harvesters
+## and, if the mission has a raid, the raiders and what they have taken.
+static func practice_forces_text(mission: Mission) -> String:
+	var world := mission.world
+	var harvesters := 0
+	for unit in world.units:
+		if unit.team == Mission.PLAYER_TEAM and not unit.dead and unit.type.is_harvester():
+			harvesters += 1
+	var text := "Harvesters: %d" % harvesters
+	if mission.def.has_raid():
+		text += "    Raiders: %d" % world.team_size(Mission.ENEMY_TEAM)
+		if world.stolen_for(Mission.ENEMY_TEAM) > 0:
+			text += "    Taken: %d" % world.stolen_for(Mission.ENEMY_TEAM)
+	return text
 
 
 ## One line saying how much Orichalcum is left in the ground.

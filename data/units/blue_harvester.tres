@@ -1,22 +1,32 @@
-[gd_resource type="Resource" script_class="UnitType" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="UnitType" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/sim/unit_type.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/sprites/units/harvester_blue.png" id="2"]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/units/trailer_blue.png" id="3"]
 
 [resource]
 script = ExtResource("1")
 id = &"blue_harvester"
 display_name = "Harvester"
 role = "Blue Harvester"
-max_health = 150
+max_health = 180
 speed = 3.5
 sight = 4
-attack_damage = 0
+attack_damage = 10
+attack_range = 1
+attack_interval = 1.5
+acquire_range = 4
 cargo_capacity = 100
+pack_capacity = 25
 harvest_rate = 20
+load_rate = 50
 unload_rate = 50
 transform_seconds = 1.0
+robot_speed = 2.0
+robot_armor = 70
 sprites = ExtResource("2")
+trailer_sprites = ExtResource("3")
 sprite_size = Vector2i(44, 44)
 minimap_color = Color(0.62, 0.82, 1, 1)
 sprite_anchor = Vector2i(22, 25)

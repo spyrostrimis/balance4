@@ -10,6 +10,8 @@ const BACKGROUND := Color(0.03, 0.035, 0.03)
 const UNEXPLORED := Color(0.027, 0.031, 0.027)
 const FRAME := Color(1, 1, 1, 0.9)
 const SPENT := Color(0.33, 0.3, 0.27)
+## A trailer whose harvester is destroyed: Orichalcum there for the taking.
+const ORPHAN := Color(0.98, 0.77, 0.32)
 
 var _map: MapData
 var _camera: MapCamera
@@ -120,6 +122,10 @@ func _draw() -> void:
 			if _world.is_building_visible_to(building, _team):
 				draw_rect(Rect2(rect.position + Vector2(building.cell) * cell_size,
 						Vector2(building.type.footprint) * cell_size), building.type.minimap_color)
+		for trailer in _world.trailers:
+			if _world.is_trailer_visible_to(trailer, _team):
+				draw_rect(Rect2(rect.position + Vector2(trailer.cell) * cell_size, cell_size.max(Vector2(2, 2))),
+						ORPHAN if trailer.is_orphan() else trailer.type.minimap_color.darkened(0.35))
 		for unit in _world.units:
 			if unit.dead or not _world.is_visible_to(unit, _team):
 				continue

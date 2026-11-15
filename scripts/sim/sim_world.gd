@@ -2,7 +2,7 @@ class_name SimWorld
 extends RefCounted
 ## The game simulation: the map, the units and buildings on it, the Orichalcum
 ## deposits, and the rules that move units, make them fight and make
-## harvesters earn.
+## harvesters earn and defend their trailers.
 ##
 ## It advances in fixed steps ("ticks"), 20 per second, and never looks at the
 ## clock, the screen or the mouse, so the same orders always give the same
@@ -31,6 +31,12 @@ const EFFECT_TICKS := 20
 ## A harvester that finds no free place to stand beside its deposit or its
 ## refinery looks again after this many ticks.
 const RETRY_TICKS := 10
+## A robot that has to walk further than this from its trailer to dig (in
+## cells) hitches up and parks nearer to the Orichalcum instead.
+const REPARK_CELLS := 3
+## A guarding robot goes back to work this many ticks after the last enemy
+## has left.
+const CALM_TICKS := 40
 ## The eight cells around a cell, the four that share a side first.
 const AROUND: Array[Vector2i] = [
 	Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1),
@@ -59,17 +65,21 @@ var deposits: Array[Deposit] = []
 ## Deposit cells that have been emptied, in the order it happened. The UI
 ## follows it to redraw them.
 var spent_log: Array[Vector2i] = []
-## Orichalcum in store per team, and Orichalcum that was delivered while the
-## store was full and so was lost: team -> amount.
+## Orichalcum in store per team, and Orichalcum a team has taken out of
+## other sides' orphaned trailers: team -> amount.
 var stored := {}
-var lost := {}
+var stolen := {}
+## Trailers standing on their own: unhitched by their robot, or orphaned.
+var trailers: Array[SimTrailer] = []
 
 var _by_id := {}
 var _next_id := 1
 var _occupant := PackedInt32Array()   # unit id per cell, 0 for none
 var _building := PackedInt32Array()   # building id per cell, 0 for none
 var _deposit := PackedInt32Array()    # deposit id per cell, 0 for none
+var _trailer_cell := PackedInt32Array()  # trailer id per cell, 0 for none
 var _buildings_by_id := {}
+var _trailers_by_id := {}
 var _region := PackedInt32Array()     # connected walkable area per cell, 0 for impassable
 var _astar := AStarGrid2D.new()
 var _shrouds := {}
@@ -81,6 +91,7 @@ func _init(p_map: MapData) -> void:
 	size = map.get_size()
 	_occupant.resize(size.x * size.y)
 	_building.resize(size.x * size.y)
+	_trailer_cell.resize(size.x * size.y)
 	_astar.region = Rect2i(Vector2i.ZERO, size)
 	_astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
 	_astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
@@ -149,9 +160,14 @@ func unit_at(cell: Vector2i) -> SimUnit:
 	return null if id == 0 else _by_id[id]
 
 
-## Walkable, not built on and not occupied.
+## Walkable, not built on and not occupied by a unit or a trailer.
 func is_free(cell: Vector2i) -> bool:
-	return _is_open(cell) and _occupant[_index(cell)] == 0
+	return _is_open(cell) and not _taken(_index(cell))
+
+
+## Is there a trailer on this cell, or a unit other than the one given?
+func _taken(index: int, unit_id := 0) -> bool:
+	return _trailer_cell[index] != 0 or (_occupant[index] != 0 and _occupant[index] != unit_id)
 
 
 ## Ground a unit can stand on: walkable terrain with no building on it.
@@ -189,20 +205,20 @@ func order_move(unit_ids: Array, target: Vector2i) -> void:
 
 
 ## Like order_move, but the units fight any enemy they meet on the way and
-## then carry on.
+## then carry on. Harvesters just move: they only ever fight for their trailer.
 func order_attack_move(unit_ids: Array, target: Vector2i) -> void:
 	_order_walk(unit_ids, target, SimUnit.Order.ATTACK_MOVE)
 
 
 ## Tell units to chase one unit and attack it until it is dead. Units that
-## cannot attack, and the target itself, ignore the order.
+## cannot attack, harvesters and the target itself ignore the order.
 func order_attack(unit_ids: Array, target_id: int) -> void:
 	var target := get_unit(target_id)
 	if target == null:
 		return
 	for id in unit_ids:
 		var unit := get_unit(id)
-		if unit == null or unit == target or unit.type.attack_damage <= 0:
+		if unit == null or unit == target or unit.type.attack_damage <= 0 or unit.type.is_harvester():
 			continue
 		_stop(unit)
 		unit.order = SimUnit.Order.ATTACK
@@ -277,11 +293,17 @@ func _order_walk(unit_ids: Array, target: Vector2i, order: SimUnit.Order) -> voi
 			continue
 		taken[slot] = true
 		_quit_job(unit)
-		unit.order = order
+		unit.order = SimUnit.Order.MOVE if unit.type.is_harvester() else order
 		unit.order_cell = slot
 		unit.order_target = 0
 		unit.target_id = 0
-		_set_goal(unit, slot)
+		if unit.is_robot():
+			# A robot goes back to its trailer and becomes a truck before it drives off.
+			_stop(unit)
+			unit.held_goal = slot
+			unit.has_held_goal = true
+		else:
+			_set_goal(unit, slot)
 
 
 ## The walkable cell nearest to target that is in the given region, not in
@@ -303,7 +325,7 @@ func nearest_free_cell(target: Vector2i, region: int, taken := {}, leaving := {}
 				if _region[index] == 0 or (region != 0 and _region[index] != region):
 					continue
 				var occupant := _occupant[index]
-				if occupant != 0 and not leaving.has(occupant):
+				if _trailer_cell[index] != 0 or (occupant != 0 and not leaving.has(occupant)):
 					continue
 				var distance := dx * dx + dy * dy
 				if best == NO_CELL or distance < best_distance:
@@ -335,9 +357,8 @@ func tick() -> void:
 			unit.from_cell = unit.cell      # arrived
 		if unit.job == SimUnit.Job.DEPLOY or unit.job == SimUnit.Job.PACK:
 			unit.job_ticks_left -= 1
-			if unit.job_ticks_left > 0:
+			if unit.job_ticks_left > 0 or not _change_shape(unit):
 				continue                    # changing shape; nothing else happens
-			unit.job = SimUnit.Job.EXTRACT if unit.job == SimUnit.Job.DEPLOY else SimUnit.Job.NONE
 		if _act(unit):
 			continue                        # it is busy fighting or using its ability
 		if unit.wait_ticks > 0:
@@ -346,8 +367,9 @@ func tick() -> void:
 		if unit.has_goal:
 			_try_step(unit)
 			var walking := unit.order == SimUnit.Order.MOVE or unit.order == SimUnit.Order.ATTACK_MOVE
-			if walking and not unit.has_goal and not unit.is_moving():
+			if walking and not unit.has_goal and not unit.is_moving() and not unit.is_robot():
 				unit.order = SimUnit.Order.NONE     # arrived, or gave up
+	_take_orphans()
 	if _any_dead:
 		_any_dead = false
 		units = units.filter(func(unit: SimUnit) -> bool: return not unit.dead)
@@ -378,12 +400,12 @@ func nearest_enemy(cell: Vector2i, team: int, reach: int) -> SimUnit:
 ## Let a unit fight or use its ability. Returns true if it did something that
 ## keeps it where it is this tick.
 func _act(unit: SimUnit) -> bool:
+	if unit.type.is_harvester():
+		return _act_harvester(unit)
 	if unit.order == SimUnit.Order.MOVE:
 		return false
 	if unit.order == SimUnit.Order.ABILITY:
 		return _act_ability(unit)
-	if unit.order == SimUnit.Order.HARVEST:
-		return _act_harvest(unit)
 	if unit.type.attack_damage <= 0:
 		return false
 	var target := _pick_target(unit)
@@ -454,7 +476,7 @@ func _slot_near(unit: SimUnit, around: Vector2i, reach: int) -> Vector2i:
 			if cell == around or not map.in_bounds(cell) or not in_range(around, cell, reach):
 				continue
 			var index := _index(cell)
-			if _region[index] != region or (_occupant[index] != 0 and _occupant[index] != unit.id):
+			if _region[index] != region or _taken(index, unit.id):
 				continue
 			var distance := (cell - unit.cell).length_squared()
 			if best == NO_CELL or distance < best_distance:
@@ -469,13 +491,16 @@ func _strike(attacker: SimUnit, target: SimUnit) -> void:
 	attacker.attack_ticks_left = attacker.type.attack_ticks()
 	attacker.last_attack_tick = tick_count
 	_add_effect(&"hit", attacker, target)
-	target.health = maxi(0, target.health - attacker.type.attack_damage)
+	target.health = maxi(0, target.health - damage_to(target, attacker.type.attack_damage))
 	target.last_hurt_tick = tick_count
 	if target.health == 0:
 		_kill(target)
+	elif target.type.is_harvester():
+		target.provoked_by = attacker.id        # a harvester looks after itself: see _threat()
+		target.provoked_tick = tick_count
 	# The victim fights back, and idle comrades near it come to its help.
 	for unit in units:
-		if unit.team != target.team or unit.dead or unit.type.attack_damage <= 0:
+		if unit.team != target.team or unit.dead or unit.type.attack_damage <= 0 or unit.type.is_harvester():
 			continue
 		if unit != target and not in_range(unit.cell, target.cell, HELP_RANGE):
 			continue
@@ -487,11 +512,21 @@ func _strike(attacker: SimUnit, target: SimUnit) -> void:
 			unit.target_id = attacker.id
 
 
+## How much health a hit of `damage` takes off a unit. A harvester's robot
+## has armour that stops part of every hit; nothing else has any.
+static func damage_to(target: SimUnit, damage: int) -> int:
+	if target.trailer_id == 0 or target.type.robot_armor <= 0:
+		return damage
+	return maxi(1, roundi(damage * (100 - target.type.robot_armor) / 100.0))
+
+
 func _kill(unit: SimUnit) -> void:
 	unit.dead = true
 	_stop(unit)
 	if _occupant[_index(unit.cell)] == unit.id:
 		_occupant[_index(unit.cell)] = 0
+	if unit.type.is_harvester():
+		_orphan_trailer(unit)
 	_by_id.erase(unit.id)
 	_any_dead = true
 	removed_count += 1
@@ -543,7 +578,7 @@ func can_build(type: BuildingType, cell: Vector2i) -> bool:
 			var covered := cell + Vector2i(x, y)
 			if not map.is_buildable(covered):
 				return false
-			if _building[_index(covered)] != 0 or _occupant[_index(covered)] != 0:
+			if _building[_index(covered)] != 0 or _taken(_index(covered)):
 				return false
 	return true
 
@@ -643,10 +678,11 @@ func ore_left() -> int:
 	return total
 
 
-## Tell harvesters to work a deposit: drive to it, extract, take the load to
-## a refinery and come back, until the deposit has run out. `cell` is any cell
-## of the deposit. Other units ignore the order. Returns false if the cell is
-## not a deposit or no harvester was among the units.
+## Tell harvesters to work a deposit: drive to it, unhitch the trailer, dig
+## and fill it, take the load to a refinery and come back, until the deposit
+## has run out. `cell` is any cell of the deposit. Other units ignore the
+## order. Returns false if the cell is not a deposit or no harvester was among
+## the units.
 func order_harvest(unit_ids: Array, cell: Vector2i) -> bool:
 	var deposit := deposit_at(cell)
 	if deposit == null:
@@ -656,10 +692,13 @@ func order_harvest(unit_ids: Array, cell: Vector2i) -> bool:
 		var unit := get_unit(id)
 		if unit == null or not unit.type.is_harvester():
 			continue
+		any = true
+		unit.unload_first = false
+		var at_work := unit.trailer_id != 0 and unit.order == SimUnit.Order.HARVEST and not unit.leaving
+		if at_work and unit.deposit_id == deposit.id:
+			continue                            # it is a robot at this rock already
 		_start_trip(unit, SimUnit.Job.TO_DEPOSIT)
 		unit.deposit_id = deposit.id
-		unit.unload_first = false
-		any = true
 	return any
 
 
@@ -690,42 +729,97 @@ func _start_trip(unit: SimUnit, job: SimUnit.Job) -> void:
 	unit.order_target = 0
 	unit.target_id = 0
 	unit.retry_tick = -1000
-	# A robot folds back into a truck first; the tick sends it on its way after that.
-	if unit.job != SimUnit.Job.PACK:
+	# A robot becomes a truck again first, and sets off after that.
+	if unit.is_robot():
+		unit.next_job = job
+	else:
 		unit.job = job
 
 
 ## Take a harvester off what it is doing because it has new orders. A robot
-## folds back into a truck before it does anything else.
+## goes back to its trailer and becomes a truck before it does anything else.
 func _quit_job(unit: SimUnit) -> void:
-	if unit.job == SimUnit.Job.DEPLOY or unit.job == SimUnit.Job.EXTRACT:
-		unit.job = SimUnit.Job.PACK
+	if not unit.type.is_harvester():
+		return
+	unit.work_part = 0
+	unit.has_held_goal = false
+	unit.next_job = SimUnit.Job.NONE
+	if unit.trailer_id != 0:
+		unit.leaving = true
+	elif unit.job == SimUnit.Job.DEPLOY:
+		unit.job = SimUnit.Job.PACK             # the trailer is still hitched: just fold up again
 		unit.job_ticks_left = unit.type.transform_ticks()
+		unit.park_facing = unit.facing
 	elif unit.job != SimUnit.Job.PACK:
 		unit.job = SimUnit.Job.NONE
-	unit.work_part = 0
 
 
-## One tick of a harvester with a harvest order. Returns true while it works
-## on the spot, false while it is driving (or has nothing to do).
-func _act_harvest(unit: SimUnit) -> bool:
+## One tick of a harvester. Returns true while it works or fights on the spot,
+## false while it is driving or walking (or has nothing to do).
+func _act_harvester(unit: SimUnit) -> bool:
+	if unit.trailer_id != 0:
+		return _act_robot(unit)
+	# A truck. One that is attacked stops, unhitches and guards its trailer,
+	# unless it has been told to move: then it drives on.
+	if unit.order != SimUnit.Order.MOVE and _threat(unit) != null:
+		_stop(unit)
+		_start_deploy(unit, SimUnit.Job.GUARD)
+		return true
+	if unit.order != SimUnit.Order.HARVEST:
+		return false
 	match unit.job:
 		SimUnit.Job.NONE:
 			_next_trip(unit)
 		SimUnit.Job.TO_DEPOSIT:
 			return _go_to_deposit(unit)
-		SimUnit.Job.EXTRACT:
-			_extract(unit)
-			return true
 		SimUnit.Job.TO_REFINERY:
 			return _go_to_refinery(unit)
 		SimUnit.Job.UNLOAD:
 			return _unload(unit)
+		_:
+			unit.job = SimUnit.Job.NONE
 	return false
 
 
-## Decide where a harvester goes next: to a refinery when it is full or there
-## is nothing left to fetch, otherwise to a deposit. With an empty hold and no
+## One tick of a harvester in its robot shape.
+func _act_robot(unit: SimUnit) -> bool:
+	var trailer := get_trailer(unit.trailer_id)
+	if unit.leaving:
+		return _go_hitch(unit, trailer)
+	var threat := _threat(unit)
+	if threat != null:
+		if unit.job != SimUnit.Job.GUARD:
+			_stop(unit)
+			# Remember whether there is work to come back to.
+			unit.next_job = SimUnit.Job.TO_ROCK if unit.order == SimUnit.Order.HARVEST else SimUnit.Job.NONE
+			unit.job = SimUnit.Job.GUARD
+			unit.work_part = 0
+		unit.threat_tick = tick_count
+		return _guard(unit, trailer, threat)
+	if unit.job == SimUnit.Job.GUARD:
+		if tick_count - unit.threat_tick >= CALM_TICKS:
+			_resume(unit)
+		return true
+	if unit.order != SimUnit.Order.HARVEST:
+		unit.leaving = true                     # a robot with no work: be a truck again
+		unit.next_job = SimUnit.Job.NONE
+		return true
+	match unit.job:
+		SimUnit.Job.TO_ROCK:
+			return _go_to_rock(unit, trailer)
+		SimUnit.Job.EXTRACT:
+			_extract(unit)
+		SimUnit.Job.TO_TRAILER:
+			return _go_to_trailer(unit, trailer)
+		SimUnit.Job.LOAD:
+			_load(unit)
+		_:
+			unit.job = SimUnit.Job.TO_ROCK
+	return true
+
+
+## Decide where a truck goes next: to a refinery when it is full or there is
+## nothing left to fetch, otherwise to a deposit. With an empty trailer and no
 ## Orichalcum left anywhere, its work is done.
 func _next_trip(unit: SimUnit) -> void:
 	var deposit := _working_deposit(unit)
@@ -762,36 +856,104 @@ func _working_deposit(unit: SimUnit) -> Deposit:
 	return best
 
 
+## Drive to the deposit and park as near as possible to rock that still holds
+## Orichalcum. There the truck starts to unfold.
 func _go_to_deposit(unit: SimUnit) -> bool:
 	var deposit := _working_deposit(unit)
 	if deposit == null:
 		unit.job = SimUnit.Job.NONE             # it ran out on the way: decide again
 		_stop(unit)
 		return false
-	var rock := _deposit_cell_beside(unit.cell, deposit.id)
-	if rock != NO_CELL:
+	if unit.has_goal or tick_count - unit.retry_tick < RETRY_TICKS:
+		return false
+	var rock := _live_cell_beside(unit.cell, deposit)
+	var spot := unit.cell if rock != NO_CELL else nearest_free_cell(deposit.nearest_live_cell(unit.cell), region_at(unit.cell), {}, {unit.id: true})
+	if spot == NO_CELL:
+		unit.retry_tick = tick_count
+		return false
+	if spot != unit.cell:
+		_set_goal(unit, spot)
+		return false
+	if rock == NO_CELL:
+		rock = deposit.nearest_live_cell(unit.cell)
+	unit.job_cell = rock
+	unit.facing = facing_toward(rock - unit.cell)
+	_start_deploy(unit, SimUnit.Job.TO_ROCK)
+	return true
+
+
+## Walk to the place to dig from: beside the Orichalcum nearest to the trailer.
+func _go_to_rock(unit: SimUnit, trailer: SimTrailer) -> bool:
+	var deposit := deposits[unit.deposit_id - 1] if unit.deposit_id != 0 else null
+	if deposit == null or deposit.is_empty() or unit.cargo + unit.pack >= unit.type.cargo_capacity:
+		unit.job = SimUnit.Job.TO_TRAILER       # nothing more to dig here
+		return true
+	if unit.has_goal:
+		return false
+	if tick_count - unit.retry_tick < RETRY_TICKS:
+		return true
+	var spot := _dig_spot(unit, deposit, trailer)
+	if spot == NO_CELL:
+		unit.retry_tick = tick_count
+		return true
+	if unit.dug_here and _cells_apart(spot, trailer.cell) > REPARK_CELLS:
+		unit.leaving = true                     # too far to carry: move the trailer nearer
+		unit.next_job = SimUnit.Job.NONE
+		return true
+	if spot != unit.cell:
+		_set_goal(unit, spot)
+		return false
+	unit.job_cell = deposit.nearest_live_cell(unit.cell)
+	unit.facing = facing_toward(unit.job_cell - unit.cell)
+	unit.job = SimUnit.Job.EXTRACT
+	unit.work_part = 0
+	return true
+
+
+## Dig: fill the pack on the robot's back.
+func _extract(unit: SimUnit) -> void:
+	var type := unit.type
+	var deposit := deposits[unit.deposit_id - 1]
+	var room := mini(type.pack_capacity - unit.pack, type.cargo_capacity - unit.cargo - unit.pack)
+	var dug: Array[Vector2i] = []
+	var got := deposit.take(unit.cell, mini(_work_step(unit, type.harvest_rate), room), dug)
+	unit.pack += got
+	if got > 0:
+		unit.dug_here = true
+		unit.job_cell = dug[0]
+		unit.facing = facing_toward(dug[0] - unit.cell)
+	if got >= room or deposit.is_empty():
+		unit.job = SimUnit.Job.TO_TRAILER
+		unit.work_part = 0
+
+
+## Walk back to the trailer with a full pack.
+func _go_to_trailer(unit: SimUnit, trailer: SimTrailer) -> bool:
+	if _cells_apart(unit.cell, trailer.cell) == 1:
 		_stop(unit)
-		unit.job_cell = rock
-		unit.facing = facing_toward(rock - unit.cell)
-		unit.job = SimUnit.Job.DEPLOY
-		unit.job_ticks_left = unit.type.transform_ticks()
+		unit.facing = facing_toward(trailer.cell - unit.cell)
+		unit.job = SimUnit.Job.LOAD
 		unit.work_part = 0
 		return true
-	_drive_beside(unit, deposit.cells)
+	_walk_to_trailer(unit, trailer)
 	return false
 
 
-func _extract(unit: SimUnit) -> void:
-	var deposit := deposits[unit.deposit_id - 1]
-	var want := mini(_work_step(unit, unit.type.harvest_rate), unit.type.cargo_capacity - unit.cargo)
-	var dug: Array[Vector2i] = []
-	unit.cargo += deposit.take(unit.cell, want, dug)
-	if not dug.is_empty():
-		unit.job_cell = dug[0]
-		unit.facing = facing_toward(dug[0] - unit.cell)
-	if unit.cargo >= unit.type.cargo_capacity or deposit.is_empty():
-		unit.job = SimUnit.Job.PACK
-		unit.job_ticks_left = unit.type.transform_ticks()
+## Tip the pack into the trailer. Then dig on, or, with the trailer full or
+## the deposit empty, hitch up and leave.
+func _load(unit: SimUnit) -> void:
+	var moved := mini(_work_step(unit, unit.type.load_rate), unit.pack)
+	unit.pack -= moved
+	unit.cargo += moved
+	if unit.pack > 0:
+		return
+	var deposit := deposits[unit.deposit_id - 1] if unit.deposit_id != 0 else null
+	if deposit == null or deposit.is_empty() or unit.cargo >= unit.type.cargo_capacity:
+		unit.leaving = true
+		unit.next_job = SimUnit.Job.NONE
+	else:
+		unit.job = SimUnit.Job.TO_ROCK
+		unit.retry_tick = -1000
 
 
 func _go_to_refinery(unit: SimUnit) -> bool:
@@ -808,23 +970,29 @@ func _go_to_refinery(unit: SimUnit) -> bool:
 	return false
 
 
-## Hand cargo over to the refinery. What does not fit into the side's storage
-## is lost.
+## Hand cargo over to the refinery. When the side's storage is full the truck
+## waits there with what it still has.
 func _unload(unit: SimUnit) -> bool:
 	if get_building(unit.refinery_id) == null:
 		unit.job = SimUnit.Job.TO_REFINERY
 		return false
-	var moved := mini(_work_step(unit, unit.type.unload_rate), unit.cargo)
-	var room := maxi(0, storage_for(unit.team) - stored_for(unit.team))
-	var kept := mini(moved, room)
+	var room := storage_for(unit.team) - stored_for(unit.team)
+	if room <= 0:
+		unit.work_part = 0
+		return true                             # the store is full: wait
+	var moved := mini(mini(_work_step(unit, unit.type.unload_rate), unit.cargo), room)
 	unit.cargo -= moved
-	stored[unit.team] = stored_for(unit.team) + kept
-	if moved > kept:
-		lost[unit.team] = int(lost.get(unit.team, 0)) + moved - kept
+	stored[unit.team] = stored_for(unit.team) + moved
 	if unit.cargo == 0:
 		unit.unload_first = false
 		unit.job = SimUnit.Job.NONE             # next tick: back to the deposit
 	return true
+
+
+## Is a harvester standing at its refinery with a load that the full store
+## cannot take?
+func is_waiting_for_room(unit: SimUnit) -> bool:
+	return unit.job == SimUnit.Job.UNLOAD and unit.cargo > 0 and stored_for(unit.team) >= storage_for(unit.team)
 
 
 ## How much a harvester moves this tick at `rate` units of Orichalcum a second.
@@ -855,7 +1023,7 @@ func _refinery_for(unit: SimUnit) -> SimBuilding:
 
 
 ## Send a harvester that stands still to the nearest free cell beside some
-## cells (a deposit, or a building). If every such cell is taken it waits and
+## cells (a building, or a trailer). If every such cell is taken it waits and
 ## looks again a little later.
 func _drive_beside(unit: SimUnit, cells: Array[Vector2i]) -> void:
 	if unit.has_goal or tick_count - unit.retry_tick < RETRY_TICKS:
@@ -879,7 +1047,7 @@ func _spot_beside(unit: SimUnit, cells: Array[Vector2i]) -> Vector2i:
 			if not map.in_bounds(spot):
 				continue
 			var index := _index(spot)
-			if _region[index] != region or (_occupant[index] != 0 and _occupant[index] != unit.id):
+			if _region[index] != region or _taken(index, unit.id):
 				continue
 			var distance := (spot - unit.cell).length_squared()
 			if best == NO_CELL or distance < best_distance \
@@ -889,14 +1057,66 @@ func _spot_beside(unit: SimUnit, cells: Array[Vector2i]) -> Vector2i:
 	return best
 
 
-## A cell of a deposit that touches a cell, or NO_CELL. Cells that share a
-## side come before those that only touch at a corner.
-func _deposit_cell_beside(cell: Vector2i, deposit_id: int) -> Vector2i:
+## A cell of a deposit that touches a cell and still holds Orichalcum, or
+## NO_CELL. Cells that share a side come before those that touch at a corner.
+func _live_cell_beside(cell: Vector2i, deposit: Deposit) -> Vector2i:
 	for step in AROUND:
 		var near := cell + step
-		if map.in_bounds(near) and _deposit[_index(near)] == deposit_id:
+		if deposit.has_cell(near) and not deposit.is_spent(near):
 			return near
 	return NO_CELL
+
+
+## Where a robot digs from: the free cell beside the Orichalcum nearest to its
+## trailer, on the trailer's side. If rock that is spent lies between, the
+## nearest free cell to that Orichalcum. NO_CELL if there is none.
+func _dig_spot(unit: SimUnit, deposit: Deposit, trailer: SimTrailer) -> Vector2i:
+	var live := deposit.nearest_live_cell(trailer.cell)
+	if live == NO_CELL:
+		return NO_CELL
+	var best := NO_CELL
+	var best_distance := 0
+	var region := region_at(unit.cell)
+	for step in AROUND:
+		var spot := live + step
+		if not map.in_bounds(spot):
+			continue
+		var index := _index(spot)
+		if _region[index] != region or _taken(index, unit.id):
+			continue
+		var distance := (spot - trailer.cell).length_squared()
+		if (best == NO_CELL or distance < best_distance) and _can_walk_to(unit, spot):
+			best = spot
+			best_distance = distance
+	if best == NO_CELL:
+		best = nearest_free_cell(live, region, {}, {unit.id: true})
+		if best != NO_CELL and not _can_walk_to(unit, best):
+			best = unit.cell                    # walled in by trailers and units: dig from here
+	return best
+
+
+## Is there a way for a unit to a cell right now, around trailers and around
+## units that are staying put?
+func _can_walk_to(unit: SimUnit, cell: Vector2i) -> bool:
+	if cell == unit.cell:
+		return true
+	var blocked: Array[Vector2i] = []
+	for other in units:
+		if other != unit and not other.dead and other.is_settled():
+			blocked.append(other.cell)
+	for trailer in trailers:
+		blocked.append(trailer.cell)
+	for at in blocked:
+		_astar.set_point_solid(at, true)
+	var found := not _astar.get_id_path(unit.cell, cell).is_empty()
+	for at in blocked:
+		_astar.set_point_solid(at, false)
+	return found
+
+
+## How many steps apart two cells are (a diagonal step counts as one).
+static func _cells_apart(a: Vector2i, b: Vector2i) -> int:
+	return maxi(absi(a.x - b.x), absi(a.y - b.y))
 
 
 ## Group the ore-bearing cells of the map into deposits: cells that touch
@@ -925,6 +1145,281 @@ func _find_deposits() -> void:
 						stack.append(near)
 
 
+# --- truck, robot and trailer ------------------------------------------------------
+
+## The trailer with this id (one that stands on its own), or null.
+func get_trailer(id: int) -> SimTrailer:
+	return _trailers_by_id.get(id)
+
+
+## The trailer standing on a cell, or null.
+func trailer_at(cell: Vector2i) -> SimTrailer:
+	if not map.in_bounds(cell):
+		return null
+	var id := _trailer_cell[_index(cell)]
+	return null if id == 0 else _trailers_by_id[id]
+
+
+## Orichalcum in a trailer that stands on its own.
+func trailer_cargo(trailer: SimTrailer) -> int:
+	var owner := get_unit(trailer.owner_id)
+	return owner.cargo if owner != null else trailer.cargo
+
+
+## Can a team see a trailer? Its own always, others on ground it has explored.
+func is_trailer_visible_to(trailer: SimTrailer, team: int) -> bool:
+	return trailer.team == team or shroud_for(team).is_explored(trailer.cell)
+
+
+## Orichalcum a team has taken out of other sides' orphaned trailers.
+func stolen_for(team: int) -> int:
+	return int(stolen.get(team, 0))
+
+
+## Begin to change a truck into a robot. `then` is what the robot does next.
+func _start_deploy(unit: SimUnit, then: SimUnit.Job) -> void:
+	unit.job = SimUnit.Job.DEPLOY
+	unit.job_ticks_left = unit.type.transform_ticks()
+	unit.next_job = then
+	unit.work_part = 0
+
+
+## A change of shape has run its time. Returns true if the unit is a truck
+## that may act in this tick, false if it is (still) busy.
+func _change_shape(unit: SimUnit) -> bool:
+	if unit.job == SimUnit.Job.DEPLOY:
+		if not _unhitch(unit):
+			unit.job_ticks_left = 1             # no room to step off: try again next tick
+			return false
+		unit.job = unit.next_job
+		unit.next_job = SimUnit.Job.NONE
+		unit.threat_tick = tick_count
+		return false
+	unit.job = unit.next_job
+	unit.next_job = SimUnit.Job.NONE
+	unit.leaving = false
+	unit.facing = unit.park_facing
+	if unit.has_held_goal:
+		unit.has_held_goal = false
+		_set_goal(unit, unit.held_goal)
+	return true
+
+
+## The robot steps off: the trailer stays on the truck's cell and the robot
+## takes a free cell next to it, towards its work. Returns false if every
+## cell around is taken.
+func _unhitch(unit: SimUnit) -> bool:
+	var toward := unit.job_cell
+	if unit.next_job == SimUnit.Job.GUARD:
+		var threat := _threat(unit)
+		toward = threat.cell if threat != null else unit.cell
+	var best := NO_CELL
+	var best_score := 0
+	var region := region_at(unit.cell)
+	for i in AROUND.size():
+		var spot := unit.cell + AROUND[i]
+		if not map.in_bounds(spot) or _region[_index(spot)] != region or _taken(_index(spot)):
+			continue
+		# Cells that share a side come first; among those, the one nearest to the work.
+		var score := (spot - toward).length_squared() + (0 if i < 4 else 10000)
+		if best == NO_CELL or score < best_score:
+			best = spot
+			best_score = score
+	if best == NO_CELL:
+		return false
+	var trailer := SimTrailer.new()
+	trailer.id = _next_id
+	_next_id += 1
+	trailer.team = unit.team
+	trailer.type = unit.type
+	trailer.cell = unit.cell
+	trailer.facing = unit.facing
+	trailer.owner_id = unit.id
+	_add_trailer(trailer)
+	unit.trailer_id = trailer.id
+	unit.dug_here = false
+	_begin_step(unit, best)
+	return true
+
+
+func _add_trailer(trailer: SimTrailer) -> void:
+	trailers.append(trailer)
+	_trailers_by_id[trailer.id] = trailer
+	_trailer_cell[_index(trailer.cell)] = trailer.id
+
+
+func _remove_trailer(trailer: SimTrailer) -> void:
+	trailers.erase(trailer)
+	_trailers_by_id.erase(trailer.id)
+	if _trailer_cell[_index(trailer.cell)] == trailer.id:
+		_trailer_cell[_index(trailer.cell)] = 0
+
+
+## A robot that is leaving: walk up to the trailer, step onto it and fold up.
+func _go_hitch(unit: SimUnit, trailer: SimTrailer) -> bool:
+	if _cells_apart(unit.cell, trailer.cell) != 1:
+		_walk_to_trailer(unit, trailer)
+		return false
+	_stop(unit)
+	# What is in the pack goes into the trailer with it.
+	unit.cargo += unit.pack
+	unit.pack = 0
+	unit.park_facing = trailer.facing
+	_remove_trailer(trailer)
+	_begin_step(unit, trailer.cell)             # at the robot's pace: it still has its trailer_id
+	unit.trailer_id = 0
+	unit.job = SimUnit.Job.PACK
+	unit.job_ticks_left = unit.type.transform_ticks()
+	unit.work_part = 0
+	return true
+
+
+## Send a robot to the nearest free cell beside its trailer.
+func _walk_to_trailer(unit: SimUnit, trailer: SimTrailer) -> void:
+	if unit.has_goal and _cells_apart(unit.goal, trailer.cell) == 1:
+		return
+	_drive_beside(unit, [trailer.cell] as Array[Vector2i])
+
+
+## The enemy a harvester has to deal with, or null. A robot minds any enemy
+## fighter that comes near its trailer or itself; a truck only once it has
+## been hit. Other sides' harvesters are no threat: they never attack.
+func _threat(unit: SimUnit) -> SimUnit:
+	var robot := unit.trailer_id != 0
+	var hurt := tick_count - unit.last_hurt_tick <= PROVOKED_TICKS
+	if not robot and not hurt:
+		return null
+	var around := get_trailer(unit.trailer_id).cell if robot else unit.cell
+	var best := nearest_fighter(around, unit.team, unit.type.acquire_range)
+	if best == null and robot:
+		best = nearest_fighter(unit.cell, unit.team, unit.type.acquire_range)
+	if best == null and hurt:
+		var attacker := get_unit(unit.provoked_by)
+		# The one that hit it, unless it has been left well behind.
+		if attacker != null and attacker.team != unit.team \
+				and in_range(around, attacker.cell, unit.type.acquire_range + LEASH_EXTRA):
+			best = attacker
+	return best
+
+
+## The nearest unit of another team that can fight, within `reach` cells of a
+## cell, or null. Harvesters do not count.
+func nearest_fighter(cell: Vector2i, team: int, reach: int) -> SimUnit:
+	var best: SimUnit = null
+	var best_distance := 0
+	for other in units:
+		if other.team == team or other.dead or other.type.is_harvester() or other.type.attack_damage <= 0:
+			continue
+		if not in_range(cell, other.cell, reach):
+			continue
+		var distance := (other.cell - cell).length_squared()
+		if best == null or distance < best_distance:
+			best = other
+			best_distance = distance
+	return best
+
+
+## Stand guard: stay on a cell beside the trailer, on the side the enemy is
+## on, and hit whatever comes within reach.
+func _guard(unit: SimUnit, trailer: SimTrailer, threat: SimUnit) -> bool:
+	if _cells_apart(unit.cell, trailer.cell) == 1:
+		# It keeps hitting the enemy it has started on for as long as that one is within reach.
+		var foe := get_unit(unit.target_id)
+		if foe == null or foe.team == unit.team or not in_range(unit.cell, foe.cell, unit.type.attack_range):
+			foe = nearest_fighter(unit.cell, unit.team, unit.type.attack_range)
+		unit.target_id = foe.id if foe != null else 0
+		if foe != null:
+			_stop(unit)
+			unit.facing = facing_toward(foe.cell - unit.cell)
+			if unit.attack_ticks_left == 0 and unit.type.attack_damage > 0:
+				_strike(unit, foe)
+			return true
+	var best := NO_CELL
+	var best_distance := 0
+	var region := region_at(unit.cell)
+	for step in AROUND:
+		var spot := trailer.cell + step
+		if not map.in_bounds(spot) or _region[_index(spot)] != region or _taken(_index(spot), unit.id):
+			continue
+		var distance := (spot - threat.cell).length_squared() * 100 + (spot - unit.cell).length_squared()
+		if best == NO_CELL or distance < best_distance:
+			best = spot
+			best_distance = distance
+	if best == NO_CELL or best == unit.cell:
+		_stop(unit)
+		unit.facing = facing_toward(threat.cell - unit.cell)
+		return true
+	if not unit.has_goal or unit.goal != best:
+		_set_goal(unit, best)
+	return false
+
+
+## The enemy is gone: back to digging if there is digging left here,
+## otherwise hitch up and carry on as a truck.
+func _resume(unit: SimUnit) -> void:
+	unit.work_part = 0
+	var deposit := deposits[unit.deposit_id - 1] if unit.deposit_id != 0 else null
+	var work := unit.next_job == SimUnit.Job.TO_ROCK and unit.order == SimUnit.Order.HARVEST and not unit.unload_first
+	unit.next_job = SimUnit.Job.NONE
+	if work and deposit != null and not deposit.is_empty() and unit.cargo + unit.pack < unit.type.cargo_capacity:
+		unit.job = SimUnit.Job.TO_TRAILER if unit.pack > 0 else SimUnit.Job.TO_ROCK
+		unit.retry_tick = -1000
+	else:
+		unit.leaving = true
+
+
+## A harvester has been destroyed. Its trailer is left behind as an orphan if
+## there is Orichalcum in it, and is gone if there is none. What the robot
+## had in its pack is lost.
+func _orphan_trailer(unit: SimUnit) -> void:
+	var trailer := get_trailer(unit.trailer_id)
+	unit.trailer_id = 0
+	if trailer == null:
+		if unit.cargo <= 0:
+			return
+		trailer = SimTrailer.new()              # it died as a truck: the trailer stays where it stood
+		trailer.id = _next_id
+		_next_id += 1
+		trailer.team = unit.team
+		trailer.type = unit.type
+		trailer.cell = unit.cell
+		trailer.facing = unit.facing
+		_add_trailer(trailer)
+	trailer.owner_id = 0
+	trailer.cargo = unit.cargo
+	if trailer.cargo <= 0:
+		_remove_trailer(trailer)
+
+
+## Units standing next to an orphaned trailer of another side take its
+## Orichalcum: all of it if their side has no storage, otherwise as much as
+## fits into their store. An empty orphan is gone.
+func _take_orphans() -> void:
+	for trailer: SimTrailer in trailers.duplicate():
+		if not trailer.is_orphan():
+			continue
+		for unit in units:
+			if unit.dead or unit.team == trailer.team or unit.is_moving() or _cells_apart(unit.cell, trailer.cell) != 1:
+				continue
+			var take := trailer.cargo
+			var storage := storage_for(unit.team)
+			if storage > 0:
+				take = mini(take, storage - stored_for(unit.team))
+			if take <= 0:
+				continue
+			trailer.cargo -= take
+			if storage > 0:
+				stored[unit.team] = stored_for(unit.team) + take
+			stolen[unit.team] = stolen_for(unit.team) + take
+			effects.append({
+				"kind": &"steal", "tick": tick_count, "team": unit.team,
+				"from": Vector2(trailer.cell), "to": unit.visual_cell(),
+			})
+			if trailer.cargo <= 0:
+				_remove_trailer(trailer)
+				break
+
+
 # --- movement --------------------------------------------------------------------
 
 func _set_goal(unit: SimUnit, cell: Vector2i) -> void:
@@ -941,7 +1436,7 @@ func _try_step(unit: SimUnit) -> void:
 		return
 	# Someone has settled on the goal: aim for the nearest free cell instead.
 	var at_goal := unit_at(unit.goal)
-	if at_goal != null and at_goal != unit and at_goal.is_settled():
+	if _trailer_cell[_index(unit.goal)] != 0 or (at_goal != null and at_goal != unit and at_goal.is_settled()):
 		var other_goal := nearest_free_cell(unit.goal, region_at(unit.cell), {}, {unit.id: true})
 		if other_goal == NO_CELL or other_goal == unit.cell:
 			_stop(unit)
@@ -959,7 +1454,10 @@ func _try_step(unit: SimUnit) -> void:
 		unit.path.clear()                   # the path no longer starts next to us; plan again
 		return
 	var other := unit_at(next)
-	if other == null:
+	if _trailer_cell[_index(next)] != 0:
+		unit.path.clear()                   # a trailer has been parked there: plan again
+		_blocked(unit, 0)
+	elif other == null:
 		_begin_step(unit, next)
 	elif _wants_to_swap(other, unit):
 		# Two units of one team walking into each other simply change places.
@@ -990,7 +1488,8 @@ func _begin_step(unit: SimUnit, next: Vector2i) -> void:
 	unit.from_cell = unit.cell
 	unit.cell = next
 	unit.facing = facing_for(step)
-	unit.move_ticks_total = unit.type.ticks_per_cell(step.x != 0 and step.y != 0)
+	var diagonal := step.x != 0 and step.y != 0
+	unit.move_ticks_total = unit.type.robot_ticks_per_cell(diagonal) if unit.trailer_id != 0 else unit.type.ticks_per_cell(diagonal)
 	unit.move_ticks_left = unit.move_ticks_total
 	if not unit.path.is_empty() and unit.path[0] == next:
 		unit.path.remove_at(0)
@@ -1015,7 +1514,7 @@ func _stop(unit: SimUnit) -> void:
 
 
 ## Plan a path to the unit's goal around terrain and around units that are
-## staying put (and, if asked, around every other unit). If the goal cannot be
+## staying put (and, if asked, around every other unit) and around trailers. If the goal cannot be
 ## reached the path leads as close to it as possible.
 func _find_path(unit: SimUnit, around_everyone: bool) -> void:
 	var blocked: Array[Vector2i] = []
@@ -1023,6 +1522,9 @@ func _find_path(unit: SimUnit, around_everyone: bool) -> void:
 		if other != unit and not other.dead and (around_everyone or other.is_settled()):
 			blocked.append(other.cell)
 			_astar.set_point_solid(other.cell, true)
+	for trailer in trailers:
+		blocked.append(trailer.cell)
+		_astar.set_point_solid(trailer.cell, true)
 	var cells := _astar.get_id_path(unit.cell, unit.goal, true)
 	for cell in blocked:
 		_astar.set_point_solid(cell, false)

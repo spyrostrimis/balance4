@@ -30,21 +30,32 @@ extends Resource
 @export var ability: Ability
 
 @export_group("Harvester")
-## How much Orichalcum it carries. 0 means the unit is not a harvester.
+## How much Orichalcum its trailer carries. 0 means the unit is not a harvester.
 @export var cargo_capacity := 0
-## Orichalcum it extracts from a deposit per second.
+## How much the robot carries on its back from the rock to the trailer.
+@export var pack_capacity := 0
+## Orichalcum the robot digs out of a deposit per second.
 @export var harvest_rate := 0
-## Orichalcum it hands over to a refinery per second.
+## Orichalcum the robot tips from its pack into the trailer per second.
+@export var load_rate := 0
+## Orichalcum the truck hands over to a refinery per second.
 @export var unload_rate := 0
 ## How long it takes to change from truck to robot, and back, in seconds.
 @export var transform_seconds := 1.0
+## Movement speed of the robot in cells per second. (`speed` is the truck's.)
+@export var robot_speed := 2.0
+## How much of every hit the robot's armour stops, in percent. The truck has none.
+@export_range(0, 95) var robot_armor := 0
 
 @export_group("Looks")
 ## Sprite sheet from tools/make_units.py: 8 columns (facing: 0 south, 2 west,
 ## 4 north, 6 east). Troops have 3 rows (standing, then the two halves of a
-## step). Harvesters have 4: truck, halfway between truck and robot, and the
-## two halves of the robot's swing.
+## step). Harvesters have 6: empty truck, loaded truck, halfway between truck
+## and robot, the two halves of the robot's swing, and the robot standing.
 @export var sprites: Texture2D
+## Harvesters: the trailer on its own, 8 facings by 2 rows (empty, loaded),
+## sprites of the same size and with the same anchor as the harvester's.
+@export var trailer_sprites: Texture2D
 ## Size of one sprite in the sheet, in pixels.
 @export var sprite_size := Vector2i(24, 24)
 ## Colour of the unit's dot on the minimap.
@@ -56,6 +67,12 @@ extends Resource
 ## How many simulation ticks it takes to cross one cell, straight or diagonally.
 func ticks_per_cell(diagonal: bool) -> int:
 	var straight := maxi(1, roundi(SimWorld.TICKS_PER_SECOND / maxf(speed, 0.01)))
+	return roundi(straight * 1.41421356) if diagonal else straight
+
+
+## The same for a harvester in its robot shape.
+func robot_ticks_per_cell(diagonal: bool) -> int:
+	var straight := maxi(1, roundi(SimWorld.TICKS_PER_SECOND / maxf(robot_speed, 0.01)))
 	return roundi(straight * 1.41421356) if diagonal else straight
 
 

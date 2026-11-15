@@ -8,7 +8,8 @@ extends Node2D
 ## Controls: left click selects a unit, dragging selects every unit in the box
 ## (hold Shift to add to the selection). Right click sends the selected units
 ## to that spot, or at the enemy under the mouse; harvesters right-clicked onto
-## the Orichalcum rock start harvesting, and onto their refinery unload. A then left click is
+## the Orichalcum rock start harvesting, and onto their refinery unload; units sent to a trailer
+## whose harvester is destroyed take the Orichalcum in it. A then left click is
 ## attack-move; S stops; Q then left click on one of your units uses the
 ## commander's ability on it. Ctrl+1..9 stores the selection as a group, 1..9
 ## selects the group again and pressing the number twice jumps the camera to it.
@@ -585,29 +586,52 @@ func selection_center() -> Vector2:
 # --- sidebar text --------------------------------------------------------------------
 
 ## What the sidebar says about one unit.
-static func describe_unit(unit: SimUnit) -> String:
+static func describe_unit(unit: SimUnit, p_world: SimWorld = null) -> String:
 	var type := unit.type
 	var text := "%s\n%s\nHealth %d / %d" % [type.display_name, type.role, unit.health, type.max_health]
-	if type.attack_damage > 0:
+	if type.is_harvester():
+		text += "\nRobot: attack %d, armour %d%%" % [type.attack_damage, type.robot_armor]
+	elif type.attack_damage > 0:
 		text += "\nAttack %d   Range %d" % [type.attack_damage, type.attack_range]
 	if type.ability != null:
 		var wait := ceili(unit.ability_ticks_left * SimWorld.TICK_SECONDS)
 		text += "\n%s: %s" % [type.ability.display_name, "ready" if wait == 0 else "%d s" % wait]
 	if type.is_harvester():
-		text += "\nCargo %d / %d\n%s" % [unit.cargo, type.cargo_capacity, job_text(unit)]
+		text += "\nCargo %d / %d" % [unit.cargo, type.cargo_capacity]
+		if unit.trailer_id != 0:
+			text += "   Pack %d / %d" % [unit.pack, type.pack_capacity]
+		text += "\n" + job_text(unit, p_world)
 	return text
 
 
-## What a harvester is doing, in words.
-static func job_text(unit: SimUnit) -> String:
+## What a harvester is doing, in words. With the world given it can tell a
+## harvester that is unloading from one that waits at a full store.
+static func job_text(unit: SimUnit, p_world: SimWorld = null) -> String:
+	if unit.leaving:
+		return "Going back to its trailer"
 	match unit.job:
 		SimUnit.Job.TO_DEPOSIT: return "Driving to the rock"
 		SimUnit.Job.DEPLOY: return "Unfolding"
+		SimUnit.Job.TO_ROCK: return "Walking to the rock"
 		SimUnit.Job.EXTRACT: return "Digging"
+		SimUnit.Job.TO_TRAILER: return "Carrying its pack to the trailer"
+		SimUnit.Job.LOAD: return "Filling the trailer"
 		SimUnit.Job.PACK: return "Folding up"
 		SimUnit.Job.TO_REFINERY: return "Taking its load to the refinery" if unit.refinery_id != 0 else "No refinery to unload at"
-		SimUnit.Job.UNLOAD: return "Unloading"
+		SimUnit.Job.UNLOAD:
+			return "Waiting: the store is full" if p_world != null and p_world.is_waiting_for_room(unit) else "Unloading"
+		SimUnit.Job.GUARD: return "Guarding its trailer"
 	return "Waiting for orders" if unit.order == SimUnit.Order.NONE else "On its way"
+
+
+## What the sidebar says about a trailer standing on its own.
+static func describe_trailer(p_world: SimWorld, trailer: SimTrailer) -> String:
+	var text := "Trailer\n%s\nCargo %d / %d" % [trailer.type.role, p_world.trailer_cargo(trailer), trailer.type.cargo_capacity]
+	if not trailer.is_orphan():
+		return text + "\nCannot be attacked"
+	if trailer.team == SimWorld.PLAYER_TEAM:
+		return text + "\nIts harvester is destroyed.\nAn enemy that reaches it\ntakes the Orichalcum."
+	return text + "\nIts harvester is destroyed.\nSend a unit up to it to\ntake the Orichalcum."
 
 
 ## What the sidebar says about a building.
@@ -626,6 +650,9 @@ static func describe_spot(p_world: SimWorld, cell: Vector2i) -> String:
 	var building := p_world.building_at(cell)
 	if building != null:
 		return describe_building(p_world, building)
+	var trailer := p_world.trailer_at(cell)
+	if trailer != null:
+		return describe_trailer(p_world, trailer)
 	var text := describe_cell(p_world.map, cell)
 	var deposit := p_world.deposit_at(cell)
 	if deposit != null:
@@ -639,7 +666,7 @@ static func describe_selection(p_world: SimWorld, p_selection: Selection) -> Str
 		return ""
 	if p_selection.ids.size() == 1:
 		var unit := p_world.get_unit(p_selection.ids[0])
-		return describe_unit(unit) if unit != null else ""
+		return describe_unit(unit, p_world) if unit != null else ""
 	var names := {}
 	for id in p_selection.ids:
 		var unit := p_world.get_unit(id)
@@ -670,7 +697,7 @@ func _update_info(mouse: Vector2) -> void:
 		var cell := MapData.cell_at_pixel(point)
 		var enemy := UnitsView.enemy_at_point(world, point, SimWorld.PLAYER_TEAM, units_view.alpha)
 		if enemy != null:
-			text = describe_unit(enemy)
+			text = describe_unit(enemy, world)
 		elif world.shroud_for(SimWorld.PLAYER_TEAM).is_explored(cell):
 			text = describe_spot(world, cell)
 		elif map.in_bounds(cell):

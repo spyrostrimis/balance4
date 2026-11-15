@@ -1,8 +1,8 @@
 class_name UnitsView
 extends Node2D
 ## Draws the units of a SimWorld: sprites, selection rings, health bars, the
-## marks left by hits, heals and deaths, harvesters at work, and the markers
-## that show where an order was given. Also answers "which unit is under
+## marks left by hits, heals and deaths, harvesters at work, the trailers
+## they leave standing, and the markers that show where an order was given. Also answers "which unit is under
 ## this point" and "which units are in this box".
 
 const CELL := MapData.CELL_SIZE
@@ -26,6 +26,15 @@ const ORE := Color(0.98, 0.77, 0.32)
 const ORE_DARK := Color(0.66, 0.4, 0.1)
 ## How many ticks each half of a harvester's swing is shown.
 const DIG_TICKS := 5
+## For how many ticks after a blow a guarding robot is shown swinging.
+const SWING_TICKS := 10
+## How far in front of the middle of the truck its cab is, in pixels: where
+## the robot is drawn while it changes shape on top of its trailer.
+const CAB_AHEAD := 10.0
+## How far above a robot's feet its health bar is drawn, in pixels.
+const ROBOT_BAR := 19.0
+## How long the mark of a trailer being emptied by another side stays, in ticks.
+const STEAL_TICKS := 16
 const MARKER_SECONDS := 0.45
 ## How many ticks each walking pose is shown.
 const STEP_TICKS := 4
@@ -112,17 +121,38 @@ static func units_in_rect(p_world: SimWorld, rect: Rect2, team: int, p_alpha := 
 ## Which sprite of the sheet shows a unit right now: (facing column, pose row).
 static func sprite_frame(unit: SimUnit, tick: int) -> Vector2i:
 	if unit.type.is_harvester():
-		match unit.job:
-			SimUnit.Job.DEPLOY, SimUnit.Job.PACK:
-				return Vector2i(unit.facing, 2)
-			SimUnit.Job.EXTRACT:
+		if unit.job == SimUnit.Job.DEPLOY:
+			return Vector2i(unit.facing, 2)
+		if unit.job == SimUnit.Job.PACK:
+			return Vector2i(unit.park_facing, 2)
+		if unit.trailer_id != 0:
+			# A robot: swinging at the rock or at an enemy, otherwise standing.
+			var fighting := unit.job == SimUnit.Job.GUARD and tick - unit.last_attack_tick < SWING_TICKS
+			if unit.job == SimUnit.Job.EXTRACT or fighting:
 				return Vector2i(unit.facing, 3 + ((tick + unit.id * 3) / DIG_TICKS) % 2)
-		# A truck: empty, or loaded once its hold is at least half full.
+			return Vector2i(unit.facing, 5)
+		# A truck: empty, or loaded once its trailer is at least half full.
 		return Vector2i(unit.facing, 1 if unit.cargo * 2 >= unit.type.cargo_capacity else 0)
 	var pose := 0
 	if unit.is_moving():
 		pose = 1 + ((tick + unit.id * 3) / STEP_TICKS) % 2
 	return Vector2i(unit.facing, pose)
+
+
+## Which sprite of the trailer sheet shows a trailer: (facing column, row:
+## 0 empty, 1 loaded once it is at least half full).
+static func trailer_frame(p_world: SimWorld, trailer: SimTrailer) -> Vector2i:
+	return Vector2i(trailer.facing, 1 if p_world.trailer_cargo(trailer) * 2 >= trailer.type.cargo_capacity else 0)
+
+
+## Where the middle of a trailer is on the map, in pixels.
+static func trailer_position(trailer: SimTrailer) -> Vector2:
+	return Vector2(trailer.cell * CELL) + FEET
+
+
+## How far the cab of a truck facing this way is from the truck's middle, in pixels.
+static func cab_offset(facing: int) -> Vector2:
+	return (FACING_STEP[facing].normalized() * CAB_AHEAD * Vector2(1.0, 0.9)).round()
 
 
 ## Should a unit's health bar be drawn? Always when selected, otherwise only when it is hurt.
@@ -173,6 +203,9 @@ func _draw() -> void:
 	for effect in world.effects:
 		if effect["kind"] == &"death":
 			_draw_death(effect)
+	for trailer in world.trailers:
+		if world.is_trailer_visible_to(trailer, viewer_team):
+			_draw_trailer(trailer)
 	var visible_units: Array[SimUnit] = []
 	for unit in world.units:
 		if not unit.dead and world.is_visible_to(unit, viewer_team):
@@ -191,21 +224,39 @@ func _draw() -> void:
 		var frame := sprite_frame(unit, world.tick_count)
 		var source := Rect2(Vector2(frame * type.sprite_size), Vector2(type.sprite_size))
 		var at := feet - Vector2(type.sprite_anchor)
+		if type.is_harvester() and unit.trailer_id == 0 and unit.is_robot():
+			# Changing shape on top of the trailer: the trailer stays put and the cab rises in front of it.
+			var hitch := Vector2(unit.cell * CELL) + FEET
+			var trailer_source := Rect2(Vector2(Vector2i(frame.x, 1 if unit.cargo * 2 >= type.cargo_capacity else 0) * type.sprite_size),
+					Vector2(type.sprite_size))
+			draw_texture_rect_region(type.trailer_sprites, Rect2(hitch - Vector2(type.sprite_anchor), Vector2(type.sprite_size)), trailer_source)
+			at += cab_offset(frame.x)
 		if world.tick_count - unit.last_attack_tick < LUNGE_TICKS:
 			at += FACING_STEP[unit.facing] * 2.0        # lean into the blow
 		var tint := HURT_TINT if world.tick_count - unit.last_hurt_tick < HURT_TICKS else Color.WHITE
 		draw_texture_rect_region(type.sprites, Rect2(at, Vector2(type.sprite_size)), source, tint)
 		if type.is_hero:
 			_draw_hero_mark(feet + Vector2(0, -23))
-		var bar := feet + Vector2(-7, -type.sprite_anchor.y - 1)
+		# The robot is shorter than the truck its sprite sheet is sized for.
+		var bar := feet + Vector2(-7, -type.sprite_anchor.y - 1 if unit.trailer_id == 0 else -ROBOT_BAR)
 		if shows_health(unit, chosen):
 			_draw_health(bar, float(unit.health) / type.max_health)
 		if type.is_harvester():
-			if chosen or unit.cargo > 0:
+			# Truck and trailer share one cargo bar: it is on the truck while they are hitched.
+			var trailer := world.get_trailer(unit.trailer_id)
+			if trailer != null:
+				var middle := trailer_position(trailer)
+				if chosen:
+					_draw_ring(middle, Vector2(type.sprite_size.x, type.sprite_size.x) * Vector2(0.25, 0.125), Color(RING, 0.45))
+				if chosen or unit.cargo > 0:
+					_draw_bar(middle + Vector2(-7, -type.sprite_anchor.y + 3), float(unit.cargo) / type.cargo_capacity, ORE)
+			elif chosen or unit.cargo > 0:
 				_draw_bar(bar + Vector2(0, 4), float(unit.cargo) / type.cargo_capacity, ORE)
 			if unit.job == SimUnit.Job.EXTRACT:
 				_draw_digging(unit, feet)
-			elif unit.job == SimUnit.Job.UNLOAD:
+			elif unit.job == SimUnit.Job.LOAD and trailer != null:
+				_draw_ore_stream(feet + Vector2(0, -6), trailer_position(trailer) + Vector2(0, -4))
+			elif unit.job == SimUnit.Job.UNLOAD and not world.is_waiting_for_room(unit):
 				_draw_unloading(unit, feet)
 	var shroud := world.shroud_for(viewer_team)
 	for effect in world.effects:
@@ -215,6 +266,7 @@ func _draw() -> void:
 		match effect["kind"]:
 			&"hit": _draw_hit(effect)
 			&"heal": _draw_heal(effect)
+			&"steal": _draw_steal(effect)
 
 
 ## Age of an effect in ticks, counting the part of a tick that has passed.
@@ -291,6 +343,42 @@ func _draw_bar(top_left: Vector2, share: float, color: Color) -> void:
 	var width := roundf(14.0 * clampf(share, 0.0, 1.0))
 	if width > 0.0:
 		draw_rect(Rect2(top_left, Vector2(width, 2)), color)
+
+
+## A trailer standing on its own. An orphan (its harvester is destroyed)
+## shows its cargo bar and a slow gold ring: it is there to be taken.
+func _draw_trailer(trailer: SimTrailer) -> void:
+	var type := trailer.type
+	var middle := trailer_position(trailer)
+	var frame := trailer_frame(world, trailer)
+	draw_texture_rect_region(type.trailer_sprites, Rect2(middle - Vector2(type.sprite_anchor), Vector2(type.sprite_size)),
+			Rect2(Vector2(frame * type.sprite_size), Vector2(type.sprite_size)))
+	if trailer.is_orphan():
+		var beat := fmod((world.tick_count + alpha) / 30.0, 1.0)
+		_draw_ring(middle, Vector2(11, 5.5) + Vector2(6, 3) * beat, Color(ORE, 0.9 * (1.0 - beat)))
+		_draw_bar(middle + Vector2(-7, -type.sprite_anchor.y + 3), float(trailer.cargo) / type.cargo_capacity, ORE)
+
+
+## Orichalcum leaving an orphaned trailer for the unit that takes it.
+func _draw_steal(effect: Dictionary) -> void:
+	var age := _age(effect)
+	if age >= STEAL_TICKS:
+		return
+	var from := ((effect["from"] as Vector2) * CELL + FEET).round()
+	var to := _body_at(effect["to"])
+	var fade := 1.0 - age / STEAL_TICKS
+	_draw_ring(from, Vector2(14, 7) * fade + Vector2(2, 1), Color(ORE, fade))
+	for i in 4:
+		var t := clampf(age / STEAL_TICKS + i * 0.12, 0.0, 1.0)
+		draw_rect(Rect2((from.lerp(to, t) + Vector2(0, -6.0 * sin(t * PI))).round() - Vector2.ONE, Vector2(2, 2)), Color(ORE, fade))
+
+
+## Ore on its way from one point to another: a robot tipping its pack into its trailer.
+func _draw_ore_stream(from: Vector2, to: Vector2) -> void:
+	for i in 3:
+		var t := fmod((world.tick_count + alpha) / 8.0 + i / 3.0, 1.0)
+		var at := from.lerp(to, t) + Vector2(0, -5.0 * sin(t * PI))
+		draw_rect(Rect2(at.round() - Vector2.ONE, Vector2(2, 2)), Color(ORE if i % 2 == 0 else ORE_DARK, 1.0 - t * 0.4))
 
 
 ## Chips of ore flying off the rock in front of a harvester that is digging.

@@ -110,9 +110,14 @@ Done means:
 What was built is described in [economy.md](economy.md). The playable result
 is a practice mission, the "Harvest trial": a refinery, two harvesters and no
 opponent, on either map. Mission 1 is unchanged. M4 also brought the first
-building (the refinery, put on the map by the mission) and two provisional
-rules: Orichalcum delivered to a full store is lost, and mined-out rock stays
-impassable. Left for later milestones: spending Orichalcum, and placing and
+building (the refinery, put on the map by the mission). A harvester waits at
+a full store with its load; mined-out rock stays impassable (provisional).
+
+After M4 was first played the harvester became a truck in two parts: the cab
+is the robot, and the trailer stays where the truck stopped and is filled by
+the robot. The robot guards its trailer against enemies, and the trailer of a
+destroyed harvester can be taken by the enemy. A second practice mission, the
+"Raid trial", shows this: the same base, three soldiers and three raiders. Left for later milestones: spending Orichalcum, and placing and
 destroying buildings (M5); an opponent that harvests (M6).
 
 ## M5 Base building and production

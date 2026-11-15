@@ -20,6 +20,8 @@ extends Resource
 ## out by giving no type). The player starts at
 ## the map's first start position, the enemy at the second.
 @export var troop_count := 4
+## How many troops the enemy gets, if not the same number: -1 means `troop_count`.
+@export var enemy_troop_count := -1
 @export var player_troop: UnitType
 @export var player_commander: UnitType
 @export var enemy_troop: UnitType
@@ -35,8 +37,9 @@ extends Resource
 @export var harvester_count := 0
 
 @export_group("Rules")
-## A practice mission has no opponent and no way to win or lose. The player
-## leaves it with Esc.
+## A practice mission has no way to win or lose. The player leaves it with
+## Esc. If it has enemy troops they are raiders: after `enemy_delay_seconds`
+## they go for the player's harvesters (see Raiders).
 @export var practice := false
 ## Radius of the control area around the map's control point, in cells.
 @export var control_radius := 5.0
@@ -49,3 +52,13 @@ extends Resource
 @export var enemy_wave_seconds := 8.0
 ## One line for the HUD saying what to do.
 @export var objective := ""
+
+
+## How many troops the enemy starts with.
+func enemy_troops() -> int:
+	return troop_count if enemy_troop_count < 0 else enemy_troop_count
+
+
+## Is this a practice mission in which raiders come for the harvesters?
+func has_raid() -> bool:
+	return practice and enemy_troop != null and enemy_troops() > 0

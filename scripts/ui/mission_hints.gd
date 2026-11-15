@@ -5,8 +5,9 @@ extends RefCounted
 ##
 ## Mission 1 teaches, in this order: selecting, moving, attacking, the
 ## commander's ability, and finally the control point. A practice mission (the
-## harvest trial) teaches selecting a harvester and sending it to the rock,
-## and then explains what the harvesters do on their own.
+## harvest trial, the raid trial) teaches selecting a harvester and sending it
+## to the rock, and then explains what the harvesters do on their own and, if
+## raiders are coming, what to do about them.
 
 const STEPS: Array[StringName] = [&"select", &"move", &"attack", &"ability"]
 ## The step shown once the others are done.
@@ -68,4 +69,6 @@ func _practice_text(def: MissionDef) -> String:
 		&"harvest":
 			return "Right-click the Orichalcum rock in the middle of the map (the gold patch on the minimap). The harvesters drive there and start work."
 	var storage := def.player_refinery.storage if def.player_refinery != null else 0
-	return "The harvesters now work on their own: dig, drive back, unload, return. The refinery stores up to %d; what does not fit is lost. The rock runs out." % storage
+	if def.has_raid():
+		return "Raiders are coming for your harvesters. A harvester that is attacked unfolds and guards its trailer. Send your troops to help it: if it dies, the raiders take the trailer's Orichalcum."
+	return "The harvesters now work on their own: the robot fills the trailer, the truck takes it to the refinery. The refinery stores up to %d; when it is full they wait with their load." % storage

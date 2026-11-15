@@ -2,7 +2,8 @@ class_name Mission
 extends RefCounted
 ## A mission being played: the world, the control point, the scripted opponent
 ## and the rule that decides who has won. A practice mission (see MissionDef)
-## has no opponent and no winner; it is just the world, ticking.
+## has no control point to hold and no winner: it is just the world, ticking,
+## with raiders in it if the mission has enemy troops.
 
 const PLAYER_TEAM := SimWorld.PLAYER_TEAM
 const ENEMY_TEAM := 1
@@ -12,6 +13,8 @@ var def: MissionDef
 var world: SimWorld
 var control: ControlPoint
 var opponent: ScriptedOpponent
+## The enemy of a practice mission with a raid, otherwise null.
+var raiders: Raiders
 ## Id of the player's commander. It stays the same after the commander dies.
 var player_commander_id := 0
 ## Id of the player's refinery, or 0 if the mission gives none.
@@ -37,7 +40,7 @@ func _init(p_def: MissionDef) -> void:
 		var site := world.nearest_build_site(def.player_refinery, player_start)
 		if site != SimWorld.NO_CELL:
 			player_refinery_id = world.add_building(def.player_refinery, PLAYER_TEAM, site).id
-	var commander := _spawn(PLAYER_TEAM, player_start, def.player_commander, def.player_troop)
+	var commander := _spawn(PLAYER_TEAM, player_start, def.player_commander, def.player_troop, def.troop_count)
 	player_commander_id = commander.id if commander != null else 0
 	if def.practice:
 		# Nothing is hidden in a practice mission that the player is sent to: the rock is on the map from the start.
@@ -51,7 +54,9 @@ func _init(p_def: MissionDef) -> void:
 			beside = refinery.cell + Vector2i(refinery.type.footprint.x / 2, refinery.type.footprint.y)
 		for unit in world.add_group(def.player_harvester, PLAYER_TEAM, beside, def.harvester_count):
 			unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
-	_spawn(ENEMY_TEAM, enemy_start, def.enemy_commander, def.enemy_troop)
+	_spawn(ENEMY_TEAM, enemy_start, def.enemy_commander, def.enemy_troop, def.enemy_troops())
+	if def.has_raid():
+		raiders = Raiders.new(world, ENEMY_TEAM, def.enemy_delay_seconds)
 	opponent = ScriptedOpponent.new(world, control, ENEMY_TEAM, enemy_start, def.enemy_delay_seconds)
 	# The second wave is the commander and the second half of the troops.
 	var troops := 0
@@ -60,18 +65,18 @@ func _init(p_def: MissionDef) -> void:
 			continue
 		if not unit.type.is_hero:
 			troops += 1
-		if def.enemy_wave_seconds > 0.0 and (unit.type.is_hero or troops > (def.troop_count + 1) / 2):
+		if def.enemy_wave_seconds > 0.0 and (unit.type.is_hero or troops > (def.enemy_troops() + 1) / 2):
 			opponent.hold_back(unit.id, def.enemy_wave_seconds)
 
 
 ## Put one side on the map: the commander on the start cell, the troops around
 ## it, everyone facing the control point. Returns the commander.
-func _spawn(team: int, start: Vector2i, commander_type: UnitType, troop_type: UnitType) -> SimUnit:
+func _spawn(team: int, start: Vector2i, commander_type: UnitType, troop_type: UnitType, troops: int) -> SimUnit:
 	var group: Array[SimUnit] = []
 	if commander_type != null:
 		group.append_array(world.add_group(commander_type, team, start, 1))
 	if troop_type != null:
-		group.append_array(world.add_group(troop_type, team, start, def.troop_count))
+		group.append_array(world.add_group(troop_type, team, start, troops))
 	for unit in group:
 		unit.facing = SimWorld.facing_toward(Vector2i(control.center) - unit.cell)
 	return group[0] if commander_type != null and not group.is_empty() else null
@@ -95,6 +100,8 @@ func tick() -> void:
 	if is_over():
 		return
 	if def.practice:
+		if raiders != null:
+			raiders.tick()
 		world.tick()
 		return
 	opponent.tick()

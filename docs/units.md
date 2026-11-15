@@ -30,8 +30,11 @@ for now and will be tuned much later.
 | Field Commander | Blue hero | 120 | 2.5 cells/s | 5 cells | 16, range 1, once a second |
 | Field Commander | Red hero (placeholder) | 120 | 2.5 cells/s | 5 cells | 16, range 1, once a second |
 
-The harvester (150 health, 3.5 cells/s, cannot attack) came in M4 and is
-described in [economy.md](economy.md).
+The harvester came in M4 and is described in [economy.md](economy.md). It is
+a truck (180 health, 3.5 cells/s) whose cab stands up as a robot (2 cells/s,
+armour that stops 70% of every hit, attack 10 every 1.5 seconds) and leaves
+its trailer standing. It takes no attack orders: the robot fights only to
+defend its trailer.
 
 In Mission 1 each side has four troops and its field commander. Each map
 lists the two start positions.

@@ -201,7 +201,8 @@ All of these are first values, kept in data so they are easy to change.
 
 ## Left out of M3
 
-- Armour. The mockups show an armour value; hits take their full damage.
+- Armour for troops. The mockups show an armour value; hits on troops take their full
+  damage. (The harvester's robot has armour since M4: see [economy.md](economy.md).)
 - A hold-position order and a patrol order.
 - Ranged weapons with projectiles. The rules support any range, but both
   infantry types fight at range 1.

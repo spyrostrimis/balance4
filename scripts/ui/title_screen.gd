@@ -3,18 +3,22 @@ extends Control
 ##
 ## Starting the game with "-- --map=<name>" on the command line skips this
 ## screen and starts the mission of that name: forest or desert for Mission 1,
-## harvest-forest or harvest-desert for the harvest trial.
+## harvest-forest or harvest-desert for the harvest trial, raid-forest or
+## raid-desert for the raid trial.
 
 const MILESTONE := "M4 Economy"
 const MAP_SCENE := "res://scenes/map_view.tscn"
 ## Name -> the mission started by it. Mission 1 is played as Blue on the
 ## forest map and as Red on the desert map. The harvest trial is a practice
-## mission on the same maps: a refinery, two harvesters and no opponent.
+## mission on the same maps: a refinery, two harvesters and no opponent. The
+## raid trial adds three soldiers for the player and three raiders.
 const MISSIONS := {
 	"forest": "res://data/missions/first_claim_blue.tres",
 	"desert": "res://data/missions/first_claim_red.tres",
 	"harvest-forest": "res://data/missions/harvest_trial_blue.tres",
 	"harvest-desert": "res://data/missions/harvest_trial_red.tres",
+	"raid-forest": "res://data/missions/raid_trial_blue.tres",
+	"raid-desert": "res://data/missions/raid_trial_red.tres",
 }
 
 @onready var _status: Label = $Center/Box/Status
@@ -23,6 +27,8 @@ const MISSIONS := {
 @onready var _quit: Button = $Center/Box/Buttons/Quit
 @onready var _harvest_forest: Button = $Center/Box/Trials/HarvestForest
 @onready var _harvest_desert: Button = $Center/Box/Trials/HarvestDesert
+@onready var _raid_forest: Button = $Center/Box/Raids/RaidForest
+@onready var _raid_desert: Button = $Center/Box/Raids/RaidDesert
 
 
 func _ready() -> void:
@@ -32,6 +38,8 @@ func _ready() -> void:
 	_desert.pressed.connect(open_map.bind("desert"))
 	_harvest_forest.pressed.connect(open_map.bind("harvest-forest"))
 	_harvest_desert.pressed.connect(open_map.bind("harvest-desert"))
+	_raid_forest.pressed.connect(open_map.bind("raid-forest"))
+	_raid_desert.pressed.connect(open_map.bind("raid-desert"))
 	_quit.pressed.connect(get_tree().quit)
 	_forest.grab_focus()
 	var wanted := map_from_args(OS.get_cmdline_user_args())

@@ -13,11 +13,14 @@
 # Facing 0 looks south (towards the camera), 2 west, 4 north, 6 east.
 # Troops: pose 0 stands; poses 1 and 2 are the two halves of a walking step.
 # Harvesters: pose 0 is the empty truck, 1 the loaded truck, 2 halfway between truck and
-# robot, 3 and 4 the two halves of the robot's swing.
+# robot, 3 and 4 the two halves of the robot's swing, 5 the robot standing with its arms down.
+# Trailers (the back of the truck, left standing when the robot steps off): pose 0 is empty,
+# 1 loaded. A trailer is rendered where it sits in the truck, so the two pictures line up.
 # Buildings have one pose and one facing.
 #
 # The models and the lighting are those of the approved style mockups (mockups/src/v5_units.py
-# and v6_radar.py). The harvester's robot shape and the refinery are new, in the same manner.
+# and v6_radar.py). The harvester's robot shape, its trailer and the refinery are new, in the
+# same manner.
 import bpy, sys, math, os
 from mathutils import Vector, noise
 
@@ -373,9 +376,26 @@ def wheel(x, y, z=0.0, r=0.115, wd=0.1):
     cyl(r * 0.5, wd + 0.01, x=x, y=y, z=z + r, m=HULL_D, rot=(0, pi / 2, 0), center=True, verts=8)
 
 
+def hopper(team, loaded):
+    """The open hopper that is the back of the truck and, unhitched, the trailer. It shows a
+    heap of ore when it is loaded. Its end boards carry the team colour."""
+    T, T2 = TEAM[team]
+    box(0.46, 0.62, 0.04, y=0.14, z=0.18, m=HULL)
+    for sx in (-1, 1):
+        box(0.04, 0.62, 0.14, x=sx * 0.23, y=0.14, z=0.2, m=HULL)
+    for y in (-0.17, 0.45):
+        box(0.46, 0.04, 0.14, y=y, z=0.2, m=HULL)
+        box(0.46, 0.05, 0.02, y=y, z=0.34, m=T2, bevel=0)               # team-coloured rim
+    if loaded:
+        blob(0.2, 0, 0.14, 0.27, ORE_L, amp=0.3, freq=2.2, seed=4, sc=(0.95, 1.35, 0.5))
+        blob(0.11, 0.06, 0.02, 0.33, ORE_L, amp=0.3, freq=2.2, seed=5, sc=(1, 1, 0.6))
+    else:
+        box(0.38, 0.54, 0.02, y=0.14, z=0.22, m=HULL_D, bevel=0)        # the empty hopper floor
+
+
 def harvester_truck(team, loaded):
-    """The harvester as a truck: a cab in front and an open hopper behind it, after the
-    approved mockup. The hopper shows a heap of ore when it is loaded."""
+    """The harvester as a truck: a cab in front and an open hopper (its trailer) behind it,
+    after the approved mockup."""
     T, T2 = TEAM[team]
     for sx in (-1, 1):
         for y in (-0.34, 0.0, 0.34):
@@ -384,23 +404,28 @@ def harvester_truck(team, loaded):
     box(0.42, 0.98, 0.08, z=0.1, m=HULL_D)
     box(0.42, 0.26, 0.2, y=-0.34, z=0.18, m=T)
     box(0.38, 0.12, 0.03, y=-0.4, z=0.38, m=GLASS)
-    box(0.46, 0.62, 0.04, y=0.14, z=0.18, m=HULL)
-    for sx in (-1, 1):
-        box(0.04, 0.62, 0.14, x=sx * 0.23, y=0.14, z=0.2, m=HULL)
-    for y in (-0.17, 0.45):
-        box(0.46, 0.04, 0.14, y=y, z=0.2, m=HULL)
-    if loaded:
-        blob(0.2, 0, 0.14, 0.27, ORE_L, amp=0.3, freq=2.2, seed=4, sc=(0.95, 1.35, 0.5))
-        blob(0.11, 0.06, 0.02, 0.33, ORE_L, amp=0.3, freq=2.2, seed=5, sc=(1, 1, 0.6))
-    else:
-        box(0.38, 0.54, 0.02, y=0.14, z=0.22, m=HULL_D, bevel=0)        # the empty hopper floor
+    hopper(team, loaded)
     cyl(0.03, 0.1, x=0.15, y=-0.22, z=0.38, m=HULL_D, verts=8)
 
 
+def harvester_trailer(team, loaded):
+    """The trailer on its own: the hopper on its four wheels, where it sits in the truck, with
+    a drawbar and a leg in front where the cab was."""
+    for sx in (-1, 1):
+        for y in (0.0, 0.34):
+            wheel(sx * 0.26, y)
+    box(0.42, 0.66, 0.08, y=0.14, z=0.1, m=HULL_D)                      # chassis
+    box(0.1, 0.16, 0.05, y=-0.26, z=0.11, m=HULL_D)                     # drawbar
+    cyl(0.035, 0.11, y=-0.31, z=0.0, m=HULL_D, verts=8)                 # the leg it rests on
+    cyl(0.06, 0.02, y=-0.31, z=0.0, m=IRON, verts=8)
+    hopper(team, loaded)
+
+
 def harvester_robot(team, pose):
-    """The harvester standing up as a squat robot: the wheels become its feet, the hopper its
-    back, the cab its head and the folded arms unfold. pose 0 is halfway there; poses 1 and 2
-    are the two halves of its swing at the rock, one arm up while the other is down."""
+    """The harvester's cab standing up as a squat robot: its wheels become its feet, the cab
+    its head, the folded arms unfold and it carries a pack for ore on its back. pose 0 is
+    halfway there; poses 1 and 2 are the two halves of its swing (at the rock, or at an
+    enemy), one arm up while the other is down; pose 3 stands with both arms lowered."""
     T, T2 = TEAM[team]
     up = 0.5 if pose == 0 else 1.0                 # how far it has risen
     lean = (1 - up) * 0.5
@@ -423,6 +448,8 @@ def harvester_robot(team, pose):
         box(0.13, 0.16, 0.12, x=sh.x, y=sh.y, z=sh.z - 0.06, m=T2)                   # shoulders
         if pose == 0:
             hand = sh + Vector((0, -0.18, -0.14))
+        elif pose == 3:
+            hand = sh + Vector((0, -0.14, -0.2))   # at rest
         elif (pose == 1) == (sx == 1):
             hand = sh + Vector((0, -0.3, 0.2))     # raised
         else:
@@ -484,12 +511,17 @@ STEEP = math.radians(24)
 for team in ('blue', 'red'):
     unit = f'harvester_{team}'
     if not ONLY or unit in ONLY:
-        for pose in range(5):
+        for pose in range(6):
             if pose < 2:
                 harvester_truck(team, pose == 1)
             else:
                 harvester_robot(team, pose - 2)
             render(f'{unit}_p{pose}', 2, 8, 1.0, STEEP)
+    trailer = f'trailer_{team}'
+    if not ONLY or trailer in ONLY:
+        for pose in range(2):
+            harvester_trailer(team, pose == 1)
+            render(f'{trailer}_p{pose}', 2, 8, 1.0, STEEP)
     building = f'refinery_{team}'
     if not ONLY or building in ONLY:
         refinery(team)
